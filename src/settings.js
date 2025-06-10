@@ -9,35 +9,32 @@ const defaultSettings = {
     'math-support': 'on',
     'table-of-contents': 'on',
     'todo-list': 'on',
-    'code-highlight': 'on'
+    'code-highlight': 'on',
+    'external-theme': ''
 };
 
-function loadSettings() {
-    try {
-        const savedSettings = localStorage.getItem('editorSettings');
-        if (savedSettings) {
-            const parsed = JSON.parse(savedSettings);
-            const normalizedSettings = {};
-            Object.keys(defaultSettings).forEach(key => {
-                normalizedSettings[key] = parsed[key] || defaultSettings[key];
-            });
-            return normalizedSettings;
+async function loadSettings() {
+    if (window.electron) {
+        try {
+            const config = await window.electron.loadConfig();
+            console.log('Loaded config from main process:', config);
+            return config;
+        } catch (error) {
+            console.error('Error loading config from main process:', error);
+            return defaultSettings; // Fallback to default settings on error
         }
-    } catch (e) {
-        console.error('Error loading settings:', e);
+    } else {
+        console.error('Electron API not available, cannot load config.');
+        return defaultSettings; // Fallback for browser environment or handle error
     }
-    return defaultSettings;
 }
 
 function saveSettings(settings) {
-    try {
-        const normalizedSettings = {};
-        Object.keys(defaultSettings).forEach(key => {
-            normalizedSettings[key] = settings[key] || defaultSettings[key];
-        });
-        localStorage.setItem('editorSettings', JSON.stringify(normalizedSettings));
-    } catch (e) {
-        console.error('Error saving settings:', e);
+    if (window.electron) {
+        window.electron.saveConfig(settings);
+    } else {
+        console.error('Electron API not available, cannot save config.');
+        // Fallback for browser environment or handle error
     }
 }
 
@@ -141,23 +138,68 @@ function applySettings(settings) {
         if (highlightScript) highlightScript.remove();
         if (highlightStyle) highlightStyle.remove();
     }
+
+    // Handle external theme
+    const externalThemeLink = document.getElementById('external-theme-link');
+    const externalThemeFileName = settings['external-theme'];
+    
+    if (externalThemeFileName && externalThemeFileName !== '') {
+        if (window.electron && window.electron.getThemesPath) {
+            window.electron.getThemesPath().then(themesPath => {
+                const themePath = `file://${themesPath}/${externalThemeFileName}`;
+                if (externalThemeLink) {
+                    externalThemeLink.href = themePath;
+                } else {
+                    const link = document.createElement('link');
+                    link.id = 'external-theme-link';
+                    link.rel = 'stylesheet';
+                    link.href = themePath;
+                    document.head.appendChild(link);
+                }
+            }).catch(error => {
+                console.error('Error getting themes path:', error);
+            });
+        } else {
+            console.error('Electron API or getThemesPath not available for external theme.');
+        }
+    } else {
+        if (externalThemeLink) {
+            externalThemeLink.remove();
+        }
+    }
     
     const event = new Event('input');
     editor.dispatchEvent(event);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('settings.js: DOMContentLoaded event fired.');
     const settingsModal = document.getElementById('settings-modal');
     const settingsButton = document.getElementById('settings-button');
     const closeModal = document.querySelector('.close-modal');
     const saveSettingsButton = document.getElementById('save-settings');
     const resetSettingsButton = document.getElementById('reset-settings');
     
-    let currentSettings = loadSettings();
-    console.log('Loaded settings:', currentSettings);
+    let currentSettings;
     
+    currentSettings = await loadSettings();
+    console.log('Initial settings applied after load:', currentSettings);
     applySettings(currentSettings);
     
+    // Fetch and populate external themes
+    if (window.electron && window.electron.getThemesList) {
+        const externalThemeSelect = document.getElementById('external-theme');
+        if (externalThemeSelect) {
+            const themes = await window.electron.getThemesList();
+            themes.forEach(theme => {
+                const option = document.createElement('option');
+                option.value = theme;
+                option.textContent = theme;
+                externalThemeSelect.appendChild(option);
+            });
+        }
+    }
+
     Object.keys(currentSettings).forEach(key => {
         const element = document.getElementById(key);
         if (element) {
@@ -165,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    const settingInputs = document.querySelectorAll('.setting-item select');
+    const settingInputs = document.querySelectorAll('.setting-item select, .setting-item input[type="text"]');
     settingInputs.forEach(input => {
         input.addEventListener('change', (e) => {
             const newSettings = { ...currentSettings };
@@ -177,6 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     settingsButton.addEventListener('click', () => {
+        console.log('Settings button clicked.');
+        console.log('settingsModal element:', settingsModal);
+        console.log('currentSettings when button clicked:', currentSettings);
+        if (currentSettings) {
+            Object.keys(currentSettings).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = currentSettings[key];
+                }
+            });
+        }
         settingsModal.classList.add('show');
     });
     
@@ -202,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Saving new settings:', newSettings);
         currentSettings = newSettings;
         saveSettings(currentSettings);
-        applySettings(currentSettings);
+        applySettings(currentSettings); // Применяем настройки сразу после сохранения
         settingsModal.classList.remove('show');
     });
     
@@ -235,5 +288,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    setupAutoSave();
+    setupAutoSave(); // Теперь вызывается после загрузки настроек
 });
