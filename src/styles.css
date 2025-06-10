@@ -1,4 +1,3 @@
-/* Основные стили */
 * {
     margin: 0;
     padding: 0;
@@ -14,7 +13,6 @@ body {
     min-height: 100vh;
 }
 
-/* Переменные для светлой темы */
 [data-theme="light"] {
     --bg-color: #ffffff;
     --text-color: #2c3e50;
@@ -31,7 +29,6 @@ body {
     --text-muted: #6c757d;
 }
 
-/* Переменные для темной темы */
 [data-theme="dark"] {
     --bg-color: #1a1b1e;
     --text-color: #dcddde;
@@ -48,7 +45,6 @@ body {
     --text-muted: #a1a1aa;
 }
 
-/* Контейнер */
 .container {
     max-width: 1400px;
     margin: 0 auto;
@@ -59,7 +55,6 @@ body {
     gap: 0;
 }
 
-/* Sidebar Toolbar */
 .sidebar-toolbar {
     display: flex;
     flex-direction: column;
@@ -111,7 +106,6 @@ body {
     color: var(--text-color);
 }
 
-/* Tab Bar */
 .tab-bar {
     display: flex;
     background: var(--header-bg);
@@ -189,7 +183,6 @@ body {
     color: var(--text-color);
 }
 
-/* Редактор */
 .editor-container {
     background: var(--card-bg);
     flex: 1;
@@ -263,7 +256,6 @@ body {
     font-size: 0.95rem;
 }
 
-/* Editor Tools */
 .editor-tools {
     position: absolute;
     bottom: 1rem;
@@ -306,7 +298,6 @@ body {
     color: var(--text-color);
 }
 
-/* Preview Styles */
 .preview-content h1 { 
     font-size: 1.8em; 
     margin: 1em 0 0.5em; 
@@ -386,7 +377,6 @@ body {
     text-decoration: underline;
 }
 
-/* Sidebar Divider */
 .sidebar-divider {
     width: 24px;
     height: 1px;
@@ -394,13 +384,11 @@ body {
     margin: 0.5rem 0;
 }
 
-/* Editor Icons */
 .editor-icon {
     font-size: 1em;
     opacity: 0.8;
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .container {
         padding: 0;
@@ -444,7 +432,6 @@ body {
     background: var(--accent-color);
 }
 
-/* Table Styles */
 .preview-content table {
     width: 100%;
     border-collapse: collapse;
@@ -477,7 +464,6 @@ body {
     background: var(--hover-color);
 }
 
-/* List Styles */
 .preview-content ul,
 .preview-content ol {
     margin: 0.75em 0;
@@ -517,7 +503,6 @@ body {
     list-style-type: lower-roman;
 }
 
-/* To-do List Styles */
 .preview-content .todo-list {
     list-style: none;
     padding-left: 0;
@@ -545,7 +530,6 @@ body {
     color: var(--text-muted);
 }
 
-/* Table of Contents Styles */
 .table-of-contents {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -585,7 +569,6 @@ body {
 .toc-level-5 { padding-left: 4em; }
 .toc-level-6 { padding-left: 5em; }
 
-/* Modal Styles */
 .modal {
     display: none;
     position: fixed;
@@ -662,7 +645,6 @@ body {
     gap: 1rem;
 }
 
-/* Settings Styles */
 .settings-group {
     margin-bottom: 2rem;
 }
@@ -714,7 +696,6 @@ body {
     box-shadow: 0 0 0 2px var(--accent-color);
 }
 
-/* Button Styles */
 .button-primary,
 .button-secondary {
     padding: 0.5rem 1rem;
@@ -745,7 +726,6 @@ body {
     border-color: var(--accent-color);
 }
 
-/* Preview Themes */
 .preview-theme-github {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     line-height: 1.6;
@@ -861,7 +841,6 @@ body {
     background-color: #32333a;
 }
 
-/* Logo */
 .logo {
     display: flex;
     align-items: center;
@@ -885,4 +864,3 @@ body {
     border-radius: 8px;
     object-fit: cover;
 }
-
