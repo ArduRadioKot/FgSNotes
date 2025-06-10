@@ -1,0 +1,137 @@
+:root {
+    --bg-color: #24292e; /* GitHub Dark background */
+    --text-color: #e1e4e8; /* GitHub Dark foreground */
+    --card-bg: #2b3137; /* GitHub Dark slightly lighter background */
+    --border-color: #444c56; /* GitHub Dark border */
+    --hover-color: #31363c; /* GitHub Dark hover */
+    --accent-color: #0366d6; /* GitHub blue */
+    --sidebar-color: #1a1e23; /* GitHub Dark darker sidebar */
+    --link-color: #0366d6; /* GitHub blue */
+    --shadow-color: rgba(0, 0, 0, 0.4); /* Darker shadows */
+    --code-bg: #323842; /* GitHub Dark background for code blocks */
+    --header-bg: #2b3137; /* GitHub Dark header background */
+    --active-bg: #005cc5; /* GitHub blue active state */
+    --text-muted: #6a737d; /* GitHub Dark comment color */
+
+    /* GitHub Dark specific colors for markdown elements */
+    --github-red: #cb2431;
+    --github-green: #28a745;
+    --github-yellow: #f1e05a;
+    --github-purple: #6f42c1;
+    --github-cyan: #40c463;
+    --github-orange: #d19a66;
+}
+
+body {
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.sidebar-toolbar {
+    background: var(--sidebar-color);
+}
+
+.tab-bar,
+.editor-label {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-item.active {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+#markdown-editor,
+.preview-content {
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+.editor-tools {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+.tool-group {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+.tool-button:hover,
+.sidebar-button:hover,
+.new-tab-button:hover,
+.close-tab:hover {
+    background: var(--hover-color);
+    color: var(--text-color);
+}
+
+.preview-content h1,
+.preview-content h2,
+.preview-content h3,
+.preview-content h4,
+.preview-content h5,
+.preview-content h6 {
+    color: var(--github-green);
+}
+
+.preview-content pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+}
+
+.preview-content code {
+    background: var(--code-bg);
+    color: var(--github-red);
+}
+
+.preview-content blockquote {
+    border-left: 4px solid var(--github-yellow);
+    background: var(--card-bg);
+    color: var(--text-muted);
+}
+
+.preview-content a {
+    color: var(--link-color);
+}
+
+.button-primary {
+    background: var(--accent-color);
+}
+
+.button-primary:hover {
+    background: var(--github-purple);
+}
+
+.button-secondary {
+    border: 1px solid var(--border-color);
+}
+
+.button-secondary:hover {
+    background: var(--hover-color);
+    border-color: var(--accent-color);
+}
+
+.setting-item select {
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.setting-item select:hover {
+    border-color: var(--accent-color);
+}
+
+.setting-item select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.panel-divider {
+    background: var(--border-color);
+}
+
+.panel-divider:hover,
+.panel-divider.dragging {
+    background: var(--accent-color);
+} 
