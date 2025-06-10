@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1b1e">
+    <link rel="stylesheet" href="styles.css">
+    <script src="theme.js"></script>
+</head>
+<body class="editor-page">
+    <main>
+        <div class="container">
+            <aside class="sidebar-toolbar">
+                <a href="" class="logo">
+                    <img src="logo.png" class="logo-icon">
+                </a>
+                <div class="sidebar-main-buttons">
+                    <button class="sidebar-button" id="new-file-button" title="Новый файл">&#128441;</button>
+                    <button class="sidebar-button" id="open-file-button" title="Открыть файл">&#128193;</button>
+                    <button class="sidebar-button" id="save-file-button" title="Сохранить файл">&#128190;</button>
+                </div>
+                <div class="sidebar-bottom-buttons">
+                    <button class="sidebar-button" id="settings-button" title="Настройки">&#9881;</button>
+                    <button class="sidebar-button" id="theme-toggle-button" title="Сменить тему" onclick="toggleTheme()">&#127769;</button>
+                </div>
+            </aside>
+            <div class="editor-container">
+                <div class="tab-bar">
+                    <div class="tab-item active" data-index="0">Документ 1 <span class="close-tab">×</span></div>
+                    <button class="new-tab-button">+</button>
+                </div>
+                <div class="editor-wrapper">
+                    <div class="editor-column">
+                        <div class="editor-label">
+                            <span class="editor-icon">&#9998;</span>
+                            Markdown
+                        </div>
+                        <textarea id="markdown-editor" placeholder="Напишите вашу заметку..."></textarea>
+                    </div>
+                    <div class="panel-divider"></div>
+                    <div class="preview-column">
+                        <div class="editor-label">
+                            <span class="editor-icon">&#128065;</span>
+                            Предпросмотр
+                        </div>
+                        <div id="preview" class="preview-content"></div>
+                    </div>
+                </div>
+                <div class="editor-tools">
+                    <div class="tool-group">
+                        <button class="tool-button" title="Жирный текст" onclick="insertMarkdown('**', '**')">B</button>
+                        <button class="tool-button" title="Курсив" onclick="insertMarkdown('*', '*')">I</button>
+                        <button class="tool-button" title="Зачеркнутый текст" onclick="insertMarkdown('~~', '~~')">S</button>
+                        <button class="tool-button" title="Подчеркнутый текст" onclick="insertMarkdown('<u>', '</u>')">U</button>
+                    </div>
+                    <div class="tool-group">
+                        <button class="tool-button" title="Надстрочный текст" onclick="insertMarkdown('<sup>', '</sup>')">x²</button>
+                        <button class="tool-button" title="Подстрочный текст" onclick="insertMarkdown('<sub>', '</sub>')">x₂</button>
+                    </div>
+                    <div class="tool-group">
+                        <button class="tool-button" title="Код" onclick="insertMarkdown('```\n', '\n```')">&lt;/&gt;</button>
+                        <button class="tool-button" title="Изображение" onclick="insertMarkdown('![alt text](', ')')">&#128444;</button>
+                        <button class="tool-button" title="Цитата" onclick="insertMarkdown('> ', '')">&#8221;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальное окно настроек -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Настройки</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <h3>Внешний вид</h3>
+                    <div class="setting-item">
+                        <label for="font-size">Размер шрифта:</label>
+                        <select id="font-size">
+                            <option value="small">Маленький</option>
+                            <option value="medium" selected>Средний</option>
+                            <option value="large">Большой</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="font-family">Шрифт:</label>
+                        <select id="font-family">
+                            <option value="system">Системный</option>
+                            <option value="mono" selected>Моноширинный</option>
+                            <option value="serif">С засечками</option>
+                            <option value="sans">Без засечек</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="line-height">Межстрочный интервал:</label>
+                        <select id="line-height">
+                            <option value="1.4">Узкий</option>
+                            <option value="1.6" selected>Средний</option>
+                            <option value="1.8">Широкий</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Редактор</h3>
+                    <div class="setting-item">
+                        <label for="tab-size">Размер табуляции:</label>
+                        <select id="tab-size">
+                            <option value="2">2 пробела</option>
+                            <option value="4" selected>4 пробела</option>
+                            <option value="8">8 пробелов</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="word-wrap">Перенос слов:</label>
+                        <select id="word-wrap">
+                            <option value="off">Выключен</option>
+                            <option value="on" selected>Включен</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="auto-save">Автосохранение:</label>
+                        <select id="auto-save">
+                            <option value="off">Выключено</option>
+                            <option value="1">Каждую минуту</option>
+                            <option value="5" selected>Каждые 5 минут</option>
+                            <option value="10">Каждые 10 минут</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Предпросмотр</h3>
+                    <div class="setting-item">
+                        <label for="preview-theme">Тема предпросмотра:</label>
+                        <select id="preview-theme">
+                            <option value="default" selected>По умолчанию</option>
+                            <option value="github">GitHub</option>
+                            <option value="dark">Тёмная</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="math-support">Поддержка формул:</label>
+                        <select id="math-support">
+                            <option value="off">Выключена</option>
+                            <option value="on" selected>Включена</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="button-secondary" id="reset-settings">Сбросить настройки</button>
+                <button class="button-primary" id="save-settings">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="editor.js"></script>
+    <script src="resize.js"></script>
+    <script src="settings.js"></script>
+</body>
+</html> 
