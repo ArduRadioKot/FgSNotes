@@ -6,7 +6,10 @@ const defaultSettings = {
     'word-wrap': 'on',
     'auto-save': '5',
     'preview-theme': 'default',
-    'math-support': 'on'
+    'math-support': 'on',
+    'table-of-contents': 'on',
+    'todo-list': 'on',
+    'code-highlight': 'on'
 };
 
 function loadSettings() {
@@ -116,6 +119,27 @@ function applySettings(settings) {
         if (mathjaxScript) {
             mathjaxScript.remove();
         }
+    }
+    
+    if (settings['code-highlight'] === 'on') {
+        if (!document.getElementById('highlight-script')) {
+            const script = document.createElement('script');
+            script.id = 'highlight-script';
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js';
+            script.async = true;
+            document.head.appendChild(script);
+            
+            const style = document.createElement('link');
+            style.id = 'highlight-style';
+            style.rel = 'stylesheet';
+            style.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css';
+            document.head.appendChild(style);
+        }
+    } else {
+        const highlightScript = document.getElementById('highlight-script');
+        const highlightStyle = document.getElementById('highlight-style');
+        if (highlightScript) highlightScript.remove();
+        if (highlightStyle) highlightStyle.remove();
     }
     
     const event = new Event('input');
