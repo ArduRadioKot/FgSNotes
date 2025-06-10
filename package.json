@@ -6,8 +6,9 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --dir",
-    "pack": "electron-builder --mac --win --linux",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:mac-intel": "electron-builder --mac --x64",
+    "build:win32": "electron-builder --win --ia32",
+    "build:all": "electron-builder --mac --x64 --win --ia32"
   },
   "keywords": [],
   "author": "",
@@ -16,13 +17,19 @@
     "appId": "FrogeeSoft",
     "productName": "FgSNotes",
     "mac": {
-      "icon": "icon.png"
+      "icon": "icon.png",
+      "target": ["dmg", "zip"]
     },
     "win": {
-      "icon": "icon.png"
+      "icon": "icon.png",
+      "target": ["nsis", "portable"]
     },
     "linux": {
       "icon": "icon.png"
     }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
   }
 }
