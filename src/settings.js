@@ -137,7 +137,7 @@ function applySettings(settings) {
         const highlightStyle = document.getElementById('highlight-style');
         if (highlightScript) highlightScript.remove();
         if (highlightStyle) highlightStyle.remove();
-    }
+}
 
     // Handle external theme
     const externalThemeLink = document.getElementById('external-theme-link');
@@ -289,4 +289,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     setupAutoSave(); // Теперь вызывается после загрузки настроек
-});
+}); 

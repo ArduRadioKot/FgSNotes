@@ -20,6 +20,7 @@ function createWindow() {
   const appConfigDirPath = path.join(documentsPath, 'FgSNotes');
   const configFilePath = path.join(appConfigDirPath, 'config.json');
   const themesDirPath = path.join(appConfigDirPath, 'themes');
+  const pluginsDirPath = path.join(appConfigDirPath, 'plugins');
 
   if (!fs.existsSync(appConfigDirPath)) {
     fs.mkdirSync(appConfigDirPath, { recursive: true });
@@ -30,6 +31,12 @@ function createWindow() {
   if (!fs.existsSync(themesDirPath)) {
     fs.mkdirSync(themesDirPath, { recursive: true });
     console.log(`Папка themes создана по пути: ${themesDirPath}`);
+  }
+
+  // Проверяем и создаем папку plugins, если её нет
+  if (!fs.existsSync(pluginsDirPath)) {
+    fs.mkdirSync(pluginsDirPath, { recursive: true });
+    console.log(`Папка plugins создана по пути: ${pluginsDirPath}`);
   }
 
   let configContent = {};
