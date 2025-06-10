@@ -1,34 +1,59 @@
 const defaultSettings = {
-    fontSize: 'medium',
-    fontFamily: 'mono',
-    lineHeight: '1.6',
-    tabSize: '4',
-    wordWrap: 'on',
-    autoSave: '5',
-    previewTheme: 'default',
-    mathSupport: 'on'
+    'font-size': 'medium',
+    'font-family': 'mono',
+    'line-height': '1.6',
+    'tab-size': '4',
+    'word-wrap': 'on',
+    'auto-save': '5',
+    'preview-theme': 'default',
+    'math-support': 'on'
 };
 
 function loadSettings() {
-    const savedSettings = localStorage.getItem('editorSettings');
-    return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
+    try {
+        const savedSettings = localStorage.getItem('editorSettings');
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            const normalizedSettings = {};
+            Object.keys(defaultSettings).forEach(key => {
+                normalizedSettings[key] = parsed[key] || defaultSettings[key];
+            });
+            return normalizedSettings;
+        }
+    } catch (e) {
+        console.error('Error loading settings:', e);
+    }
+    return defaultSettings;
 }
 
 function saveSettings(settings) {
-    localStorage.setItem('editorSettings', JSON.stringify(settings));
+    try {
+        const normalizedSettings = {};
+        Object.keys(defaultSettings).forEach(key => {
+            normalizedSettings[key] = settings[key] || defaultSettings[key];
+        });
+        localStorage.setItem('editorSettings', JSON.stringify(normalizedSettings));
+    } catch (e) {
+        console.error('Error saving settings:', e);
+    }
 }
 
 function applySettings(settings) {
+    console.log('Applying settings:', settings);
+    
     const editor = document.getElementById('markdown-editor');
     const preview = document.getElementById('preview');
+    
+    if (!editor || !preview) {
+        console.error('Editor or preview elements not found');
+        return;
+    }
     
     const fontSizeMap = {
         small: '0.9rem',
         medium: '1rem',
         large: '1.1rem'
     };
-    editor.style.fontSize = fontSizeMap[settings.fontSize];
-    preview.style.fontSize = fontSizeMap[settings.fontSize];
     
     const fontFamilyMap = {
         system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -36,24 +61,49 @@ function applySettings(settings) {
         serif: 'Georgia, "Times New Roman", serif',
         sans: 'Arial, Helvetica, sans-serif'
     };
-    editor.style.fontFamily = fontFamilyMap[settings.fontFamily];
-    preview.style.fontFamily = fontFamilyMap[settings.fontFamily];
     
-    editor.style.lineHeight = settings.lineHeight;
-    preview.style.lineHeight = settings.lineHeight;
+    const fontSize = fontSizeMap[settings['font-size']] || fontSizeMap.medium;
+    const fontFamily = fontFamilyMap[settings['font-family']] || fontFamilyMap.mono;
+    const lineHeight = settings['line-height'] || '1.6';
     
-    editor.style.tabSize = settings.tabSize;
+    console.log('Applying font settings:', { fontSize, fontFamily, lineHeight });
     
-    editor.style.whiteSpace = settings.wordWrap === 'on' ? 'pre-wrap' : 'pre';
+    editor.style.cssText = `
+        font-size: ${fontSize};
+        font-family: ${fontFamily};
+        line-height: ${lineHeight};
+        tab-size: ${settings['tab-size']};
+        white-space: ${settings['word-wrap'] === 'on' ? 'pre-wrap' : 'pre'};
+    `;
+    
+    preview.style.cssText = `
+        font-size: ${fontSize};
+        font-family: ${fontFamily};
+        line-height: ${lineHeight};
+    `;
+    
+    const previewElements = preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, code, pre');
+    previewElements.forEach(element => {
+        element.style.cssText = `
+            font-size: ${fontSize};
+            font-family: ${fontFamily};
+        `;
+    });
     
     const previewThemes = {
         default: '',
         github: 'preview-theme-github',
         dark: 'preview-theme-dark'
     };
-    preview.className = 'preview-content ' + previewThemes[settings.previewTheme];
     
-    if (settings.mathSupport === 'on') {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const previewTheme = settings['preview-theme'] === 'default' ? 
+        (currentTheme === 'dark' ? 'preview-theme-dark' : '') : 
+        previewThemes[settings['preview-theme']];
+    
+    preview.className = 'preview-content ' + previewTheme;
+    
+    if (settings['math-support'] === 'on') {
         if (!document.getElementById('mathjax-script')) {
             const script = document.createElement('script');
             script.id = 'mathjax-script';
@@ -67,6 +117,9 @@ function applySettings(settings) {
             mathjaxScript.remove();
         }
     }
+    
+    const event = new Event('input');
+    editor.dispatchEvent(event);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -77,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetSettingsButton = document.getElementById('reset-settings');
     
     let currentSettings = loadSettings();
+    console.log('Loaded settings:', currentSettings);
     
     applySettings(currentSettings);
     
@@ -85,6 +139,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (element) {
             element.value = currentSettings[key];
         }
+    });
+    
+    const settingInputs = document.querySelectorAll('.setting-item select');
+    settingInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+            const newSettings = { ...currentSettings };
+            newSettings[e.target.id] = e.target.value;
+            currentSettings = newSettings;
+            applySettings(currentSettings);
+            saveSettings(currentSettings);
+        });
     });
     
     settingsButton.addEventListener('click', () => {
@@ -103,15 +168,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     saveSettingsButton.addEventListener('click', () => {
         const newSettings = {};
-        Object.keys(currentSettings).forEach(key => {
+        Object.keys(defaultSettings).forEach(key => {
             const element = document.getElementById(key);
             if (element) {
                 newSettings[key] = element.value;
             }
         });
         
-        saveSettings(newSettings);
+        console.log('Saving new settings:', newSettings);
         currentSettings = newSettings;
+        saveSettings(currentSettings);
         applySettings(currentSettings);
         settingsModal.classList.remove('show');
     });
@@ -123,6 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 element.value = defaultSettings[key];
             }
         });
+        currentSettings = { ...defaultSettings };
+        applySettings(currentSettings);
+        saveSettings(currentSettings);
     });
     
     let autoSaveInterval;
@@ -131,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(autoSaveInterval);
         }
         
-        const interval = parseInt(currentSettings.autoSave);
+        const interval = parseInt(currentSettings['auto-save']);
         if (interval > 0) {
             autoSaveInterval = setInterval(() => {
                 const editor = document.getElementById('markdown-editor');
@@ -143,13 +212,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     setupAutoSave();
-    
-    const settingInputs = document.querySelectorAll('.setting-item select');
-    settingInputs.forEach(input => {
-        input.addEventListener('change', () => {
-            const tempSettings = { ...currentSettings };
-            tempSettings[input.id] = input.value;
-            applySettings(tempSettings);
-        });
-    });
 });
