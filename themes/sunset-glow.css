@@ -1,62 +1,68 @@
 :root {
-    --bg-color: #ffffff; /* Atom Light background */
-    --text-color: #2d3748; /* Atom Light foreground */
-    --card-bg: #f7fafc; /* Atom Light slightly darker background */
-    --border-color: #e2e8f0; /* Atom Light border */
-    --hover-color: #edf2f7; /* Atom Light hover */
-    --accent-color: #3182ce; /* Atom Light blue accent */
-    --sidebar-color: #f8fafc; /* Atom Light sidebar */
-    --link-color: #3182ce; /* Atom Light blue */
-    --shadow-color: rgba(0, 0, 0, 0.1); /* Light shadows */
-    --code-bg: #f7fafc; /* Atom Light background for code blocks */
-    --header-bg: #f8fafc; /* Atom Light header background */
-    --active-bg: #3182ce; /* Atom Light active state */
-    --text-muted: #718096; /* Atom Light comment color */
+    --bg-color: #ff9a9e; /* Sunset Glow gradient start */
+    --text-color: #374151; /* Sunset Glow foreground */
+    --card-bg: rgba(255, 255, 255, 0.15); /* Sunset Glow transparent card */
+    --border-color: rgba(255, 255, 255, 0.25); /* Sunset Glow border */
+    --hover-color: rgba(255, 255, 255, 0.2); /* Sunset Glow hover */
+    --accent-color: #f97316; /* Sunset Glow orange accent */
+    --sidebar-color: rgba(255, 255, 255, 0.1); /* Sunset Glow sidebar */
+    --link-color: #f97316; /* Sunset Glow orange */
+    --shadow-color: rgba(0, 0, 0, 0.2); /* Sunset Glow shadows */
+    --code-bg: rgba(255, 255, 255, 0.15); /* Sunset Glow background for code blocks */
+    --header-bg: rgba(255, 255, 255, 0.12); /* Sunset Glow header background */
+    --active-bg: #f97316; /* Sunset Glow active state */
+    --text-muted: #6b7280; /* Sunset Glow comment color */
 
-    /* Atom Light specific colors for markdown elements */
-    --al-red: #e53e3e;
-    --al-orange: #dd6b20;
-    --al-yellow: #d69e2e;
-    --al-green: #38a169;
-    --al-purple: #805ad5;
-    --al-aqua: #319795;
+    /* Sunset Glow specific colors for markdown elements */
+    --sg-red: #ef4444;
+    --sg-orange: #f97316;
+    --sg-yellow: #eab308;
+    --sg-green: #22c55e;
+    --sg-purple: #8b5cf6;
+    --sg-aqua: #06b6d4;
 }
 
 body {
-    background: var(--bg-color);
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
     color: var(--text-color);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
 }
 
 .sidebar-toolbar {
     background: var(--sidebar-color);
+    backdrop-filter: blur(10px);
 }
 
 .tab-bar,
 .editor-label {
     background: var(--header-bg);
     border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .tab-item.active {
     background: var(--card-bg);
     border-color: var(--accent-color);
+    backdrop-filter: blur(10px);
 }
 
 #markdown-editor,
 .preview-content {
     background: var(--card-bg);
     color: var(--text-color);
+    backdrop-filter: blur(10px);
 }
 
 .editor-tools {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .tool-group {
-    background: var(--bg-color);
+    background: var(--sidebar-color);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .tool-button:hover,
@@ -65,6 +71,7 @@ body {
 .close-tab:hover {
     background: var(--hover-color);
     color: var(--accent-color);
+    backdrop-filter: blur(10px);
 }
 
 .preview-content h1,
@@ -73,23 +80,25 @@ body {
 .preview-content h4,
 .preview-content h5,
 .preview-content h6 {
-    color: var(--al-green);
+    color: var(--sg-green);
 }
 
 .preview-content pre {
     background: var(--code-bg);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .preview-content code {
     background: var(--code-bg);
-    color: var(--al-red);
+    color: var(--sg-red);
 }
 
 .preview-content blockquote {
-    border-left: 4px solid var(--al-yellow);
+    border-left: 4px solid var(--sg-yellow);
     background: var(--card-bg);
     color: var(--text-muted);
+    backdrop-filter: blur(10px);
 }
 
 .preview-content a {
@@ -98,14 +107,17 @@ body {
 
 .button-primary {
     background: var(--accent-color);
+    backdrop-filter: blur(10px);
 }
 
 .button-primary:hover {
-    background: var(--al-purple);
+    background: var(--sg-purple);
 }
 
 .button-secondary {
     border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
 }
 
 .button-secondary:hover {
@@ -114,9 +126,10 @@ body {
 }
 
 .setting-item select {
-    background: var(--bg-color);
+    background: var(--sidebar-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .setting-item select:hover {

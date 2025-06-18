@@ -1,62 +1,68 @@
 :root {
-    --bg-color: #ffffff; /* Atom Light background */
-    --text-color: #2d3748; /* Atom Light foreground */
-    --card-bg: #f7fafc; /* Atom Light slightly darker background */
-    --border-color: #e2e8f0; /* Atom Light border */
-    --hover-color: #edf2f7; /* Atom Light hover */
-    --accent-color: #3182ce; /* Atom Light blue accent */
-    --sidebar-color: #f8fafc; /* Atom Light sidebar */
-    --link-color: #3182ce; /* Atom Light blue */
-    --shadow-color: rgba(0, 0, 0, 0.1); /* Light shadows */
-    --code-bg: #f7fafc; /* Atom Light background for code blocks */
-    --header-bg: #f8fafc; /* Atom Light header background */
-    --active-bg: #3182ce; /* Atom Light active state */
-    --text-muted: #718096; /* Atom Light comment color */
+    --bg-color: #667eea; /* Aurora gradient start */
+    --text-color: #ffffff; /* Aurora foreground */
+    --card-bg: rgba(255, 255, 255, 0.1); /* Aurora transparent card */
+    --border-color: rgba(255, 255, 255, 0.2); /* Aurora border */
+    --hover-color: rgba(255, 255, 255, 0.15); /* Aurora hover */
+    --accent-color: #f093fb; /* Aurora pink accent */
+    --sidebar-color: rgba(255, 255, 255, 0.05); /* Aurora sidebar */
+    --link-color: #f093fb; /* Aurora pink */
+    --shadow-color: rgba(0, 0, 0, 0.3); /* Aurora shadows */
+    --code-bg: rgba(255, 255, 255, 0.1); /* Aurora background for code blocks */
+    --header-bg: rgba(255, 255, 255, 0.08); /* Aurora header background */
+    --active-bg: #f093fb; /* Aurora active state */
+    --text-muted: rgba(255, 255, 255, 0.7); /* Aurora comment color */
 
-    /* Atom Light specific colors for markdown elements */
-    --al-red: #e53e3e;
-    --al-orange: #dd6b20;
-    --al-yellow: #d69e2e;
-    --al-green: #38a169;
-    --al-purple: #805ad5;
-    --al-aqua: #319795;
+    /* Aurora specific colors for markdown elements */
+    --au-red: #ff6b9d;
+    --au-orange: #ffb347;
+    --au-yellow: #fff68f;
+    --au-green: #98fb98;
+    --au-purple: #dda0dd;
+    --au-aqua: #87ceeb;
 }
 
 body {
-    background: var(--bg-color);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--text-color);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
 }
 
 .sidebar-toolbar {
     background: var(--sidebar-color);
+    backdrop-filter: blur(10px);
 }
 
 .tab-bar,
 .editor-label {
     background: var(--header-bg);
     border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .tab-item.active {
     background: var(--card-bg);
     border-color: var(--accent-color);
+    backdrop-filter: blur(10px);
 }
 
 #markdown-editor,
 .preview-content {
     background: var(--card-bg);
     color: var(--text-color);
+    backdrop-filter: blur(10px);
 }
 
 .editor-tools {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .tool-group {
-    background: var(--bg-color);
+    background: var(--sidebar-color);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .tool-button:hover,
@@ -65,6 +71,7 @@ body {
 .close-tab:hover {
     background: var(--hover-color);
     color: var(--accent-color);
+    backdrop-filter: blur(10px);
 }
 
 .preview-content h1,
@@ -73,23 +80,25 @@ body {
 .preview-content h4,
 .preview-content h5,
 .preview-content h6 {
-    color: var(--al-green);
+    color: var(--au-green);
 }
 
 .preview-content pre {
     background: var(--code-bg);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .preview-content code {
     background: var(--code-bg);
-    color: var(--al-red);
+    color: var(--au-red);
 }
 
 .preview-content blockquote {
-    border-left: 4px solid var(--al-yellow);
+    border-left: 4px solid var(--au-yellow);
     background: var(--card-bg);
     color: var(--text-muted);
+    backdrop-filter: blur(10px);
 }
 
 .preview-content a {
@@ -98,14 +107,17 @@ body {
 
 .button-primary {
     background: var(--accent-color);
+    backdrop-filter: blur(10px);
 }
 
 .button-primary:hover {
-    background: var(--al-purple);
+    background: var(--au-purple);
 }
 
 .button-secondary {
     border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
 }
 
 .button-secondary:hover {
@@ -114,9 +126,10 @@ body {
 }
 
 .setting-item select {
-    background: var(--bg-color);
+    background: var(--sidebar-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .setting-item select:hover {

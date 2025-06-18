@@ -1,25 +1,25 @@
 :root {
-    --bg-color: #ffffff; /* Atom Light background */
-    --text-color: #2d3748; /* Atom Light foreground */
-    --card-bg: #f7fafc; /* Atom Light slightly darker background */
-    --border-color: #e2e8f0; /* Atom Light border */
-    --hover-color: #edf2f7; /* Atom Light hover */
-    --accent-color: #3182ce; /* Atom Light blue accent */
-    --sidebar-color: #f8fafc; /* Atom Light sidebar */
-    --link-color: #3182ce; /* Atom Light blue */
-    --shadow-color: rgba(0, 0, 0, 0.1); /* Light shadows */
-    --code-bg: #f7fafc; /* Atom Light background for code blocks */
-    --header-bg: #f8fafc; /* Atom Light header background */
-    --active-bg: #3182ce; /* Atom Light active state */
-    --text-muted: #718096; /* Atom Light comment color */
+    --bg-color: #f0f9ff; /* Forest Green background */
+    --text-color: #374151; /* Forest Green foreground */
+    --card-bg: #ecfdf5; /* Forest Green slightly darker background */
+    --border-color: #d1fae5; /* Forest Green border */
+    --hover-color: #d1fae5; /* Forest Green hover */
+    --accent-color: #059669; /* Forest Green accent */
+    --sidebar-color: #f0fdf4; /* Forest Green sidebar */
+    --link-color: #059669; /* Forest Green */
+    --shadow-color: rgba(0, 0, 0, 0.06); /* Light shadows */
+    --code-bg: #ecfdf5; /* Forest Green background for code blocks */
+    --header-bg: #f0fdf4; /* Forest Green header background */
+    --active-bg: #059669; /* Forest Green active state */
+    --text-muted: #6b7280; /* Forest Green comment color */
 
-    /* Atom Light specific colors for markdown elements */
-    --al-red: #e53e3e;
-    --al-orange: #dd6b20;
-    --al-yellow: #d69e2e;
-    --al-green: #38a169;
-    --al-purple: #805ad5;
-    --al-aqua: #319795;
+    /* Forest Green specific colors for markdown elements */
+    --fg-red: #dc2626;
+    --fg-orange: #ea580c;
+    --fg-yellow: #ca8a04;
+    --fg-green: #059669;
+    --fg-purple: #7c3aed;
+    --fg-aqua: #0891b2;
 }
 
 body {
@@ -73,7 +73,7 @@ body {
 .preview-content h4,
 .preview-content h5,
 .preview-content h6 {
-    color: var(--al-green);
+    color: var(--fg-green);
 }
 
 .preview-content pre {
@@ -83,11 +83,11 @@ body {
 
 .preview-content code {
     background: var(--code-bg);
-    color: var(--al-red);
+    color: var(--fg-red);
 }
 
 .preview-content blockquote {
-    border-left: 4px solid var(--al-yellow);
+    border-left: 4px solid var(--fg-yellow);
     background: var(--card-bg);
     color: var(--text-muted);
 }
@@ -101,7 +101,7 @@ body {
 }
 
 .button-primary:hover {
-    background: var(--al-purple);
+    background: var(--fg-purple);
 }
 
 .button-secondary {

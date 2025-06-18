@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FgSNotes | Продвинутый Markdown редактор</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="src/icon.png" alt="FgSNotes">
+                    </div>
+                    <span>FgSNotes</span>
+                </a>
+                
+                <nav class="nav-links">
+                    <a href="plugins.html">Магазин плагинов</a>
+                    <a href="themes.html">Магазин тем</a>
+                    <a href="docs-themes.html">Документация</a>
+                </nav>
+                
+                <div class="header-actions">
+                    <button class="theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Продвинутый Markdown редактор</h1>
+                    <p>Мощный инструмент для работы с Markdown файлами с поддержкой тем, плагинов и реальным предпросмотром. Создавайте, редактируйте и публикуйте контент с легкостью.</p>
+                    <div class="hero-actions">
+                        <a href="#download" class="btn btn-gradient">
+                            <i class="fas fa-download"></i> Скачать
+                        </a>
+                        <a href="https://github.com/arduradiokot/FgSNotes" class="btn btn-outline" target="_blank">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-image floating">
+                    <div class="hero-image-container">
+                        <img src="Starlight.png" alt="MDX Editor Preview">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Основные возможности</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-code"></i>
+                    </div>
+                    <h3>Расширенный Markdown</h3>
+                    <p>Поддержка всех элементов Markdown, включая таблицы, сноски, диаграммы и математические формулы. Подсветка синтаксиса и автодополнение.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <h3>Темы оформления</h3>
+                    <p>Выбирайте из множества тем или создавайте свои собственные. Темы применяются к редактору.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-puzzle-piece"></i>
+                    </div>
+                    <h3>Система плагинов</h3>
+                    <p>Расширяйте функционал с помощью плагинов. Поддержка пользовательских расширений и интеграций с другими сервисами.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <h3>Реальный предпросмотр</h3>
+                    <p>Мгновенное отображение результата в соседней панели.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3>Экспорт в форматы</h3>
+                    <p>Конвертируйте ваши файлы в HTML, PDF, DOCX и другие форматы.s</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3>Легкость и скорость</h3>
+                    <p>Редактируйте ваши файлы в очень легком редакторе, работайте сразу в нескольких вкладках</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="editor-demo" id="demo">
+        <div class="container">
+            <div class="demo-container">
+                <div class="demo-text">
+                    <h2>Редактор нового поколения</h2>
+                    <p>MDX Editor сочетает простоту Markdown с мощью современных технологий. Работайте эффективно с нашим интуитивным интерфейсом.</p>
+                    
+                    <div class="demo-features">
+                        <div class="demo-feature">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <h3>Режимы редактирования</h3>
+                                <p>Пишите на Markdown, добавляйте плагины и с их помощью поддержку новых режимов</p>
+                            </div>
+                        </div>
+                        <div class="demo-feature">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <h3>Скорость работы</h3>
+                                <p>Работайте быстро и легко в оптимизированом редакторе</p>
+                            </div>
+                        </div>
+                        <div class="demo-feature">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <h3>Встроенная документация</h3>
+                                <p>Быстрый доступ к справочной информации прямо из редактора.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="demo-image">
+                    <div class="demo-image-container">
+                        <img src="Mac Studio.png" alt="Editor Interface">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="download-section" id="download">
+        <div class="container">
+            <h2 class="section-title">Скачать FgSNotes</h2>
+            <p style="text-align: center; font-size: 18px; max-width: 700px; margin: 0 auto 60px; opacity: 0.9;">
+                Выберите версию для вашей операционной системы и начните создавать потрясающую документацию, статьи, заметки уже сегодня.
+            </p>
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="download-icon">
+                        <i class="fab fa-windows"></i>
+                    </div>
+                    <h3>Windows</h3>
+                    <p>Полная поддержка Windows 10 и 11. Простая установка и автоматические обновления.</p>
+                    <div class="version-info">
+                        <strong>Версия 1.2.0</strong> • 45.2 MB
+                    </div>
+                    <a href="#" class="btn btn-gradient">
+                        <i class="fas fa-download"></i> Скачать для Windows
+                    </a>
+                </div>
+                <div class="download-card">
+                    <div class="download-icon">
+                        <i class="fab fa-apple"></i>
+                    </div>
+                    <h3>macOS</h3>
+                    <p>Нативная поддержка macOS 11+ с оптимизацией для Apple Silicon и Intel процессоров.</p>
+                    <div class="version-info">
+                        <strong>Версия 1.2.0</strong> • 52.1 MB
+                    </div>
+                    <a href="#" class="btn btn-gradient">
+                        <i class="fas fa-download"></i> Скачать для macOS
+                    </a>
+                </div>
+                <div class="download-card">
+                    <div class="download-icon">
+                        <i class="fab fa-linux"></i>
+                    </div>
+                    <h3>Linux</h3>
+                    <p>Поддержка популярных дистрибутивов Linux. Доступен в форматах AppImage и DEB.</p>
+                    <div class="version-info">
+                        <strong>Версия 1.2.0</strong> • 38.7 MB
+                    </div>
+                    <a href="#" class="btn btn-gradient">
+                        <i class="fas fa-download"></i> Скачать для Linux
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="container">
+            <h2>Готовы начать работу?</h2>
+            <p>Присоединяйтесь к пользователям, которые уже создают потрясающую документацию, статьи и заметки с FgSNotes.</p>
+            <div style="display: flex; justify-content: center; gap: 20px; margin-top: 40px;">
+                <a href="#download" class="btn btn-gradient" style="padding: 15px 30px;">
+                    <i class="fas fa-download"></i> Скачать бесплатно
+                </a>
+                <a href="docs-themes.html" class="btn btn-outline" style="padding: 15px 30px;">
+                    <i class="fas fa-book"></i> Документация
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>FgSNotes</h3>
+                    <p>Простой и быстрый редактор Markdown</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Ресурсы</h3>
+                    <ul class="footer-links">
+                        <li><a href="docs-themes.html">Документация</a></li>
+                        <li><a href="plugins.html">Магазин плагинов</a></li>
+                        <li><a href="themes.html">Магазин тем</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Сообщество</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://x200l.github.io/SITeducation/index.html">Наш сайт</a></li>
+                        <li><a href="https://github.com/ArduRadioKot">GitHub</a></li>
+                        <li><a href="https://t.me/SIT_team">Телеграмм канал</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; FgSNotes. Все права защищены.</p>
+                <div class="social-links">
+                    <a href="https://github.com/ArduRadioKot"><i class="fab fa-github"></i></a>
+                    <a href="https://t.me/SIT_team"><i class="fab fa-telegram"></i></a>
+                    <a href="https://x200l.github.io/SITeducation/index.html"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

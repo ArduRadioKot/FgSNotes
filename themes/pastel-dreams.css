@@ -1,25 +1,25 @@
 :root {
-    --bg-color: #ffffff; /* Atom Light background */
-    --text-color: #2d3748; /* Atom Light foreground */
-    --card-bg: #f7fafc; /* Atom Light slightly darker background */
-    --border-color: #e2e8f0; /* Atom Light border */
-    --hover-color: #edf2f7; /* Atom Light hover */
-    --accent-color: #3182ce; /* Atom Light blue accent */
-    --sidebar-color: #f8fafc; /* Atom Light sidebar */
-    --link-color: #3182ce; /* Atom Light blue */
-    --shadow-color: rgba(0, 0, 0, 0.1); /* Light shadows */
-    --code-bg: #f7fafc; /* Atom Light background for code blocks */
-    --header-bg: #f8fafc; /* Atom Light header background */
-    --active-bg: #3182ce; /* Atom Light active state */
-    --text-muted: #718096; /* Atom Light comment color */
+    --bg-color: #fef7ff; /* Pastel Dreams background */
+    --text-color: #2d3748; /* Pastel Dreams foreground */
+    --card-bg: #faf5ff; /* Pastel Dreams slightly darker background */
+    --border-color: #e9d5ff; /* Pastel Dreams border */
+    --hover-color: #f3e8ff; /* Pastel Dreams hover */
+    --accent-color: #c084fc; /* Pastel Dreams purple accent */
+    --sidebar-color: #faf5ff; /* Pastel Dreams sidebar */
+    --link-color: #c084fc; /* Pastel Dreams purple */
+    --shadow-color: rgba(0, 0, 0, 0.05); /* Very light shadows */
+    --code-bg: #faf5ff; /* Pastel Dreams background for code blocks */
+    --header-bg: #faf5ff; /* Pastel Dreams header background */
+    --active-bg: #c084fc; /* Pastel Dreams active state */
+    --text-muted: #8b5cf6; /* Pastel Dreams comment color */
 
-    /* Atom Light specific colors for markdown elements */
-    --al-red: #e53e3e;
-    --al-orange: #dd6b20;
-    --al-yellow: #d69e2e;
-    --al-green: #38a169;
-    --al-purple: #805ad5;
-    --al-aqua: #319795;
+    /* Pastel Dreams specific colors for markdown elements */
+    --pd-red: #fca5a5;
+    --pd-orange: #fdba74;
+    --pd-yellow: #fde047;
+    --pd-green: #86efac;
+    --pd-purple: #c084fc;
+    --pd-aqua: #99f6e4;
 }
 
 body {
@@ -73,7 +73,7 @@ body {
 .preview-content h4,
 .preview-content h5,
 .preview-content h6 {
-    color: var(--al-green);
+    color: var(--pd-green);
 }
 
 .preview-content pre {
@@ -83,11 +83,11 @@ body {
 
 .preview-content code {
     background: var(--code-bg);
-    color: var(--al-red);
+    color: var(--pd-red);
 }
 
 .preview-content blockquote {
-    border-left: 4px solid var(--al-yellow);
+    border-left: 4px solid var(--pd-yellow);
     background: var(--card-bg);
     color: var(--text-muted);
 }
@@ -101,7 +101,7 @@ body {
 }
 
 .button-primary:hover {
-    background: var(--al-purple);
+    background: var(--pd-purple);
 }
 
 .button-secondary {

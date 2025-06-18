@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магазин тем | FgSNotes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="themes-styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="src/icon.png" alt="FgSNotes">
+                    </div>
+                    <span>FgSNotes</span>
+                </a>
+                
+                <nav class="nav-links">
+                    <a href="plugins.html">Магазин плагинов</a>
+                    <a href="themes.html">Магазин тем</a>
+                </nav>
+                
+                <div class="header-actions">
+                    <button class="theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="themes-hero">
+        <div class="container">
+            <div class="themes-hero-content">
+                <h1>Магазин тем</h1>
+                <p>Персонализируйте свой редактор с помощью красивых тем. Выбирайте из сотен профессиональных тем или создавайте свои собственные.</p>
+                <div class="themes-search">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Поиск тем..." id="themeSearch">
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">Все</button>
+                        <button class="filter-btn" data-filter="dark">Темные</button>
+                        <button class="filter-btn" data-filter="light">Светлые</button>
+                        <button class="filter-btn" data-filter="gradient">Градиентные</button>
+                        <button class="filter-btn" data-filter="minimal">Минималистичные</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="themes-grid-section">
+        <div class="container">
+            <div class="themes-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalThemes">0</span>
+                    <span class="stat-label">Тем</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="totalDownloads">0</span>
+                    <span class="stat-label">Загрузок</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="averageRating">0</span>
+                    <span class="stat-label">Рейтинг</span>
+                </div>
+            </div>
+
+            <div class="themes-grid" id="themesGrid">
+                <!-- Темы будут загружены динамически из JSON -->
+            </div>
+
+            <div class="load-more">
+                <button class="btn btn-outline" id="loadMoreBtn">
+                    <i class="fas fa-plus"></i> Загрузить еще
+                </button>
+            </div>
+        </div>
+    </section>
+
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>FgSNotes</h3>
+                    <p>Простой и быстрый редактор Markdown</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Ресурсы</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Документация</a></li>
+                        <li><a href="plugins.html">Магазин плагинов</a></li>
+                        <li><a href="themes.html">Магазин тем</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Сообщество</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://x200l.github.io/SITeducation/index.html">Наш сайт</a></li>
+                        <li><a href="https://github.com/ArduRadioKot">GitHub</a></li>
+                        <li><a href="https://t.me/SIT_team">Телеграмм канал</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; FgSNotes. Все права защищены.</p>
+                <div class="social-links">
+                    <a href="https://github.com/ArduRadioKot"><i class="fab fa-github"></i></a>
+                    <a href="https://t.me/SIT_team"><i class="fab fa-telegram"></i></a>
+                    <a href="https://x200l.github.io/SITeducation/index.html"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="themes-script.js"></script>
+</body>
+</html> 

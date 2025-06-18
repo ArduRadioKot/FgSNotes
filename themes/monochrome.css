@@ -1,25 +1,25 @@
 :root {
-    --bg-color: #ffffff; /* Atom Light background */
-    --text-color: #2d3748; /* Atom Light foreground */
-    --card-bg: #f7fafc; /* Atom Light slightly darker background */
-    --border-color: #e2e8f0; /* Atom Light border */
-    --hover-color: #edf2f7; /* Atom Light hover */
-    --accent-color: #3182ce; /* Atom Light blue accent */
-    --sidebar-color: #f8fafc; /* Atom Light sidebar */
-    --link-color: #3182ce; /* Atom Light blue */
+    --bg-color: #ffffff; /* Monochrome background */
+    --text-color: #000000; /* Monochrome foreground */
+    --card-bg: #f8f9fa; /* Monochrome slightly darker background */
+    --border-color: #dee2e6; /* Monochrome border */
+    --hover-color: #e9ecef; /* Monochrome hover */
+    --accent-color: #000000; /* Monochrome black accent */
+    --sidebar-color: #f8f9fa; /* Monochrome sidebar */
+    --link-color: #000000; /* Monochrome black */
     --shadow-color: rgba(0, 0, 0, 0.1); /* Light shadows */
-    --code-bg: #f7fafc; /* Atom Light background for code blocks */
-    --header-bg: #f8fafc; /* Atom Light header background */
-    --active-bg: #3182ce; /* Atom Light active state */
-    --text-muted: #718096; /* Atom Light comment color */
+    --code-bg: #f8f9fa; /* Monochrome background for code blocks */
+    --header-bg: #f8f9fa; /* Monochrome header background */
+    --active-bg: #000000; /* Monochrome active state */
+    --text-muted: #6c757d; /* Monochrome comment color */
 
-    /* Atom Light specific colors for markdown elements */
-    --al-red: #e53e3e;
-    --al-orange: #dd6b20;
-    --al-yellow: #d69e2e;
-    --al-green: #38a169;
-    --al-purple: #805ad5;
-    --al-aqua: #319795;
+    /* Monochrome specific colors for markdown elements */
+    --mc-red: #000000;
+    --mc-orange: #000000;
+    --mc-yellow: #000000;
+    --mc-green: #000000;
+    --mc-purple: #000000;
+    --mc-aqua: #000000;
 }
 
 body {
@@ -73,7 +73,8 @@ body {
 .preview-content h4,
 .preview-content h5,
 .preview-content h6 {
-    color: var(--al-green);
+    color: var(--mc-green);
+    font-weight: 700;
 }
 
 .preview-content pre {
@@ -83,29 +84,37 @@ body {
 
 .preview-content code {
     background: var(--code-bg);
-    color: var(--al-red);
+    color: var(--mc-red);
 }
 
 .preview-content blockquote {
-    border-left: 4px solid var(--al-yellow);
+    border-left: 4px solid var(--mc-yellow);
     background: var(--card-bg);
     color: var(--text-muted);
 }
 
 .preview-content a {
     color: var(--link-color);
+    text-decoration: underline;
+}
+
+.preview-content a:hover {
+    text-decoration: none;
 }
 
 .button-primary {
     background: var(--accent-color);
+    color: white;
 }
 
 .button-primary:hover {
-    background: var(--al-purple);
+    background: var(--mc-purple);
 }
 
 .button-secondary {
     border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-color);
 }
 
 .button-secondary:hover {

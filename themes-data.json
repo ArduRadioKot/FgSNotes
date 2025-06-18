@@ -1,0 +1,455 @@
+{
+  "themes": [
+    {
+      "id": "midnight-pro",
+      "name": "Midnight Pro",
+      "description": "Элегантная темная тема с акцентами синего цвета",
+      "author": "S.I.T",
+      "rating": 4.9,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Профессиональная"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#1a1a1a",
+        "sidebar": "#2a2a2a",
+        "accent": "#4a9eff"
+      },
+      "version": "1.2.0",
+      "lastUpdated": "2023-12-15",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "solar-light",
+      "name": "Solar Light",
+      "description": "Чистая светлая тема с мягкими тенями",
+      "author": "S.I.T",
+      "rating": 4.7,
+      "downloads": 0,
+      "category": "light",
+      "tags": ["Светлая", "Минималистичная"],
+      "preview": {
+        "type": "light-theme-preview",
+        "background": "#ffffff",
+        "sidebar": "#f9fafb",
+        "accent": "#3b82f6"
+      },
+      "version": "1.1.5",
+      "lastUpdated": "2023-12-10",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "aurora",
+      "name": "Aurora",
+      "description": "Красочная градиентная тема с эффектом северного сияния",
+      "author": "S.I.T",
+      "rating": 4.8,
+      "downloads": 0,
+      "category": "gradient",
+      "tags": ["Градиентная", "Креативная"],
+      "preview": {
+        "type": "gradient-theme-preview",
+        "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "sidebar": "rgba(255, 255, 255, 0.1)",
+        "accent": "#f093fb"
+      },
+      "version": "1.3.0",
+      "lastUpdated": "2023-12-20",
+      "compatibility": ["1.1.0", "1.2.0"]
+    },
+    {
+      "id": "zen",
+      "name": "Zen",
+      "description": "Минималистичная тема для максимальной концентрации",
+      "author": "S.I.T",
+      "rating": 4.6,
+      "downloads": 0,
+      "category": "minimal",
+      "tags": ["Минималистичная", "Фокус"],
+      "preview": {
+        "type": "minimal-theme-preview",
+        "background": "#fafafa",
+        "sidebar": "#f5f5f5",
+        "accent": "#666"
+      },
+      "version": "1.0.8",
+      "lastUpdated": "2023-12-05",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "carbon",
+      "name": "Carbon",
+      "description": "Темная тема в стиле углеродного волокна",
+      "author": "S.I.T",
+      "rating": 4.5,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Техническая"],
+      "preview": {
+        "type": "dark-theme-preview-2",
+        "background": "#0f1419",
+        "sidebar": "#1f2937",
+        "accent": "#10b981"
+      },
+      "version": "1.1.2",
+      "lastUpdated": "2023-12-12",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "paper",
+      "name": "Paper",
+      "description": "Светлая тема в стиле бумаги с теплыми оттенками",
+      "author": "S.I.T",
+      "rating": 4.4,
+      "downloads": 0,
+      "category": "light",
+      "tags": ["Светлая", "Теплая"],
+      "preview": {
+        "type": "light-theme-preview-2",
+        "background": "#fefefe",
+        "sidebar": "#f7fafc",
+        "accent": "#ed8936"
+      },
+      "version": "1.0.5",
+      "lastUpdated": "2023-12-08",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "ocean-deep",
+      "name": "Ocean Deep",
+      "description": "Глубокая синяя тема, вдохновленная океаном",
+      "author": "S.I.T",
+      "rating": 4.7,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Синяя"],
+      "preview": {
+        "type": "ocean-deep-preview",
+        "background": "#0a1929",
+        "sidebar": "#1e3a8a",
+        "accent": "#60a5fa"
+      },
+      "version": "1.2.1",
+      "lastUpdated": "2023-12-18",
+      "compatibility": ["1.1.0", "1.2.0"]
+    },
+    {
+      "id": "forest-green",
+      "name": "Forest Green",
+      "description": "Природная тема с зелеными акцентами",
+      "author": "S.I.T",
+      "rating": 4.3,
+      "downloads": 0,
+      "category": "light",
+      "tags": ["Светлая", "Природная"],
+      "preview": {
+        "type": "forest-green-preview",
+        "background": "#f0f9ff",
+        "sidebar": "#ecfdf5",
+        "accent": "#059669"
+      },
+      "version": "1.0.3",
+      "lastUpdated": "2023-12-03",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "sunset-glow",
+      "name": "Sunset Glow",
+      "description": "Теплая градиентная тема с закатными красками",
+      "author": "S.I.T",
+      "rating": 4.6,
+      "downloads": 0,
+      "category": "gradient",
+      "tags": ["Градиентная", "Теплая"],
+      "preview": {
+        "type": "sunset-glow-preview",
+        "background": "linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)",
+        "sidebar": "rgba(255, 255, 255, 0.15)",
+        "accent": "#f97316"
+      },
+      "version": "1.1.8",
+      "lastUpdated": "2023-12-14",
+      "compatibility": ["1.1.0", "1.2.0"]
+    },
+    {
+      "id": "monochrome",
+      "name": "Monochrome",
+      "description": "Черно-белая минималистичная тема",
+      "author": "S.I.T",
+      "rating": 4.2,
+      "downloads": 0,
+      "category": "minimal",
+      "tags": ["Минималистичная", "Черно-белая"],
+      "preview": {
+        "type": "minimal-theme-preview",
+        "background": "#ffffff",
+        "sidebar": "#f8f9fa",
+        "accent": "#000000"
+      },
+      "version": "1.0.1",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "cyberpunk",
+      "name": "Cyberpunk",
+      "description": "Неоново-киберпанк тема с яркими акцентами",
+      "author": "S.I.T",
+      "rating": 4.8,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Киберпанк"],
+      "preview": {
+        "type": "cyberpunk-preview",
+        "background": "#0a0a0a",
+        "sidebar": "#1a1a1a",
+        "accent": "#00ff88"
+      },
+      "version": "1.3.2",
+      "lastUpdated": "2023-12-22",
+      "compatibility": ["1.2.0"]
+    },
+    {
+      "id": "pastel-dreams",
+      "name": "Pastel Dreams",
+      "description": "Мягкая пастельная тема с нежными цветами",
+      "author": "S.I.T",
+      "rating": 4.4,
+      "downloads": 0,
+      "category": "light",
+      "tags": ["Светлая", "Пастельная"],
+      "preview": {
+        "type": "pastel-dreams-preview",
+        "background": "#fef7ff",
+        "sidebar": "#faf5ff",
+        "accent": "#c084fc"
+      },
+      "version": "1.0.7",
+      "lastUpdated": "2023-12-07",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "atom-light",
+      "name": "Atom Light",
+      "description": "Классическая светлая тема в стиле Atom",
+      "author": "S.I.T",
+      "rating": 4.5,
+      "downloads": 0,
+      "category": "light",
+      "tags": ["Светлая", "Классическая"],
+      "preview": {
+        "type": "light-theme-preview",
+        "background": "#ffffff",
+        "sidebar": "#f7fafc",
+        "accent": "#3182ce"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "tomorrow-night",
+      "name": "Tomorrow Night",
+      "description": "Темная тема в стиле Tomorrow Night",
+      "author": "S.I.T",
+      "rating": 4.6,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Классическая"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#1d1f21",
+        "sidebar": "#282a2e",
+        "accent": "#81a2be"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "one-dark",
+      "name": "One Dark",
+      "description": "Популярная темная тема One Dark",
+      "author": "S.I.T",
+      "rating": 4.7,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Популярная"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#282c34",
+        "sidebar": "#21252b",
+        "accent": "#61afef"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "solarized-dark",
+      "name": "Solarized Dark",
+      "description": "Темная тема Solarized с научным подходом к цветам",
+      "author": "S.I.T",
+      "rating": 4.4,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Научная"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#002b36",
+        "sidebar": "#073642",
+        "accent": "#268bd2"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "solarized-light",
+      "name": "Solarized Light",
+      "description": "Светлая тема Solarized с научным подходом к цветам",
+      "author": "S.I.T",
+      "rating": 4.3,
+      "downloads": 0,
+      "category": "light",
+      "tags": ["Светлая", "Научная"],
+      "preview": {
+        "type": "light-theme-preview",
+        "background": "#fdf6e3",
+        "sidebar": "#eee8d5",
+        "accent": "#268bd2"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "github-light",
+      "name": "GitHub Light",
+      "description": "Светлая тема в стиле GitHub",
+      "author": "S.I.T",
+      "rating": 4.5,
+      "downloads": 0,
+      "category": "light",
+      "tags": ["Светлая", "GitHub"],
+      "preview": {
+        "type": "light-theme-preview",
+        "background": "#ffffff",
+        "sidebar": "#f6f8fa",
+        "accent": "#0366d6"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "monokai",
+      "name": "Monokai",
+      "description": "Классическая темная тема Monokai",
+      "author": "S.I.T",
+      "rating": 4.6,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Классическая"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#272822",
+        "sidebar": "#3e3d32",
+        "accent": "#f92672"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "nord",
+      "name": "Nord",
+      "description": "Арктическая тема с холодными оттенками",
+      "author": "S.I.T",
+      "rating": 4.5,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Арктическая"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#2e3440",
+        "sidebar": "#3b4252",
+        "accent": "#88c0d0"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "dracula",
+      "name": "Dracula",
+      "description": "Темная тема Dracula с яркими акцентами",
+      "author": "S.I.T",
+      "rating": 4.7,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "Яркая"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#282a36",
+        "sidebar": "#44475a",
+        "accent": "#bd93f9"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    },
+    {
+      "id": "github-dark",
+      "name": "GitHub Dark",
+      "description": "Темная тема в стиле GitHub",
+      "author": "S.I.T",
+      "rating": 4.6,
+      "downloads": 0,
+      "category": "dark",
+      "tags": ["Темная", "GitHub"],
+      "preview": {
+        "type": "dark-theme-preview",
+        "background": "#0d1117",
+        "sidebar": "#161b22",
+        "accent": "#58a6ff"
+      },
+      "version": "1.0.0",
+      "lastUpdated": "2023-12-01",
+      "compatibility": ["1.0.0", "1.1.0", "1.2.0"]
+    }
+  ],
+  "categories": [
+    {
+      "id": "all",
+      "name": "Все",
+      "count": 22
+    },
+    {
+      "id": "dark",
+      "name": "Темные",
+      "count": 11
+    },
+    {
+      "id": "light",
+      "name": "Светлые",
+      "count": 8
+    },
+    {
+      "id": "gradient",
+      "name": "Градиентные",
+      "count": 2
+    },
+    {
+      "id": "minimal",
+      "name": "Минималистичные",
+      "count": 2
+    }
+  ],
+  "stats": {
+    "totalThemes": 22,
+    "totalDownloads": 0,
+    "averageRating": 4.5,
+    "lastUpdated": "2023-12-22"
+  }
+} 

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Документация по созданию тем | FgSNotes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Стили для документации */
+        .docs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .docs-sidebar {
+            position: fixed;
+            top: 100px;
+            left: 20px;
+            width: 280px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark-mode .docs-sidebar {
+            background: var(--card-bg-dark);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .docs-content {
+            margin-left: 320px;
+            padding: 20px;
+        }
+        
+        .docs-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .docs-nav li {
+            margin-bottom: 8px;
+        }
+        
+        .docs-nav a {
+            display: block;
+            padding: 8px 12px;
+            color: var(--text-light);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .dark-mode .docs-nav a {
+            color: var(--text-dark);
+        }
+        
+        .docs-nav a:hover,
+        .docs-nav a.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .docs-section {
+            margin-bottom: 60px;
+        }
+        
+        .docs-section h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
+        }
+        
+        .docs-section h3 {
+            font-size: 24px;
+            margin: 30px 0 15px;
+            color: var(--text-light);
+        }
+        
+        .dark-mode .docs-section h3 {
+            color: var(--text-dark);
+        }
+        
+        .docs-section h4 {
+            font-size: 20px;
+            margin: 25px 0 10px;
+            color: var(--text-light);
+        }
+        
+        .dark-mode .docs-section h4 {
+            color: var(--text-dark);
+        }
+        
+        .code-block {
+            background: var(--card-bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .dark-mode .code-block {
+            background: var(--card-bg-dark);
+            border-color: var(--border-color);
+        }
+        
+        .code-block pre {
+            margin: 0;
+            color: var(--text-light);
+        }
+        
+        .dark-mode .code-block pre {
+            color: var(--text-dark);
+        }
+        
+        .highlight {
+            background: rgba(34, 168, 189, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--primary);
+        }
+        
+        .warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .info {
+            background: rgba(34, 168, 189, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .example-theme {
+            background: var(--card-bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .dark-mode .example-theme {
+            background: var(--card-bg-dark);
+            border-color: var(--border-color);
+        }
+        
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .color-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .color-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            border: 2px solid var(--border-color);
+        }
+        
+        .color-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .color-value {
+            font-family: monospace;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 1024px) {
+            .docs-sidebar {
+                position: static;
+                width: 100%;
+                height: auto;
+                margin-bottom: 30px;
+            }
+            
+            .docs-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">
+                        <img src="src/icon.png" alt="FgSNotes">
+                    </div>
+                    <span>FgSNotes</span>
+                </a>
+                
+                <nav class="nav-links">
+                    <a href="plugins.html">Магазин плагинов</a>
+                    <a href="themes.html">Магазин тем</a>
+                    <a href="docs-themes.html" class="active">Документация</a>
+                </nav>
+                
+                <div class="header-actions">
+                    <button class="theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="docs-container">
+        <aside class="docs-sidebar">
+            <h3>Содержание</h3>
+            <ul class="docs-nav">
+                <li><a href="#introduction" class="active">Введение</a></li>
+                <li><a href="#structure">Структура темы</a></li>
+                <li><a href="#variables">CSS переменные</a></li>
+                <li><a href="#components">Компоненты интерфейса</a></li>
+                <li><a href="#markdown">Стили Markdown</a></li>
+                <li><a href="#creating">Создание темы</a></li>
+                <li><a href="#testing">Тестирование</a></li>
+                <li><a href="#publishing">Публикация</a></li>
+                <li><a href="#examples">Примеры</a></li>
+            </ul>
+        </aside>
+
+        <main class="docs-content">
+            <section id="introduction" class="docs-section">
+                <h2>Создание тем для FgSNotes</h2>
+                <p>FgSNotes поддерживает кастомные темы, которые позволяют полностью изменить внешний вид редактора. Темы создаются с помощью CSS и используют систему CSS переменных для легкой настройки цветов и стилей.</p>
+                
+                <div class="info">
+                    <strong>💡 Совет:</strong> Перед созданием собственной темы изучите существующие темы в папке <code>themes/</code> для понимания структуры и возможностей.
+                </div>
+            </section>
+
+            <section id="structure" class="docs-section">
+                <h3>Структура темы</h3>
+                <p>Каждая тема представляет собой CSS файл с определенной структурой. Файл должен содержать:</p>
+                
+                <ul>
+                    <li><strong>CSS переменные</strong> - для определения цветовой палитры</li>
+                    <li><strong>Базовые стили</strong> - для основных элементов интерфейса</li>
+                    <li><strong>Стили компонентов</strong> - для кнопок, панелей, редактора</li>
+                    <li><strong>Стили Markdown</strong> - для отображения контента</li>
+                </ul>
+
+                <h4>Базовый шаблон темы</h4>
+                <div class="code-block">
+                    <pre>:root {
+    /* Основные цвета */
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --card-bg: #f8f9fa;
+    --border-color: #dee2e6;
+    
+    /* Акцентные цвета */
+    --accent-color: #007bff;
+    --primary: #007bff;
+    
+    /* Дополнительные цвета */
+    --hover-color: #e9ecef;
+    --sidebar-color: #f8f9fa;
+    --header-bg: #f8f9fa;
+    
+    /* Цвета для Markdown */
+    --md-red: #dc3545;
+    --md-green: #28a745;
+    --md-blue: #007bff;
+    --md-yellow: #ffc107;
+    --md-purple: #6f42c1;
+    --md-cyan: #17a2b8;
+}
+
+/* Базовые стили */
+body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Стили компонентов */
+.sidebar-toolbar {
+    background: var(--sidebar-color);
+}
+
+#markdown-editor {
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+/* Стили Markdown */
+.preview-content h1,
+.preview-content h2,
+.preview-content h3 {
+    color: var(--md-blue);
+}
+
+.preview-content code {
+    background: var(--card-bg);
+    color: var(--md-red);
+}</pre>
+                </div>
+            </section>
+
+            <section id="variables" class="docs-section">
+                <h3>CSS переменные</h3>
+                <p>CSS переменные определяют цветовую палитру и основные параметры темы. Все переменные должны быть определены в блоке <code>:root</code>.</p>
+
+                <h4>Основные переменные</h4>
+                <div class="color-palette">
+                    <div class="color-item">
+                        <div class="color-preview" style="background: #ffffff;"></div>
+                        <div class="color-name">--bg-color</div>
+                        <div class="color-value">#ffffff</div>
+                        <small>Основной фон</small>
+                    </div>
+                    <div class="color-item">
+                        <div class="color-preview" style="background: #333333;"></div>
+                        <div class="color-name">--text-color</div>
+                        <div class="color-value">#333333</div>
+                        <small>Основной текст</small>
+                    </div>
+                    <div class="color-item">
+                        <div class="color-preview" style="background: #f8f9fa;"></div>
+                        <div class="color-name">--card-bg</div>
+                        <div class="color-value">#f8f9fa</div>
+                        <small>Фон карточек</small>
+                    </div>
+                    <div class="color-item">
+                        <div class="color-preview" style="background: #007bff;"></div>
+                        <div class="color-name">--accent-color</div>
+                        <div class="color-value">#007bff</div>
+                        <small>Акцентный цвет</small>
+                    </div>
+                </div>
+
+                <h4>Полный список переменных</h4>
+                <div class="code-block">
+                    <pre>:root {
+    /* Основные цвета */
+    --bg-color: #ffffff;              /* Основной фон */
+    --text-color: #333333;            /* Основной текст */
+    --card-bg: #f8f9fa;               /* Фон карточек */
+    --border-color: #dee2e6;          /* Цвет границ */
+    --hover-color: #e9ecef;           /* Цвет при наведении */
+    
+    /* Акцентные цвета */
+    --accent-color: #007bff;          /* Основной акцент */
+    --primary: #007bff;               /* Основной цвет */
+    --link-color: #007bff;            /* Цвет ссылок */
+    
+    /* Компоненты */
+    --sidebar-color: #f8f9fa;         /* Фон боковой панели */
+    --header-bg: #f8f9fa;             /* Фон заголовка */
+    --active-bg: #007bff;             /* Активный элемент */
+    --code-bg: #f8f9fa;               /* Фон кода */
+    
+    /* Тени и эффекты */
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --text-muted: #6c757d;            /* Приглушенный текст */
+    
+    /* Цвета для Markdown */
+    --md-red: #dc3545;                /* Красный */
+    --md-green: #28a745;              /* Зеленый */
+    --md-blue: #007bff;               /* Синий */
+    --md-yellow: #ffc107;             /* Желтый */
+    --md-purple: #6f42c1;             /* Фиолетовый */
+    --md-cyan: #17a2b8;               /* Голубой */
+}</pre>
+                </div>
+            </section>
+
+            <section id="components" class="docs-section">
+                <h3>Компоненты интерфейса</h3>
+                <p>Каждый компонент интерфейса имеет свои CSS селекторы. Вот основные компоненты, которые можно стилизовать:</p>
+
+                <h4>Основные селекторы</h4>
+                <div class="code-block">
+                    <pre>/* Боковая панель */
+.sidebar-toolbar {
+    background: var(--sidebar-color);
+}
+
+/* Заголовок с вкладками */
+.tab-bar,
+.editor-label {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Активная вкладка */
+.tab-item.active {
+    background: var(--card-bg);
+    border-color: var(--accent-color);
+}
+
+/* Редактор */
+#markdown-editor,
+.preview-content {
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+/* Панель инструментов */
+.editor-tools {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+/* Группы инструментов */
+.tool-group {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+/* Кнопки */
+.tool-button:hover,
+.sidebar-button:hover,
+.new-tab-button:hover,
+.close-tab:hover {
+    background: var(--hover-color);
+    color: var(--accent-color);
+}
+
+/* Разделители панелей */
+.panel-divider {
+    background: var(--border-color);
+}
+
+.panel-divider:hover,
+.panel-divider.dragging {
+    background: var(--accent-color);
+}</pre>
+                </div>
+            </section>
+
+            <section id="markdown" class="docs-section">
+                <h3>Стили Markdown</h3>
+                <p>Стили для отображения Markdown контента определяют, как будет выглядеть предпросмотр документа.</p>
+
+                <h4>Заголовки</h4>
+                <div class="code-block">
+                    <pre>.preview-content h1,
+.preview-content h2,
+.preview-content h3,
+.preview-content h4,
+.preview-content h5,
+.preview-content h6 {
+    color: var(--md-green);
+    font-weight: 600;
+}</pre>
+                </div>
+
+                <h4>Код и блоки кода</h4>
+                <div class="code-block">
+                    <pre>.preview-content pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 15px;
+    overflow-x: auto;
+}
+
+.preview-content code {
+    background: var(--code-bg);
+    color: var(--md-red);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}</pre>
+                </div>
+
+                <h4>Цитаты и ссылки</h4>
+                <div class="code-block">
+                    <pre>.preview-content blockquote {
+    border-left: 4px solid var(--md-yellow);
+    background: var(--card-bg);
+    color: var(--text-muted);
+    padding: 10px 15px;
+    margin: 15px 0;
+}
+
+.preview-content a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.preview-content a:hover {
+    text-decoration: underline;
+}</pre>
+                </div>
+            </section>
+
+            <section id="creating" class="docs-section">
+                <h3>Создание темы</h3>
+                <p>Пошаговое руководство по созданию собственной темы:</p>
+
+                <h4>Шаг 1: Создание файла</h4>
+                <ol>
+                    <li>Создайте новый CSS файл в папке <code>themes/</code></li>
+                    <li>Назовите файл по схеме: <code>your-theme-name.css</code></li>
+                    <li>Используйте только латинские буквы, цифры и дефисы</li>
+                </ol>
+
+                <h4>Шаг 2: Определение переменных</h4>
+                <p>Начните с определения CSS переменных в блоке <code>:root</code>:</p>
+                <div class="code-block">
+                    <pre>:root {
+    /* Определите вашу цветовую палитру */
+    --bg-color: #your-background-color;
+    --text-color: #your-text-color;
+    --accent-color: #your-accent-color;
+    /* ... остальные переменные */
+}</pre>
+                </div>
+
+                <h4>Шаг 3: Базовые стили</h4>
+                <p>Добавьте базовые стили для body и основных элементов:</p>
+                <div class="code-block">
+                    <pre>body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+}</pre>
+                </div>
+
+                <h4>Шаг 4: Стили компонентов</h4>
+                <p>Добавьте стили для всех компонентов интерфейса, используя селекторы из раздела "Компоненты интерфейса".</p>
+
+                <h4>Шаг 5: Стили Markdown</h4>
+                <p>Добавьте стили для отображения Markdown контента, используя селекторы из раздела "Стили Markdown".</p>
+            </section>
+
+            <section id="testing" class="docs-section">
+                <h3>Тестирование темы</h3>
+                <p>После создания темы важно протестировать её на различных типах контента:</p>
+
+                <ul>
+                    <li><strong>Заголовки</strong> - все уровни h1-h6</li>
+                    <li><strong>Текст</strong> - обычный текст, жирный, курсив</li>
+                    <li><strong>Списки</strong> - маркированные и нумерованные</li>
+                    <li><strong>Код</strong> - inline код и блоки кода</li>
+                    <li><strong>Ссылки</strong> - обычные и с якорями</li>
+                    <li><strong>Изображения</strong> - с подписями и без</li>
+                    <li><strong>Таблицы</strong> - простые и сложные</li>
+                    <li><strong>Цитаты</strong> - вложенные цитаты</li>
+                </ul>
+
+                <div class="warning">
+                    <strong>⚠️ Важно:</strong> Убедитесь, что ваша тема хорошо работает как в светлом, так и в темном режиме (если поддерживается).
+                </div>
+            </section>
+
+            <section id="publishing" class="docs-section">
+                <h3>Публикация темы</h3>
+                <p>После создания и тестирования темы вы можете поделиться ею с сообществом:</p>
+
+                <h4>Подготовка к публикации</h4>
+                <ol>
+                    <li>Убедитесь, что тема полностью протестирована</li>
+                    <li>Добавьте комментарии к CSS коду</li>
+                    <li>Создайте превью темы (скриншот)</li>
+                    <li>Подготовьте описание темы</li>
+                </ol>
+
+                <h4>Добавление в магазин тем</h4>
+                <p>Чтобы добавить тему в магазин тем:</p>
+                <ol>
+                    <li>Создайте запись в файле <code>themes-data.json</code></li>
+                    <li>Добавьте метаданные темы (название, описание, автор)</li>
+                    <li>Создайте превью для карточки темы</li>
+                    <li>Укажите категорию и теги</li>
+                </ol>
+
+                <div class="info">
+                    <strong>💡 Совет:</strong> Изучите существующие записи в <code>themes-data.json</code> для понимания структуры метаданных.
+                </div>
+            </section>
+
+            <section id="examples" class="docs-section">
+                <h3>Примеры тем</h3>
+                <p>Изучите существующие темы для вдохновения и понимания различных подходов:</p>
+
+                <h4>Светлые темы</h4>
+                <ul>
+                    <li><strong>Solar Light</strong> - чистая светлая тема с мягкими тенями</li>
+                    <li><strong>Paper</strong> - тема в стиле бумаги с теплыми оттенками</li>
+                    <li><strong>Zen</strong> - минималистичная тема для концентрации</li>
+                </ul>
+
+                <h4>Темные темы</h4>
+                <ul>
+                    <li><strong>Midnight Pro</strong> - элегантная темная тема с синими акцентами</li>
+                    <li><strong>Carbon</strong> - техническая тема в стиле углеродного волокна</li>
+                    <li><strong>Ocean Deep</strong> - глубокая синяя тема, вдохновленная океаном</li>
+                </ul>
+
+                <h4>Градиентные темы</h4>
+                <ul>
+                    <li><strong>Aurora</strong> - красочная тема с эффектом северного сияния</li>
+                    <li><strong>Sunset Glow</strong> - теплая тема с закатными красками</li>
+                </ul>
+
+                <div class="example-theme">
+                    <h4>Пример простой темы</h4>
+                    <p>Вот пример минималистичной темы:</p>
+                    <div class="code-block">
+                        <pre>:root {
+    --bg-color: #fafafa;
+    --text-color: #333333;
+    --card-bg: #ffffff;
+    --border-color: #e0e0e0;
+    --accent-color: #2196f3;
+    --sidebar-color: #f5f5f5;
+    --header-bg: #f5f5f5;
+    --hover-color: #f0f0f0;
+    --code-bg: #f8f9fa;
+    --text-muted: #666666;
+    
+    --md-red: #f44336;
+    --md-green: #4caf50;
+    --md-blue: #2196f3;
+    --md-yellow: #ff9800;
+    --md-purple: #9c27b0;
+    --md-cyan: #00bcd4;
+}
+
+body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+}
+
+.sidebar-toolbar {
+    background: var(--sidebar-color);
+}
+
+.tab-bar,
+.editor-label {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-item.active {
+    background: var(--card-bg);
+    border-color: var(--accent-color);
+}
+
+#markdown-editor,
+.preview-content {
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+.preview-content h1,
+.preview-content h2,
+.preview-content h3 {
+    color: var(--md-blue);
+}
+
+.preview-content code {
+    background: var(--code-bg);
+    color: var(--md-red);
+}</pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>FgSNotes</h3>
+                    <p>Простой и быстрый редактор Markdown</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Ресурсы</h3>
+                    <ul class="footer-links">
+                        <li><a href="docs-themes.html">Документация</a></li>
+                        <li><a href="plugins.html">Магазин плагинов</a></li>
+                        <li><a href="themes.html">Магазин тем</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Сообщество</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://x200l.github.io/SITeducation/index.html">Наш сайт</a></li>
+                        <li><a href="https://github.com/ArduRadioKot">GitHub</a></li>
+                        <li><a href="https://t.me/SIT_team">Телеграмм канал</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; FgSNotes. Все права защищены.</p>
+                <div class="social-links">
+                    <a href="https://github.com/ArduRadioKot"><i class="fab fa-github"></i></a>
+                    <a href="https://t.me/SIT_team"><i class="fab fa-telegram"></i></a>
+                    <a href="https://x200l.github.io/SITeducation/index.html"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Плавная прокрутка для навигации
+        document.querySelectorAll('.docs-nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                const targetId = link.getAttribute('href').substring(1);
+                const targetSection = document.getElementById(targetId);
+                
+                if (targetSection) {
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+                
+                // Обновляем активную ссылку
+                document.querySelectorAll('.docs-nav a').forEach(a => a.classList.remove('active'));
+                link.classList.add('active');
+            });
+        });
+        
+        // Подсветка активного раздела при прокрутке
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.docs-section');
+            const navLinks = document.querySelectorAll('.docs-nav a');
+            
+            let current = '';
+            
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                
+                if (window.pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
