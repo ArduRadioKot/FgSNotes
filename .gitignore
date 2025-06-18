@@ -20,6 +20,10 @@ build/
 *.min.js
 *.min.css
 
+# Large files and distributions
+*.zip
+FgSNotes-*.zip
+
 # Environment variables
 .env
 .env.local
