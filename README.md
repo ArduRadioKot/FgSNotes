@@ -1,8 +1,6 @@
 # 📝 FgSNotes - Markdown Editor
 
-[![Electron](https://img.shields.io/badge/Electron-28.0.0-47848F?style=flat-square&logo=electron)](https://electronjs.org/)  
-[![License](https://img.shields.io/badge/License-GPL2-blue.svg?style=flat-square)](LICENSE)  
-[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/your-username/MarkdownEditor)  
+[![Electron](https://img.shields.io/badge/Electron-28.0.0-47848F?style=flat-square&logo=electron)](https://electronjs.org/) [![License](https://img.shields.io/badge/License-GPL2-blue.svg?style=flat-square)](LICENSE)  [![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg?style=flat-square)](https://github.com/your-username/MarkdownEditor)  
 
 **FgSNotes** - a cross-platform application for creating, editing, and viewing markdown documents  
 ![header](images/landing.png)  
