@@ -2,6 +2,7 @@ const defaultSettings = {
     'font-size': 'medium',
     'font-family': 'mono',
     'line-height': '1.6',
+    'liquid-glass': 'off',
     'tab-size': '4',
     'word-wrap': 'on',
     'preview-theme': 'default',
@@ -151,6 +152,11 @@ function applySettings(settings) {
     }
     
     editor.wrap = settings['word-wrap'] === 'on' ? 'soft' : 'off';
+
+    const liquidGlass = ['off', 'subtle', 'medium', 'strong'].includes(settings['liquid-glass'])
+        ? settings['liquid-glass']
+        : 'off';
+    document.documentElement.dataset.liquidGlass = liquidGlass;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
