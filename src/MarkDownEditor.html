@@ -41,13 +41,6 @@
         <div class="sidebar-bottom-buttons">
           <button
             class="sidebar-button icon-button"
-            id="theme-button"
-            title="Переключить тему"
-            aria-label="Переключить тему"
-            data-icon="sun"
-          ></button>
-          <button
-            class="sidebar-button icon-button"
             id="settings-button"
             title="Настройки"
             aria-label="Настройки"
@@ -255,132 +248,259 @@
       aria-modal="true"
       aria-labelledby="settings-title"
     >
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 id="settings-title">Настройки</h2>
-          <button
-            class="close-modal icon-button"
-            aria-label="Закрыть настройки"
-            data-icon="close"
-          ></button>
-        </div>
-        <div class="modal-body">
-          <div class="settings-group">
-            <h3>Внешний вид</h3>
-            <div class="setting-item">
-              <label for="font-size">Размер шрифта:</label>
-              <select id="font-size">
-                <option value="small">Маленький</option>
-                <option value="medium" selected>Средний</option>
-                <option value="large">Большой</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="font-family">Шрифт:</label>
-              <select id="font-family">
-                <option value="system">Системный</option>
-                <option value="mono" selected>Моноширинный</option>
-                <option value="serif">С засечками</option>
-                <option value="sans">Без засечек</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="line-height">Межстрочный интервал:</label>
-              <select id="line-height">
-                <option value="1.4">Узкий</option>
-                <option value="1.6" selected>Средний</option>
-                <option value="1.8">Широкий</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="liquid-glass">Liquid Glass:</label>
-              <select id="liquid-glass">
-                <option value="off" selected>Выключен</option>
-                <option value="subtle">Лёгкий</option>
-                <option value="medium">Средний</option>
-                <option value="strong">Сильный</option>
-              </select>
-            </div>
+      <div class="modal-content settings-window">
+        <nav class="settings-nav" aria-label="Разделы настроек">
+          <div class="settings-nav-header" id="settings-title">Настройки</div>
+          <div class="settings-nav-list" role="tablist" aria-orientation="vertical">
+            <button
+              type="button"
+              class="settings-nav-item is-active"
+              role="tab"
+              aria-selected="true"
+              data-settings-section="appearance"
+            >
+              Внешний вид
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="editor"
+            >
+              Редактор
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="preview"
+            >
+              Предпросмотр
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="plugins"
+            >
+              Плагины
+            </button>
           </div>
-
-          <div class="settings-group">
-            <h3>Редактор</h3>
-            <div class="setting-item">
-              <label for="tab-size">Размер табуляции:</label>
-              <select id="tab-size">
-                <option value="2">2 пробела</option>
-                <option value="4" selected>4 пробела</option>
-                <option value="8">8 пробелов</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="word-wrap">Перенос слов:</label>
-              <select id="word-wrap">
-                <option value="off">Выключен</option>
-                <option value="on" selected>Включен</option>
-              </select>
-            </div>
-            <p class="settings-note">
-              Черновики открытых вкладок сохраняются автоматически на этом
-              устройстве.
-            </p>
-          </div>
-
-          <div class="settings-group">
-            <h3>Предпросмотр</h3>
-            <div class="setting-item">
-              <label for="preview-theme">Тема предпросмотра:</label>
-              <select id="preview-theme">
-                <option value="default" selected>По умолчанию</option>
-                <option value="github">GitHub</option>
-                <option value="dark">Тёмная</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="math-support">Поддержка формул:</label>
-              <select id="math-support">
-                <option value="off">Выключена</option>
-                <option value="on" selected>Включена</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="external-theme">Сторонняя тема (CSS файл):</label>
-              <select id="external-theme">
-                <option value="">Нет</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <h3>Плагины</h3>
-            <div class="setting-item">
-              <label for="table-of-contents">Оглавление:</label>
-              <select id="table-of-contents">
-                <option value="off">Выключено</option>
-                <option value="on" selected>Включено</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="todo-list">Список задач:</label>
-              <select id="todo-list">
-                <option value="off">Выключен</option>
-                <option value="on" selected>Включен</option>
-              </select>
-            </div>
-            <div class="setting-item">
-              <label for="code-highlight">Подсветка кода:</label>
-              <select id="code-highlight">
-                <option value="off">Выключена</option>
-                <option value="on" selected>Включена</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="button-secondary" id="reset-settings">
+          <button type="button" class="settings-nav-reset" id="reset-settings">
             Сбросить настройки
           </button>
-          <button class="button-primary" id="save-settings">Готово</button>
+        </nav>
+        <div class="settings-main">
+          <div class="settings-main-header">
+            <h2 id="settings-panel-title">Внешний вид</h2>
+            <button
+              class="close-modal icon-button"
+              aria-label="Закрыть настройки"
+              data-icon="close"
+            ></button>
+          </div>
+          <div class="settings-main-body">
+            <section
+              class="settings-panel is-active"
+              data-settings-panel="appearance"
+              role="tabpanel"
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="theme">Тема</label>
+                  <div class="setting-desc">Цветовая схема интерфейса</div>
+                </div>
+                <div class="setting-control">
+                  <select id="theme">
+                    <option value="dark" selected>Тёмная</option>
+                    <option value="light">Светлая</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="font-size">Размер шрифта</label>
+                  <div class="setting-desc">Размер текста в редакторе и предпросмотре</div>
+                </div>
+                <div class="setting-control">
+                  <select id="font-size">
+                    <option value="small">Маленький</option>
+                    <option value="medium" selected>Средний</option>
+                    <option value="large">Большой</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="font-family">Шрифт</label>
+                  <div class="setting-desc">Семейство шрифта редактора</div>
+                </div>
+                <div class="setting-control">
+                  <select id="font-family">
+                    <option value="system">Системный</option>
+                    <option value="mono" selected>Моноширинный</option>
+                    <option value="serif">С засечками</option>
+                    <option value="sans">Без засечек</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="line-height">Межстрочный интервал</label>
+                  <div class="setting-desc">Расстояние между строками текста</div>
+                </div>
+                <div class="setting-control">
+                  <select id="line-height">
+                    <option value="1.4">Узкий</option>
+                    <option value="1.6" selected>Средний</option>
+                    <option value="1.8">Широкий</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="liquid-glass">Liquid Glass</label>
+                  <div class="setting-desc">Матовое стекло для панелей интерфейса</div>
+                </div>
+                <div class="setting-control">
+                  <select id="liquid-glass">
+                    <option value="off" selected>Выключен</option>
+                    <option value="subtle">Лёгкий</option>
+                    <option value="medium">Средний</option>
+                    <option value="strong">Сильный</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section
+              class="settings-panel"
+              data-settings-panel="editor"
+              role="tabpanel"
+              hidden
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="tab-size">Размер табуляции</label>
+                  <div class="setting-desc">Ширина отступа при нажатии Tab</div>
+                </div>
+                <div class="setting-control">
+                  <select id="tab-size">
+                    <option value="2">2 пробела</option>
+                    <option value="4" selected>4 пробела</option>
+                    <option value="8">8 пробелов</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="word-wrap">Перенос слов</label>
+                  <div class="setting-desc">Переносить длинные строки в редакторе</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="word-wrap" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <p class="settings-note">
+                Черновики открытых вкладок сохраняются автоматически на этом
+                устройстве.
+              </p>
+            </section>
+
+            <section
+              class="settings-panel"
+              data-settings-panel="preview"
+              role="tabpanel"
+              hidden
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="preview-theme">Тема предпросмотра</label>
+                  <div class="setting-desc">Оформление панели предпросмотра Markdown</div>
+                </div>
+                <div class="setting-control">
+                  <select id="preview-theme">
+                    <option value="default" selected>По умолчанию</option>
+                    <option value="github">GitHub</option>
+                    <option value="dark">Тёмная</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="math-support">Поддержка формул</label>
+                  <div class="setting-desc">Рендер математических формул через MathJax</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="math-support" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="external-theme">Сторонняя тема</label>
+                  <div class="setting-desc">CSS-файл из папки Documents/FgSNotes/themes</div>
+                </div>
+                <div class="setting-control">
+                  <select id="external-theme">
+                    <option value="">Нет</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section
+              class="settings-panel"
+              data-settings-panel="plugins"
+              role="tabpanel"
+              hidden
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="table-of-contents">Оглавление</label>
+                  <div class="setting-desc">Показывать оглавление по заголовкам документа</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="table-of-contents" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="todo-list">Список задач</label>
+                  <div class="setting-desc">Интерактивные чекбоксы для задач в Markdown</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="todo-list" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="code-highlight">Подсветка кода</label>
+                  <div class="setting-desc">Подсветка синтаксиса в блоках кода</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="code-highlight" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </div>

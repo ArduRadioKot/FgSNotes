@@ -1,4 +1,5 @@
 const defaultSettings = {
+    'theme': 'dark',
     'font-size': 'medium',
     'font-family': 'mono',
     'line-height': '1.6',
@@ -153,6 +154,10 @@ function applySettings(settings) {
     
     editor.wrap = settings['word-wrap'] === 'on' ? 'soft' : 'off';
 
+    const theme = settings['theme'] === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+
     const liquidGlass = ['off', 'subtle', 'medium', 'strong'].includes(settings['liquid-glass'])
         ? settings['liquid-glass']
         : 'off';
@@ -163,15 +168,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsModal = document.getElementById('settings-modal');
     const settingsButton = document.getElementById('settings-button');
     const closeModal = document.querySelector('.close-modal');
-    const saveSettingsButton = document.getElementById('save-settings');
     const resetSettingsButton = document.getElementById('reset-settings');
-    
+    const panelTitle = document.getElementById('settings-panel-title');
+    const navItems = [...document.querySelectorAll('.settings-nav-item')];
+    const panels = [...document.querySelectorAll('.settings-panel')];
+
     let currentSettings;
-    
+
+    function readControlValue(element) {
+        if (!element) return undefined;
+        if (element.type === 'checkbox') {
+            return element.checked ? 'on' : 'off';
+        }
+        return element.value;
+    }
+
+    function writeControlValue(element, value) {
+        if (!element) return;
+        if (element.type === 'checkbox') {
+            element.checked = value === 'on';
+            return;
+        }
+        element.value = value;
+    }
+
+    function syncControlsFromSettings(settings) {
+        Object.keys(defaultSettings).forEach(key => {
+            writeControlValue(document.getElementById(key), settings[key]);
+        });
+    }
+
+    function showSettingsSection(sectionId) {
+        const activeNav = navItems.find(item => item.dataset.settingsSection === sectionId) || navItems[0];
+        const targetId = activeNav.dataset.settingsSection;
+
+        navItems.forEach(item => {
+            const isActive = item === activeNav;
+            item.classList.toggle('is-active', isActive);
+            item.setAttribute('aria-selected', String(isActive));
+        });
+
+        panels.forEach(panel => {
+            const isActive = panel.dataset.settingsPanel === targetId;
+            panel.classList.toggle('is-active', isActive);
+            panel.hidden = !isActive;
+        });
+
+        if (panelTitle) {
+            panelTitle.textContent = activeNav.textContent.trim();
+        }
+    }
+
     currentSettings = await loadSettings();
     applySettings(currentSettings);
-    
-    // Fetch and populate external themes
+    syncControlsFromSettings(currentSettings);
+
     if (window.electron && window.electron.getThemesList) {
         const externalThemeSelect = document.getElementById('external-theme');
         if (externalThemeSelect) {
@@ -182,89 +233,80 @@ document.addEventListener('DOMContentLoaded', async () => {
                 option.textContent = theme;
                 externalThemeSelect.appendChild(option);
             });
+            writeControlValue(externalThemeSelect, currentSettings['external-theme']);
         }
     }
 
-    Object.keys(currentSettings).forEach(key => {
-        const element = document.getElementById(key);
-        if (element) {
-            element.value = currentSettings[key];
-        }
-    });
-    
-    const settingInputs = document.querySelectorAll('.setting-item select, .setting-item input[type="text"]');
-    settingInputs.forEach(input => {
+    document.querySelectorAll('.setting-control select, .setting-toggle input[type="checkbox"]').forEach(input => {
         input.addEventListener('change', (e) => {
-            const newSettings = { ...currentSettings };
-            newSettings[e.target.id] = e.target.value;
-            currentSettings = newSettings;
+            const key = e.target.id;
+            if (!(key in defaultSettings)) return;
+            currentSettings = {
+                ...currentSettings,
+                [key]: readControlValue(e.target)
+            };
             applySettings(currentSettings);
             saveSettings(currentSettings);
         });
     });
-    
+
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            showSettingsSection(item.dataset.settingsSection);
+        });
+    });
+
     settingsButton.addEventListener('click', () => {
-        if (currentSettings) {
-            Object.keys(currentSettings).forEach(key => {
-                const element = document.getElementById(key);
-                if (element) {
-                    element.value = currentSettings[key];
-                }
-            });
-        }
+        syncControlsFromSettings(currentSettings);
+        showSettingsSection(
+            document.querySelector('.settings-nav-item.is-active')?.dataset.settingsSection || 'appearance'
+        );
         settingsModal.classList.add('show');
         document.querySelector('.workspace').inert = true;
         closeModal.focus();
     });
-    
+
     closeModal.addEventListener('click', () => {
         closeSettings();
     });
-    
+
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             closeSettings();
         }
     });
-    
-    saveSettingsButton.addEventListener('click', () => {
-        const newSettings = { ...currentSettings };
-        Object.keys(defaultSettings).forEach(key => {
-            const element = document.getElementById(key);
-            if (element) {
-                newSettings[key] = element.value;
-            }
-        });
-        
-        currentSettings = newSettings;
-        saveSettings(currentSettings);
-        applySettings(currentSettings); // Применяем настройки сразу после сохранения
-        closeSettings();
-    });
-    
+
     resetSettingsButton.addEventListener('click', () => {
-        Object.keys(defaultSettings).forEach(key => {
-            const element = document.getElementById(key);
-            if (element) {
-                element.value = defaultSettings[key];
-            }
-        });
         currentSettings = { ...defaultSettings };
+        syncControlsFromSettings(currentSettings);
         applySettings(currentSettings);
         saveSettings(currentSettings);
     });
-    
+
     function closeSettings() {
         settingsModal.classList.remove('show');
         document.querySelector('.workspace').inert = false;
         settingsButton.focus();
     }
+
     settingsModal.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { event.preventDefault(); closeSettings(); }
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeSettings();
+            return;
+        }
         if (event.key !== 'Tab') return;
-        const controls = [...settingsModal.querySelectorAll('button, select')].filter(element => !element.disabled);
-        const first = controls[0], last = controls.at(-1);
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        const controls = [...settingsModal.querySelectorAll('button, select, .setting-toggle input')]
+            .filter(element => !element.disabled && element.offsetParent !== null);
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (!first || !last) return;
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     });
 });
