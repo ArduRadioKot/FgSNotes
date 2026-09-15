@@ -1,366 +1,265 @@
-function parseMarkdown(text) {
-    text = text.replace(/^\[toc\]$/gm, '<div class="table-of-contents"></div>');
-    
-    text = text.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-    text = text.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-    text = text.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-    text = text.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
-    text = text.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
-    text = text.replace(/^###### (.*$)/gm, '<h6>$1</h6>');
-    
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    
-    text = text.replace(/~~(.*?)~~/g, '<del>$1</del>');
-    
-    text = text.replace(/<u>(.*?)<\/u>/g, '<u>$1</u>');
-    
-    text = text.replace(/<sup>(.*?)<\/sup>/g, '<sup>$1</sup>');
-
-    text = text.replace(/<sub>(.*?)<\/sub>/g, '<sub>$1</sub>');
-    
-    text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
-    
-    text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1">');
-    
-    text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-    text = text.replace(/`(.*?)`/g, '<code>$1</code>');
-    
-    text = text.replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>');
-    
-    text = text.replace(/^- \[ \] (.*$)/gm, '<li class="todo-item"><input type="checkbox" disabled> $1</li>');
-    text = text.replace(/^- \[x\] (.*$)/gm, '<li class="todo-item"><input type="checkbox" checked disabled> $1</li>');
-    text = text.replace(/(<li class="todo-item">.*<\/li>)/gs, '<ul class="todo-list">$1</ul>');
-    
-    text = text.replace(/^- (.*$)/gm, '<li>$1</li>');
-    text = text.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-    
-    text = text.replace(/^(\d+)\. (.*$)/gm, '<li>$2</li>');
-    text = text.replace(/(<li>.*<\/li>)/gs, '<ol>$1</ol>');
-    
-    text = text.replace(/^  - (.*$)/gm, '<li class="nested">$1</li>');
-    text = text.replace(/^  (\d+)\. (.*$)/gm, '<li class="nested">$2</li>');
-    
-    const tableRegex = /\|(.*)\|\n\|(.*)\|\n((?:\|.*\|\n?)*)/g;
-    text = text.replace(tableRegex, function(match, header, separator, content) {
-        const headers = header.split('|').map(h => h.trim()).filter(h => h);
-        const headerHtml = headers.map(h => `<th>${h}</th>`).join('');
-        
-        const rows = content.split('\n').filter(row => row.trim());
-        const contentHtml = rows.map(row => {
-            const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
-            return `<tr>${cells.map(cell => `<td>${cell}</td>`).join('')}</tr>`;
-        }).join('');
-        
-        return `<table><thead><tr>${headerHtml}</tr></thead><tbody>${contentHtml}</tbody></table>`;
-    });
-    
-    text = text.replace(/^(?!<[h|ul|ol|blockquote|pre|u|sup|sub|table|div])(.*$)/gm, '<p>$1</p>');
-    
-    text = text.replace(/<p><\/p>/g, '');
-    
-    const toc = document.querySelector('.table-of-contents');
-    if (toc) {
-        const headings = text.match(/<h[1-6].*?>(.*?)<\/h[1-6]>/g) || [];
-        let tocHtml = '<ul class="toc-list">';
-        headings.forEach(heading => {
-            const level = heading.match(/<h([1-6])/)[1];
-            const title = heading.replace(/<h[1-6].*?>(.*?)<\/h[1-6]>/, '$1');
-            tocHtml += `<li class="toc-level-${level}"><a href="#${title.toLowerCase().replace(/\s+/g, '-')}">${title}</a></li>`;
-        });
-        tocHtml += '</ul>';
-        toc.innerHTML = tocHtml;
+const markdownFormats = {
+    heading: ['## ', '', 'Заголовок', true], bold: ['**', '**', 'текст'],
+    italic: ['*', '*', 'текст'], strike: ['~~', '~~', 'текст'],
+    underline: ['<u>', '</u>', 'текст'], list: ['- ', '', 'Элемент списка', true],
+    task: ['- [ ] ', '', 'Новая задача', true], quote: ['> ', '', 'Цитата', true],
+    link: ['[', '](https://example.com)', 'текст ссылки'],
+    image: ['![', '](https://example.com/image.png)', 'Описание изображения'],
+    code: ['```\n', '\n```', 'код', true], sup: ['<sup>', '</sup>', 'текст'], sub: ['<sub>', '</sub>', 'текст']
+};
+window.insertMarkdown = function(start, end, placeholder = '', block = false) {
+    const editor = document.getElementById('markdown-editor');
+    const selectionStart = editor.selectionStart;
+    const selectionEnd = editor.selectionEnd;
+    const selected = editor.value.slice(selectionStart, selectionEnd) || placeholder;
+    const prefix = block && selectionStart > 0 && editor.value[selectionStart - 1] !== '\n' ? '\n' : '';
+    const suffix = block && selectionEnd < editor.value.length && editor.value[selectionEnd] !== '\n' ? '\n' : '';
+    editor.focus();
+    const replacement = prefix + start + selected + end + suffix;
+    // Chromium's editing command keeps toolbar actions in the native undo history.
+    if (!document.execCommand('insertText', false, replacement)) {
+        editor.setRangeText(replacement, selectionStart, selectionEnd, 'end');
     }
-    
-    return text;
-}
-
-function downloadArticle() {
-    try {
-        const editor = document.getElementById('markdown-editor');
-        if (!editor) {
-            throw new Error('Не удалось найти редактор на странице');
-        }
-
-        const content = editor.value.trim();
-        const filename = 'article.md';
-
-        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    } catch (error) {
-        console.error('Ошибка при скачивании:', error);
-        alert('Произошла ошибка при скачивании файла: ' + error.message);
-    }
-}
-
-window.insertMarkdown = function(start, end) {
-    const textarea = document.getElementById('markdown-editor');
-    if (textarea) {
-        const startPos = textarea.selectionStart;
-        const endPos = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(startPos, endPos);
-        const newText = start + selectedText + end;
-        textarea.value = textarea.value.substring(0, startPos) + newText + textarea.value.substring(endPos, textarea.value.length);
-        textarea.focus();
-        textarea.selectionStart = startPos + start.length;
-        textarea.selectionEnd = startPos + start.length + selectedText.length;
-        
-        updatePreview();
-        saveCurrentDocument();
-    }
+    editor.setSelectionRange(selectionStart + prefix.length + start.length, selectionStart + prefix.length + start.length + selected.length);
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     const editor = document.getElementById('markdown-editor');
     const preview = document.getElementById('preview');
-
+    const workspace = document.querySelector('.workspace');
+    const tabBar = document.querySelector('.tab-bar');
+    const newTabButton = document.querySelector('.new-tab-button');
     let documents = [];
     let activeDocumentIndex = 0;
     let nextDocumentId = 1;
+    let saveTimer;
+    const storageKey = 'fgsnotes.workspace.v1';
 
-    const tabBar = document.querySelector('.tab-bar');
-    const newTabButton = document.querySelector('.new-tab-button');
-
-    const newFileButton = document.getElementById('new-file-button');
-    const openFileButton = document.getElementById('open-file-button');
-    const saveFileButton = document.getElementById('save-file-button');
-
+    function updateCursor() {
+        const lines = editor.value.slice(0, editor.selectionStart).split('\n');
+        document.getElementById('cursor-position').textContent = `Стр ${lines.length}, стлб ${lines.at(-1).length + 1}`;
+    }
+    function plural(value, forms) {
+        const mod100 = value % 100, mod10 = value % 10;
+        return forms[mod100 > 10 && mod100 < 20 ? 2 : mod10 === 1 ? 0 : mod10 >= 2 && mod10 <= 4 ? 1 : 2];
+    }
     function updatePreview() {
-        if (editor && preview) {
-            const markdownText = editor.value;
-            const html = parseMarkdown(markdownText);
-            preview.innerHTML = html;
+        preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>Здесь оживут ваши идеи</h2><p>Начните писать в редакторе — результат появится здесь.</p></div>`;
+        const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
+        const characters = Array.from(editor.value).length;
+        document.getElementById('word-count').textContent = `${words} ${plural(words, ['слово', 'слова', 'слов'])}`;
+        document.getElementById('character-count').textContent = `${characters} ${plural(characters, ['символ', 'символа', 'символов'])}`;
+        updateCursor();
+    }
+    function persistWorkspace() {
+        clearTimeout(saveTimer);
+        try {
+            localStorage.setItem(storageKey, JSON.stringify({ documents, activeDocumentIndex, nextDocumentId }));
+            document.getElementById('save-status').textContent = 'Черновик сохранён';
+        } catch (error) {
+            document.getElementById('save-status').textContent = 'Не удалось сохранить черновик';
+            console.error('Draft storage failed:', error);
         }
     }
-
     function saveCurrentDocument() {
-        if (documents[activeDocumentIndex]) {
-            localStorage.setItem(`editorContent_doc${documents[activeDocumentIndex].id}`, editor.value);
-            documents[activeDocumentIndex].content = editor.value;
-        }
+        const doc = documents[activeDocumentIndex];
+        if (doc) doc.content = editor.value;
     }
-
     function loadDocument(index) {
-        if (documents[index]) {
-            editor.value = documents[index].content;
-            updatePreview();
-        }
+        editor.value = documents[index].content;
+        editor.setSelectionRange(0, 0);
+        editor.scrollTop = 0;
+        preview.scrollTop = 0;
+        updatePreview();
+        document.title = `${documents[index].title} — FgSNotes`;
     }
-
     function addNewTab() {
         saveCurrentDocument();
-
-        const newDocument = {
-            id: nextDocumentId++,
-            title: `Документ ${nextDocumentId}`,
-            content: ''
-        };
-        documents.push(newDocument);
+        const id = nextDocumentId++;
+        documents.push({ id, title: `Документ ${id}`, content: '' });
         activeDocumentIndex = documents.length - 1;
-
         renderTabs();
         loadDocument(activeDocumentIndex);
+        persistWorkspace();
+        setView(workspace.dataset.view === 'preview' ? 'editor' : workspace.dataset.view);
         editor.focus();
     }
-
     function switchTab(index) {
         if (index === activeDocumentIndex) return;
         saveCurrentDocument();
         activeDocumentIndex = index;
         renderTabs();
-        loadDocument(activeDocumentIndex);
-        editor.focus();
+        loadDocument(index);
+        persistWorkspace();
     }
-
-    function closeTab(indexToClose) {
-        if (documents.length === 1) {
-            alert('Cannot close the last tab.');
-            return;
-        }
-
-        const closedDocId = documents[indexToClose].id;
-        localStorage.removeItem(`editorContent_doc${closedDocId}`);
-
-        if (indexToClose === activeDocumentIndex) {
-            if (indexToClose === documents.length - 1) {
-                activeDocumentIndex--;
-            }
-        } else if (indexToClose < activeDocumentIndex) {
-            activeDocumentIndex--;
-        }
-
-        documents.splice(indexToClose, 1);
+    function closeTab(index) {
+        if (documents.length === 1) return;
+        saveCurrentDocument();
+        documents.splice(index, 1);
+        if (index < activeDocumentIndex) activeDocumentIndex--;
+        activeDocumentIndex = Math.min(activeDocumentIndex, documents.length - 1);
         renderTabs();
         loadDocument(activeDocumentIndex);
-        editor.focus();
+        persistWorkspace();
+        tabBar.querySelector('.active .tab-select').focus();
     }
-
     function renderTabs() {
-        tabBar.innerHTML = '';
+        tabBar.replaceChildren();
         documents.forEach((doc, index) => {
-            const tabItem = document.createElement('div');
-            tabItem.classList.add('tab-item');
-            if (index === activeDocumentIndex) {
-                tabItem.classList.add('active');
-            }
-            tabItem.dataset.index = index;
-            tabItem.textContent = doc.title;
-
-            const closeSpan = document.createElement('span');
-            closeSpan.classList.add('close-tab');
-            closeSpan.textContent = 'x';
-            closeSpan.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeTab(index);
+            const tab = document.createElement('div');
+            tab.className = `tab-item${index === activeDocumentIndex ? ' active' : ''}`;
+            const select = document.createElement('button');
+            select.className = 'tab-select';
+            select.innerHTML = icon('file');
+            select.setAttribute('aria-pressed', index === activeDocumentIndex);
+            select.title = doc.title;
+            const title = document.createElement('span');
+            title.className = 'tab-title';
+            title.textContent = doc.title;
+            select.append(title);
+            select.addEventListener('click', () => switchTab(index));
+            select.addEventListener('keydown', event => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const next = event.key === 'Home' ? 0 : event.key === 'End' ? documents.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + documents.length) % documents.length;
+                switchTab(next);
+                tabBar.querySelector('.active .tab-select').focus();
             });
-            tabItem.appendChild(closeSpan);
-
-            tabItem.addEventListener('click', () => switchTab(index));
-            tabBar.appendChild(tabItem);
+            const close = document.createElement('button');
+            close.className = 'close-tab';
+            close.innerHTML = icon('close');
+            close.setAttribute('aria-label', `Закрыть ${doc.title}`);
+            close.title = documents.length === 1 ? 'Оставьте хотя бы один документ открытым' : 'Закрыть документ';
+            close.disabled = documents.length === 1;
+            close.addEventListener('click', () => closeTab(index));
+            tab.append(select, close);
+            tabBar.append(tab);
         });
-
-        tabBar.appendChild(newTabButton);
+        tabBar.append(newTabButton);
+        tabBar.querySelector('.active').scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-
-    function newFile() {
-        addNewTab();
-    }
-
     function openFile() {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.md, .txt';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    saveCurrentDocument();
-                    const newDocument = {
-                        id: nextDocumentId++,
-                        title: file.name,
-                        content: event.target.result
-                    };
-                    documents.push(newDocument);
-                    activeDocumentIndex = documents.length - 1;
-                    renderTabs();
-                    loadDocument(activeDocumentIndex);
-                    editor.focus();
-                };
-                reader.readAsText(file);
-            }
+        input.accept = '.md,.markdown,.txt';
+        input.hidden = true;
+        document.body.append(input);
+        input.addEventListener('cancel', () => input.remove(), { once: true });
+        input.onchange = () => {
+            const file = input.files[0];
+            input.remove();
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                saveCurrentDocument();
+                documents.push({ id: nextDocumentId++, title: file.name, content: reader.result });
+                activeDocumentIndex = documents.length - 1;
+                renderTabs();
+                loadDocument(activeDocumentIndex);
+                persistWorkspace();
+            };
+            reader.onerror = () => { document.getElementById('save-status').textContent = 'Не удалось открыть файл'; };
+            reader.readAsText(file);
         };
         input.click();
     }
-
     function saveFile() {
-        if (documents[activeDocumentIndex]) {
-            const content = documents[activeDocumentIndex].content;
-            const filename = documents[activeDocumentIndex].title + '.md';
-            const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        } else {
-            alert('No document to save.');
-        }
+        saveCurrentDocument();
+        persistWorkspace();
+        const doc = documents[activeDocumentIndex];
+        const blob = new Blob([doc.content], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = /\.(md|markdown|txt)$/i.test(doc.title) ? doc.title : `${doc.title}.md`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-
+    function setView(view) {
+        if (!['editor', 'split', 'preview'].includes(view)) view = 'split';
+        workspace.dataset.view = view;
+        document.querySelectorAll('.view-switch button').forEach(button => button.setAttribute('aria-pressed', button.dataset.view === view));
+        document.querySelectorAll('[data-format]').forEach(button => { button.disabled = view === 'preview'; });
+        localStorage.setItem('editorView', view);
+    }
+    document.querySelectorAll('.view-switch button').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+    document.querySelectorAll('[data-format]').forEach(button => {
+        button.addEventListener('mousedown', event => event.preventDefault());
+        button.addEventListener('click', () => window.insertMarkdown(...markdownFormats[button.dataset.format]));
+    });
     editor.addEventListener('input', () => {
         updatePreview();
         saveCurrentDocument();
+        document.getElementById('save-status').textContent = 'Сохранение…';
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(persistWorkspace, 300);
     });
-
-    newTabButton.addEventListener('click', addNewTab);
-
-    newFileButton.addEventListener('click', newFile);
-    openFileButton.addEventListener('click', openFile);
-    saveFileButton.addEventListener('click', saveFile);
-
-    for (let i = 0; ; i++) {
-        const savedContent = localStorage.getItem(`editorContent_doc${i}`);
-        if (savedContent) {
-            documents.push({
-                id: i,
-                title: `Документ ${i + 1}`,
-                content: savedContent
-            });
-            nextDocumentId = i + 1;
-        } else {
-            break;
+    ['click', 'keyup', 'select'].forEach(event => editor.addEventListener(event, updateCursor));
+    document.addEventListener('keydown', event => {
+        if (document.querySelector('.modal.show')) return;
+        if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+        const actions = { KeyS: saveFile, KeyO: openFile, KeyN: addNewTab };
+        if (workspace.dataset.view !== 'preview') {
+            actions.KeyB = () => window.insertMarkdown(...markdownFormats.bold);
+            actions.KeyI = () => window.insertMarkdown(...markdownFormats.italic);
         }
-    }
+        if (actions[event.code]) { event.preventDefault(); actions[event.code](); }
+    });
+    window.addEventListener('beforeunload', () => { saveCurrentDocument(); persistWorkspace(); });
+    newTabButton.addEventListener('click', addNewTab);
+    document.getElementById('new-file-button').addEventListener('click', addNewTab);
+    document.getElementById('open-file-button').addEventListener('click', openFile);
+    document.getElementById('save-file-button').addEventListener('click', saveFile);
 
-    if (documents.length === 0) {
-        const exampleText = `# Добро пожаловать в редактор Markdown
-
-[toc]
-
-## Основные возможности
-
-### Форматирование текста
-- Поддержка **жирного** текста
-- Поддержка *курсива*
-- Поддержка ~~зачеркнутого~~ текста
-- Поддержка <u>подчеркнутого</u> текста
-- Поддержка <sup>надстрочного</sup> и <sub>подстрочного</sub> текста
-
-### Списки
-1. Нумерованные списки
-2. Маркированные списки
-   1. С поддержкой вложенности
-   2. На несколько уровней
-
-### Задачи
-- [ ] Создать новый документ
-- [x] Изучить возможности редактора
-- [ ] Настроить тему оформления
-
-### Таблицы
-| Функция | Описание | Пример |
-|---------|----------|---------|
-| Заголовки | Создание заголовков | # Заголовок |
-| Списки | Создание списков | - Элемент |
-| Код | Вставка кода | \`\`\`код\`\`\` |
-
-### Код
-\`\`\`
-console.log("Hello, World!");
-\`\`\`
-
-### Цитаты
-> Это пример цитаты
-> Она может быть на несколько строк
-
-### Ссылки и изображения
-[Ссылка на сайт](https://example.com)
-![Описание изображения](https://example.com/image.jpg)
-
-## Дополнительные возможности
-- Автоматическое сохранение
-- Поддержка тем оформления
-- Предпросмотр в реальном времени
-- Возможность изменения размеров панелей`;
-        documents.push({
-            id: nextDocumentId++,
-            title: 'Документ 1',
-            content: exampleText
+    try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && Array.isArray(saved.documents)) {
+            documents = saved.documents.filter(doc => Number.isFinite(doc.id) && typeof doc.title === 'string' && typeof doc.content === 'string');
+            activeDocumentIndex = Math.max(0, Math.min(Number(saved.activeDocumentIndex) || 0, documents.length - 1));
+        }
+    } catch (error) { console.error('Could not restore workspace:', error); }
+    if (!documents.length) {
+        // Recover all legacy drafts, including gaps left by closed tabs.
+        Object.keys(localStorage).filter(key => /^editorContent_doc\d+$/.test(key)).sort((a, b) => Number(a.replace('editorContent_doc', '')) - Number(b.replace('editorContent_doc', ''))).forEach(key => {
+            const id = Number(key.replace('editorContent_doc', ''));
+            documents.push({ id, title: `Документ ${id}`, content: localStorage.getItem(key) });
         });
     }
-    
+    nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
+    if (!documents.length) {
+        documents.push({ id: nextDocumentId++, title: 'Начните здесь.md', content: `# Хорошие идеи начинаются с заметки
+
+Это ваше пространство для мыслей, планов и небольших открытий. Просто начните писать — оформление появится справа.
+
+## Всё важное под рукой
+
+Выделите текст и выберите **жирный**, *курсив* или другой инструмент на панели. А если знаете Markdown — пишите как привыкли.
+
+- Создавайте отдельную вкладку для каждой идеи
+- Открывайте и сохраняйте файлы в формате .md
+- Переключайте вид, чтобы сосредоточиться на тексте
+
+## Маленький план на сегодня
+
+- [x] Найти место для своих идей
+- [ ] Записать первую мысль
+- [ ] Превратить её в небольшой план
+
+> Не обязательно сразу писать идеально. Важно начать.
+
+## Пара полезных сочетаний
+
+**Ctrl / ⌘ S** — сохранить файл\x20\x20
+**Ctrl / ⌘ B** — выделить жирным\x20\x20
+**Ctrl / ⌘ I** — добавить курсив
+
+Черновики открытых вкладок сохраняются на этом устройстве автоматически.` });
+    }
     renderTabs();
     loadDocument(activeDocumentIndex);
+    persistWorkspace();
+    setView(localStorage.getItem('editorView') || 'split');
 });

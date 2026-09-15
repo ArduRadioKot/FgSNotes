@@ -4,7 +4,6 @@ const defaultSettings = {
     'line-height': '1.6',
     'tab-size': '4',
     'word-wrap': 'on',
-    'auto-save': '5',
     'preview-theme': 'default',
     'math-support': 'on',
     'table-of-contents': 'on',
@@ -17,15 +16,14 @@ async function loadSettings() {
     if (window.electron) {
         try {
             const config = await window.electron.loadConfig();
-            console.log('Loaded config from main process:', config);
-            return config;
+            return { ...defaultSettings, ...config };
         } catch (error) {
             console.error('Error loading config from main process:', error);
             return defaultSettings; // Fallback to default settings on error
         }
     } else {
-        console.error('Electron API not available, cannot load config.');
-        return defaultSettings; // Fallback for browser environment or handle error
+        try { return { ...defaultSettings, ...JSON.parse(localStorage.getItem('fgsnotes.settings')) }; }
+        catch { return { ...defaultSettings }; }
     }
 }
 
@@ -33,13 +31,11 @@ function saveSettings(settings) {
     if (window.electron) {
         window.electron.saveConfig(settings);
     } else {
-        console.error('Electron API not available, cannot save config.');
-        // Fallback for browser environment or handle error
+        localStorage.setItem('fgsnotes.settings', JSON.stringify(settings));
     }
 }
 
 function applySettings(settings) {
-    console.log('Applying settings:', settings);
     
     const editor = document.getElementById('markdown-editor');
     const preview = document.getElementById('preview');
@@ -50,9 +46,9 @@ function applySettings(settings) {
     }
     
     const fontSizeMap = {
-        small: '0.9rem',
-        medium: '1rem',
-        large: '1.1rem'
+        small: '13px',
+        medium: '14px',
+        large: '16px'
     };
     
     const fontFamilyMap = {
@@ -66,7 +62,6 @@ function applySettings(settings) {
     const fontFamily = fontFamilyMap[settings['font-family']] || fontFamilyMap.mono;
     const lineHeight = settings['line-height'] || '1.6';
     
-    console.log('Applying font settings:', { fontSize, fontFamily, lineHeight });
     
     editor.style.cssText = `
         font-size: ${fontSize};
@@ -78,17 +73,9 @@ function applySettings(settings) {
     
     preview.style.cssText = `
         font-size: ${fontSize};
-        font-family: ${fontFamily};
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         line-height: ${lineHeight};
     `;
-    
-    const previewElements = preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, code, pre');
-    previewElements.forEach(element => {
-        element.style.cssText = `
-            font-size: ${fontSize};
-            font-family: ${fontFamily};
-        `;
-    });
     
     const previewThemes = {
         default: '',
@@ -96,13 +83,8 @@ function applySettings(settings) {
         dark: 'preview-theme-dark'
     };
     
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const previewTheme = settings['preview-theme'] === 'default' ? 
-        (currentTheme === 'dark' ? 'preview-theme-dark' : '') : 
-        previewThemes[settings['preview-theme']];
-    
-    preview.className = 'preview-content ' + previewTheme;
-    
+    preview.className = 'preview-content ' + (previewThemes[settings['preview-theme']] || '');
+
     if (settings['math-support'] === 'on') {
         if (!document.getElementById('mathjax-script')) {
             const script = document.createElement('script');
@@ -137,7 +119,7 @@ function applySettings(settings) {
         const highlightStyle = document.getElementById('highlight-style');
         if (highlightScript) highlightScript.remove();
         if (highlightStyle) highlightStyle.remove();
-}
+    }
 
     // Handle external theme
     const externalThemeLink = document.getElementById('external-theme-link');
@@ -168,12 +150,10 @@ function applySettings(settings) {
         }
     }
     
-    const event = new Event('input');
-    editor.dispatchEvent(event);
+    editor.wrap = settings['word-wrap'] === 'on' ? 'soft' : 'off';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('settings.js: DOMContentLoaded event fired.');
     const settingsModal = document.getElementById('settings-modal');
     const settingsButton = document.getElementById('settings-button');
     const closeModal = document.querySelector('.close-modal');
@@ -183,7 +163,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentSettings;
     
     currentSettings = await loadSettings();
-    console.log('Initial settings applied after load:', currentSettings);
     applySettings(currentSettings);
     
     // Fetch and populate external themes
@@ -219,9 +198,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     settingsButton.addEventListener('click', () => {
-        console.log('Settings button clicked.');
-        console.log('settingsModal element:', settingsModal);
-        console.log('currentSettings when button clicked:', currentSettings);
         if (currentSettings) {
             Object.keys(currentSettings).forEach(key => {
                 const element = document.getElementById(key);
@@ -231,20 +207,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
         settingsModal.classList.add('show');
+        document.querySelector('.workspace').inert = true;
+        closeModal.focus();
     });
     
     closeModal.addEventListener('click', () => {
-        settingsModal.classList.remove('show');
+        closeSettings();
     });
     
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
-            settingsModal.classList.remove('show');
+            closeSettings();
         }
     });
     
     saveSettingsButton.addEventListener('click', () => {
-        const newSettings = {};
+        const newSettings = { ...currentSettings };
         Object.keys(defaultSettings).forEach(key => {
             const element = document.getElementById(key);
             if (element) {
@@ -252,11 +230,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         
-        console.log('Saving new settings:', newSettings);
         currentSettings = newSettings;
         saveSettings(currentSettings);
         applySettings(currentSettings); // Применяем настройки сразу после сохранения
-        settingsModal.classList.remove('show');
+        closeSettings();
     });
     
     resetSettingsButton.addEventListener('click', () => {
@@ -271,22 +248,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveSettings(currentSettings);
     });
     
-    let autoSaveInterval;
-    function setupAutoSave() {
-        if (autoSaveInterval) {
-            clearInterval(autoSaveInterval);
-        }
-        
-        const interval = parseInt(currentSettings['auto-save']);
-        if (interval > 0) {
-            autoSaveInterval = setInterval(() => {
-                const editor = document.getElementById('markdown-editor');
-                if (editor) {
-                    localStorage.setItem('editorContent', editor.value);
-                }
-            }, interval * 60 * 1000);
-        }
+    function closeSettings() {
+        settingsModal.classList.remove('show');
+        document.querySelector('.workspace').inert = false;
+        settingsButton.focus();
     }
-    
-    setupAutoSave(); // Теперь вызывается после загрузки настроек
-}); 
+    settingsModal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); closeSettings(); }
+        if (event.key !== 'Tab') return;
+        const controls = [...settingsModal.querySelectorAll('button, select')].filter(element => !element.disabled);
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+});

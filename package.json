@@ -4,6 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "start": "electron .",
     "dist": "electron-builder --dir",
     "build:mac-intel": "electron-builder --mac --x64",

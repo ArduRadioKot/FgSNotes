@@ -1,58 +1,42 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const editorWrapper = document.querySelector('.editor-wrapper');
-    const panelDivider = document.querySelector('.panel-divider');
-    const editorColumn = document.querySelector('.editor-column');
-    const previewColumn = document.querySelector('.preview-column');
-
-    let isDragging = false;
-    let startX;
-    let startWidth;
-
-    function updatePanels(width) {
-        const wrapperWidth = editorWrapper.offsetWidth;
-        const minWidth = 200;
-        const dividerWidth = 4;
-
-        if (width < minWidth) width = minWidth;
-        if (width > wrapperWidth - minWidth - dividerWidth) {
-            width = wrapperWidth - minWidth - dividerWidth;
-        }
-
-        editorColumn.style.width = `${width}px`;
-        previewColumn.style.width = `${wrapperWidth - width - dividerWidth}px`;
+    const wrapper = document.querySelector('.editor-wrapper');
+    const divider = document.querySelector('.panel-divider');
+    let ratio = Number(localStorage.getItem('editorRatio')) || 50;
+    function updatePanels(value) {
+        ratio = Math.max(25, Math.min(75, value));
+        wrapper.style.setProperty('--editor-ratio', `${ratio}%`);
+        divider.setAttribute('aria-valuenow', Math.round(ratio));
     }
-
-    panelDivider.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX;
-        startWidth = editorColumn.offsetWidth;
-        panelDivider.classList.add('dragging');
-        
-        e.preventDefault();
+    function persist() { localStorage.setItem('editorRatio', ratio); }
+    divider.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        divider.setPointerCapture(event.pointerId);
+        divider.classList.add('dragging');
+        document.body.classList.add('resizing');
+        event.preventDefault();
     });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-
-        const deltaX = e.clientX - startX;
-        const newWidth = startWidth + deltaX;
-        updatePanels(newWidth);
+    divider.addEventListener('pointermove', event => {
+        if (!divider.hasPointerCapture(event.pointerId)) return;
+        const bounds = wrapper.getBoundingClientRect();
+        updatePanels((event.clientX - bounds.left) / bounds.width * 100);
     });
-
-    document.addEventListener('mouseup', () => {
-        if (!isDragging) return;
-        
-        isDragging = false;
-        panelDivider.classList.remove('dragging');
+    function stopDragging() {
+        divider.classList.remove('dragging');
+        document.body.classList.remove('resizing');
+        persist();
+    }
+    divider.addEventListener('pointerup', event => {
+        if (divider.hasPointerCapture(event.pointerId)) divider.releasePointerCapture(event.pointerId);
+        stopDragging();
     });
-
-    window.addEventListener('resize', () => {
-        if (!isDragging) {
-            const currentWidth = editorColumn.offsetWidth;
-            updatePanels(currentWidth);
-        }
+    divider.addEventListener('lostpointercapture', stopDragging);
+    divider.addEventListener('pointercancel', stopDragging);
+    divider.addEventListener('dblclick', () => { updatePanels(50); persist(); });
+    divider.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+        event.preventDefault();
+        updatePanels(event.key === 'Home' ? 50 : ratio + (event.key === 'ArrowRight' ? 5 : -5));
+        persist();
     });
-
-    const initialWidth = editorWrapper.offsetWidth / 2;
-    updatePanels(initialWidth);
-}); 
+    updatePanels(ratio);
+});

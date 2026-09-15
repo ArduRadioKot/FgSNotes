@@ -1,196 +1,385 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru" data-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#1a1b1e">
-    <link rel="stylesheet" href="styles.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#181b20" />
+    <title>FgSNotes — Markdown-редактор</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="icons.js"></script>
     <script src="theme.js"></script>
-</head>
-<body class="editor-page">
-    <main>
-        <div class="container">
-            <aside class="sidebar-toolbar">
-                <a href="" class="logo">
-                    <img src="logo.png" class="logo-icon">
-                </a>
-                <div class="sidebar-main-buttons">
-                    <button class="sidebar-button" id="new-file-button" title="Новый файл">&#128441;</button>
-                    <button class="sidebar-button" id="open-file-button" title="Открыть файл">&#128193;</button>
-                    <button class="sidebar-button" id="save-file-button" title="Сохранить файл">&#128190;</button>
-                </div>
-                <div class="sidebar-bottom-buttons">
-                    <button class="sidebar-button" id="settings-button" title="Настройки">&#9881;</button>
-                   
-                </div>
-            </aside>
-            <div class="editor-container">
-                <div class="tab-bar">
-                    <div class="tab-item active" data-index="0">Документ 1 <span class="close-tab">×</span></div>
-                    <button class="new-tab-button">+</button>
-                </div>
-                <div class="editor-wrapper">
-                    <div class="editor-column">
-                        <div class="editor-label">
-                            <span class="editor-icon">&#9998;</span>
-                            Markdown
-                        </div>
-                        <textarea id="markdown-editor" placeholder="Напишите вашу заметку..."></textarea>
-                    </div>
-                    <div class="panel-divider"></div>
-                    <div class="preview-column">
-                        <div class="editor-label">
-                            <span class="editor-icon">&#128065;</span>
-                            Предпросмотр
-                        </div>
-                        <div id="preview" class="preview-content"></div>
-                    </div>
-                </div>
-                <div class="editor-tools">
-                    <div class="tool-group">
-                        <button class="tool-button" title="Жирный текст" onclick="insertMarkdown('**', '**')">B</button>
-                        <button class="tool-button" title="Курсив" onclick="insertMarkdown('*', '*')">I</button>
-                        <button class="tool-button" title="Зачеркнутый текст" onclick="insertMarkdown('~~', '~~')">S</button>
-                        <button class="tool-button" title="Подчеркнутый текст" onclick="insertMarkdown('<u>', '</u>')">U</button>
-                    </div>
-                    <div class="tool-group">
-                        <button class="tool-button" title="Надстрочный текст" onclick="insertMarkdown('<sup>', '</sup>')">x²</button>
-                        <button class="tool-button" title="Подстрочный текст" onclick="insertMarkdown('<sub>', '</sub>')">x₂</button>
-                    </div>
-                    <div class="tool-group">
-                        <button class="tool-button" title="Код" onclick="insertMarkdown('```\n', '\n```')">&lt;/&gt;</button>
-                        <button class="tool-button" title="Изображение" onclick="insertMarkdown('![alt text](', ')')">&#128444;</button>
-                        <button class="tool-button" title="Цитата" onclick="insertMarkdown('> ', '')">&#8221;</button>
-                    </div>
-                </div>
-            </div>
+  </head>
+  <body>
+    <main class="workspace" data-view="split">
+      <aside class="sidebar-toolbar" aria-label="Основные действия">
+        <div class="logo" title="FgSNotes">
+          <img src="logo.png" class="logo-icon" alt="Логотип FgSNotes" />
         </div>
+        <div class="sidebar-main-buttons">
+          <button
+            class="sidebar-button icon-button"
+            id="new-file-button"
+            title="Новый документ (Ctrl / ⌘ N)"
+            aria-label="Новый документ"
+            data-icon="file"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
+            id="open-file-button"
+            title="Открыть файл (Ctrl / ⌘ O)"
+            aria-label="Открыть файл"
+            data-icon="folder"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
+            id="save-file-button"
+            title="Сохранить файл (Ctrl / ⌘ S)"
+            aria-label="Сохранить файл"
+            data-icon="save"
+          ></button>
+        </div>
+        <div class="sidebar-bottom-buttons">
+          <button
+            class="sidebar-button icon-button"
+            id="theme-button"
+            title="Переключить тему"
+            aria-label="Переключить тему"
+            data-icon="sun"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
+            id="settings-button"
+            title="Настройки"
+            aria-label="Настройки"
+            data-icon="settings"
+          ></button>
+        </div>
+      </aside>
+      <div class="editor-container">
+        <div class="document-bar">
+          <div class="tab-bar" aria-label="Открытые документы">
+            <button
+              class="new-tab-button icon-button"
+              title="Новый документ (Ctrl / ⌘ N)"
+              aria-label="Новая вкладка"
+              data-icon="plus"
+            ></button>
+          </div>
+          <div class="view-switch" role="group" aria-label="Режим отображения">
+            <button
+              data-view="editor"
+              aria-pressed="false"
+              title="Только редактор"
+            >
+              <span data-icon="edit"></span><span>Редактор</span>
+            </button>
+            <button
+              data-view="split"
+              aria-pressed="true"
+              title="Редактор и предпросмотр"
+            >
+              <span data-icon="columns"></span><span>Рядом</span>
+            </button>
+            <button
+              data-view="preview"
+              aria-pressed="false"
+              title="Только предпросмотр"
+            >
+              <span data-icon="eye"></span><span>Просмотр</span>
+            </button>
+          </div>
+        </div>
+        <div class="editor-wrapper">
+          <section class="editor-column" aria-label="Редактор">
+            <div class="editor-label">
+              <span data-icon="code"></span
+              ><label for="markdown-editor">MARKDOWN</label
+              ><span class="panel-hint"></span>
+            </div>
+            <textarea
+              id="markdown-editor"
+              spellcheck="false"
+              placeholder="# С чего начнём?&#10;&#10;Запишите мысль, составьте план или откройте файл…"
+            ></textarea>
+          </section>
+          <div
+            class="panel-divider"
+            role="separator"
+            tabindex="0"
+            aria-label="Ширина редактора"
+            aria-orientation="vertical"
+            aria-valuemin="25"
+            aria-valuemax="75"
+            aria-valuenow="50"
+            title="Потяните для изменения ширины. Двойной щелчок — поровну."
+          ></div>
+          <section class="preview-column" aria-label="Предпросмотр">
+            <div class="editor-label">
+              <span data-icon="eye"></span><span>ПРЕДПРОСМОТР</span
+              ><span class="panel-hint"><span class="live-dot"></span></span>
+            </div>
+            <div
+              id="preview"
+              class="preview-content"
+              tabindex="0"
+              aria-label="Содержимое предпросмотра"
+            ></div>
+          </section>
+        </div>
+        <div class="tools-dock">
+          <div
+            class="editor-tools"
+            role="toolbar"
+            aria-label="Форматирование текста"
+          >
+            <div class="tool-group">
+              <button
+                class="tool-button"
+                title="Заголовок"
+                aria-label="Заголовок"
+                data-format="heading"
+                data-icon="heading"
+              ></button>
+              <button
+                class="tool-button"
+                title="Жирный текст (Ctrl / ⌘ B)"
+                aria-label="Жирный текст"
+                data-format="bold"
+                data-icon="bold"
+              ></button>
+              <button
+                class="tool-button"
+                title="Курсив (Ctrl / ⌘ I)"
+                aria-label="Курсив"
+                data-format="italic"
+                data-icon="italic"
+              ></button>
+              <button
+                class="tool-button"
+                title="Зачёркнутый текст"
+                aria-label="Зачёркнутый текст"
+                data-format="strike"
+                data-icon="strike"
+              ></button>
+              <button
+                class="tool-button"
+                title="Подчёркнутый текст"
+                aria-label="Подчёркнутый текст"
+                data-format="underline"
+                data-icon="underline"
+              ></button>
+            </div>
+            <div class="tool-group">
+              <button
+                class="tool-button"
+                title="Список"
+                aria-label="Список"
+                data-format="list"
+                data-icon="list"
+              ></button>
+              <button
+                class="tool-button"
+                title="Список задач"
+                aria-label="Список задач"
+                data-format="task"
+                data-icon="check-square"
+              ></button>
+              <button
+                class="tool-button"
+                title="Цитата"
+                aria-label="Цитата"
+                data-format="quote"
+                data-icon="quote"
+              ></button>
+            </div>
+            <div class="tool-group">
+              <button
+                class="tool-button"
+                title="Ссылка"
+                aria-label="Ссылка"
+                data-format="link"
+                data-icon="link"
+              ></button>
+              <button
+                class="tool-button"
+                title="Изображение"
+                aria-label="Изображение"
+                data-format="image"
+                data-icon="image"
+              ></button>
+              <button
+                class="tool-button"
+                title="Блок кода"
+                aria-label="Блок кода"
+                data-format="code"
+                data-icon="code"
+              ></button>
+              <button
+                class="tool-button"
+                title="Надстрочный текст"
+                aria-label="Надстрочный текст"
+                data-format="sup"
+                data-icon="sup"
+              ></button>
+              <button
+                class="tool-button"
+                title="Подстрочный текст"
+                aria-label="Подстрочный текст"
+                data-format="sub"
+                data-icon="sub"
+              ></button>
+            </div>
+          </div>
+        </div>
+        <footer class="status-bar">
+          <div class="status-group">
+            <span class="save-state" id="save-state" role="status"
+              ><span data-icon="check"></span
+              ><span id="save-status">Черновик сохранён</span></span
+            ><span class="status-divider"></span
+            ><span id="word-count">0 слов</span
+            ><span id="character-count">0 символов</span>
+          </div>
+          <div class="status-group">
+            <span id="cursor-position">Стр 1, стлб 1</span
+            ><span class="status-divider"></span><span>UTF-8</span
+            ><span class="markdown-badge">Markdown</span>
+          </div>
+        </footer>
+      </div>
     </main>
-
     <!-- Модальное окно настроек -->
-    <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Настройки</h2>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-group">
-                    <h3>Внешний вид</h3>
-                    <div class="setting-item">
-                        <label for="font-size">Размер шрифта:</label>
-                        <select id="font-size">
-                            <option value="small">Маленький</option>
-                            <option value="medium" selected>Средний</option>
-                            <option value="large">Большой</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="font-family">Шрифт:</label>
-                        <select id="font-family">
-                            <option value="system">Системный</option>
-                            <option value="mono" selected>Моноширинный</option>
-                            <option value="serif">С засечками</option>
-                            <option value="sans">Без засечек</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="line-height">Межстрочный интервал:</label>
-                        <select id="line-height">
-                            <option value="1.4">Узкий</option>
-                            <option value="1.6" selected>Средний</option>
-                            <option value="1.8">Широкий</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="settings-group">
-                    <h3>Редактор</h3>
-                    <div class="setting-item">
-                        <label for="tab-size">Размер табуляции:</label>
-                        <select id="tab-size">
-                            <option value="2">2 пробела</option>
-                            <option value="4" selected>4 пробела</option>
-                            <option value="8">8 пробелов</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="word-wrap">Перенос слов:</label>
-                        <select id="word-wrap">
-                            <option value="off">Выключен</option>
-                            <option value="on" selected>Включен</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="auto-save">Автосохранение:</label>
-                        <select id="auto-save">
-                            <option value="off">Выключено</option>
-                            <option value="1">Каждую минуту</option>
-                            <option value="5" selected>Каждые 5 минут</option>
-                            <option value="10">Каждые 10 минут</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="settings-group">
-                    <h3>Предпросмотр</h3>
-                    <div class="setting-item">
-                        <label for="preview-theme">Тема предпросмотра:</label>
-                        <select id="preview-theme">
-                            <option value="default" selected>По умолчанию</option>
-                            <option value="github">GitHub</option>
-                            <option value="dark">Тёмная</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="math-support">Поддержка формул:</label>
-                        <select id="math-support">
-                            <option value="off">Выключена</option>
-                            <option value="on" selected>Включена</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="external-theme">Сторонняя тема (CSS файл):</label>
-                        <select id="external-theme">
-                            <option value="">Нет</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="settings-group">
-                    <h3>Плагины</h3>
-                    <div class="setting-item">
-                        <label for="table-of-contents">Оглавление:</label>
-                        <select id="table-of-contents">
-                            <option value="off">Выключено</option>
-                            <option value="on" selected>Включено</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="todo-list">Список задач:</label>
-                        <select id="todo-list">
-                            <option value="off">Выключен</option>
-                            <option value="on" selected>Включен</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="code-highlight">Подсветка кода:</label>
-                        <select id="code-highlight">
-                            <option value="off">Выключена</option>
-                            <option value="on" selected>Включена</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="button-secondary" id="reset-settings">Сбросить настройки</button>
-                <button class="button-primary" id="save-settings">Сохранить</button>
-            </div>
+    <div
+      id="settings-modal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+    >
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="settings-title">Настройки</h2>
+          <button
+            class="close-modal icon-button"
+            aria-label="Закрыть настройки"
+            data-icon="close"
+          ></button>
         </div>
+        <div class="modal-body">
+          <div class="settings-group">
+            <h3>Внешний вид</h3>
+            <div class="setting-item">
+              <label for="font-size">Размер шрифта:</label>
+              <select id="font-size">
+                <option value="small">Маленький</option>
+                <option value="medium" selected>Средний</option>
+                <option value="large">Большой</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="font-family">Шрифт:</label>
+              <select id="font-family">
+                <option value="system">Системный</option>
+                <option value="mono" selected>Моноширинный</option>
+                <option value="serif">С засечками</option>
+                <option value="sans">Без засечек</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="line-height">Межстрочный интервал:</label>
+              <select id="line-height">
+                <option value="1.4">Узкий</option>
+                <option value="1.6" selected>Средний</option>
+                <option value="1.8">Широкий</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>Редактор</h3>
+            <div class="setting-item">
+              <label for="tab-size">Размер табуляции:</label>
+              <select id="tab-size">
+                <option value="2">2 пробела</option>
+                <option value="4" selected>4 пробела</option>
+                <option value="8">8 пробелов</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="word-wrap">Перенос слов:</label>
+              <select id="word-wrap">
+                <option value="off">Выключен</option>
+                <option value="on" selected>Включен</option>
+              </select>
+            </div>
+            <p class="settings-note">
+              Черновики открытых вкладок сохраняются автоматически на этом
+              устройстве.
+            </p>
+          </div>
+
+          <div class="settings-group">
+            <h3>Предпросмотр</h3>
+            <div class="setting-item">
+              <label for="preview-theme">Тема предпросмотра:</label>
+              <select id="preview-theme">
+                <option value="default" selected>По умолчанию</option>
+                <option value="github">GitHub</option>
+                <option value="dark">Тёмная</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="math-support">Поддержка формул:</label>
+              <select id="math-support">
+                <option value="off">Выключена</option>
+                <option value="on" selected>Включена</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="external-theme">Сторонняя тема (CSS файл):</label>
+              <select id="external-theme">
+                <option value="">Нет</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>Плагины</h3>
+            <div class="setting-item">
+              <label for="table-of-contents">Оглавление:</label>
+              <select id="table-of-contents">
+                <option value="off">Выключено</option>
+                <option value="on" selected>Включено</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="todo-list">Список задач:</label>
+              <select id="todo-list">
+                <option value="off">Выключен</option>
+                <option value="on" selected>Включен</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="code-highlight">Подсветка кода:</label>
+              <select id="code-highlight">
+                <option value="off">Выключена</option>
+                <option value="on" selected>Включена</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="button-secondary" id="reset-settings">
+            Сбросить настройки
+          </button>
+          <button class="button-primary" id="save-settings">Готово</button>
+        </div>
+      </div>
     </div>
 
+    <script src="markdown.js"></script>
     <script src="editor.js"></script>
     <script src="resize.js"></script>
     <script src="settings.js"></script>
-</body>
-</html> 
+  </body>
+</html>
