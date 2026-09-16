@@ -1,13 +1,13 @@
 {
   "name": "fgsnotes",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "main.js",
   "scripts": {
     "test": "node --test tests/*.test.js",
     "start": "electron .",
     "dist": "electron-builder --dir",
-    "build:mac-intel": "electron-builder --mac --x64",
+    "build:mac-arm64": "electron-builder --mac --arm64",
     "build:win32": "electron-builder --win --ia32",
     "build:all": "electron-builder --mac --x64 --win --ia32"
   },
@@ -18,10 +18,10 @@
     "appId": "FrogeeSoft",
     "productName": "FgSNotes",
     "mac": {
-      "icon": "src/icon.png",
+      "icon": "src/icon.icns",
       "target": [{
         "target": "dmg",
-        "arch": ["x64"]
+        "arch": ["arm64"]
       }],
       "identity": null
     },
