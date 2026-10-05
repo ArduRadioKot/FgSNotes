@@ -3,14 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#181b20" />
+    <meta name="theme-color" content="#2b2d30" />
     <title>FgSNotes — Markdown-редактор</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="liquid-glass/liquid-glass.css" />
     <script src="icons.js"></script>
     <script src="theme.js"></script>
   </head>
   <body>
-    <main class="workspace" data-view="split">
+    <main class="workspace" data-view="split" data-glass="substrate">
       <aside class="sidebar-toolbar" aria-label="Основные действия">
         <div class="logo" title="FgSNotes">
           <img src="logo.png" class="logo-icon" alt="Логотип FgSNotes" />
@@ -86,7 +87,7 @@
           <section class="editor-column" aria-label="Редактор">
             <div class="editor-label">
               <span data-icon="code"></span
-              ><label for="markdown-editor">MARKDOWN</label
+              ><label for="markdown-editor">Markdown</label
               ><span class="panel-hint"></span>
             </div>
             <textarea
@@ -108,8 +109,8 @@
           ></div>
           <section class="preview-column" aria-label="Предпросмотр">
             <div class="editor-label">
-              <span data-icon="eye"></span><span>ПРЕДПРОСМОТР</span
-              ><span class="panel-hint"><span class="live-dot"></span></span>
+              <span data-icon="eye"></span><span>Предпросмотр</span
+              ><span class="panel-hint"></span>
             </div>
             <div
               id="preview"
@@ -122,6 +123,7 @@
         <div class="tools-dock">
           <div
             class="editor-tools"
+            data-glass=""
             role="toolbar"
             aria-label="Форматирование текста"
           >
@@ -248,7 +250,7 @@
       aria-modal="true"
       aria-labelledby="settings-title"
     >
-      <div class="modal-content settings-window">
+      <div class="modal-content settings-window" data-glass="dialog">
         <nav class="settings-nav" aria-label="Разделы настроек">
           <div class="settings-nav-header" id="settings-title">Настройки</div>
           <div class="settings-nav-list" role="tablist" aria-orientation="vertical">
@@ -363,15 +365,50 @@
               <div class="setting-item">
                 <div class="setting-info">
                   <label class="setting-name" for="liquid-glass">Liquid Glass</label>
-                  <div class="setting-desc">Матовое стекло для панелей интерфейса</div>
+                  <div class="setting-desc">Стеклянные панели с преломлением света</div>
                 </div>
                 <div class="setting-control">
                   <select id="liquid-glass">
                     <option value="off" selected>Выключен</option>
-                    <option value="subtle">Лёгкий</option>
-                    <option value="medium">Средний</option>
-                    <option value="strong">Сильный</option>
+                    <option value="subtle">Тонкое</option>
+                    <option value="regular">Обычное</option>
+                    <option value="clear">Прозрачное</option>
+                    <option value="frosted">Матовое</option>
+                    <option value="vivid">Яркое</option>
+                    <option value="ultraClear">Ультрапрозрачное</option>
                   </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="glass-quality">Качество стекла</label>
+                  <div class="setting-desc">Автоматически учитывает браузер, анимации и прозрачность системы</div>
+                </div>
+                <div class="setting-control">
+                  <select id="glass-quality">
+                    <option value="auto" selected>Авто</option>
+                    <option value="high">Высокое</option>
+                    <option value="medium">Среднее</option>
+                    <option value="low">Простое</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="glass-window-transparency">Прозрачность окна настроек</label>
+                  <div class="setting-desc">Насколько стекло этого окна пропускает приложение за ним</div>
+                </div>
+                <div class="setting-control">
+                  <input type="range" id="glass-window-transparency" min="0" max="100" step="1" value="30" />
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-name">Песочница стекла</span>
+                  <div class="setting-desc">Тонкая настройка линзы, света и движения в отдельном окне</div>
+                </div>
+                <div class="setting-control">
+                  <button class="button-secondary" id="open-glass-playground" type="button">Открыть</button>
                 </div>
               </div>
             </section>
@@ -490,7 +527,7 @@
               <div class="setting-item">
                 <div class="setting-info">
                   <label class="setting-name" for="code-highlight">Подсветка кода</label>
-                  <div class="setting-desc">Подсветка синтаксиса в блоках кода</div>
+                  <div class="setting-desc">Подсветка синтаксиса в редакторе и блоках кода</div>
                 </div>
                 <div class="setting-control">
                   <label class="setting-toggle">
@@ -506,8 +543,13 @@
     </div>
 
     <script src="markdown.js"></script>
+    <script src="highlight.js"></script>
     <script src="editor.js"></script>
     <script src="resize.js"></script>
+    <script src="liquid-glass/optics.js"></script>
+    <script src="liquid-glass/presets.js"></script>
+    <script src="liquid-glass/displacement.js"></script>
+    <script src="liquid-glass/liquid-glass.js"></script>
     <script src="settings.js"></script>
   </body>
 </html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liquid Glass — песочница</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="liquid-glass.css" />
+    <link rel="stylesheet" href="playground.css" />
+    <script src="../icons.js"></script>
+  </head>
+  <body>
+    <main class="pg">
+      <aside class="pg-panel" aria-label="Настройки стекла">
+        <header class="pg-panel-head">
+          <h1>Liquid Glass</h1>
+          <button class="button-secondary" id="pg-reset" type="button">Сбросить</button>
+        </header>
+        <div class="pg-controls" id="pg-controls">
+          <div class="setting-item">
+            <label class="setting-name" for="pg-preset">Пресет</label>
+            <div class="setting-control"><select id="pg-preset"></select></div>
+          </div>
+          <div class="setting-item">
+            <label class="setting-name" for="pg-quality">Качество</label>
+            <div class="setting-control">
+              <select id="pg-quality">
+                <option value="auto">Авто</option>
+                <option value="high">Высокое</option>
+                <option value="medium">Среднее</option>
+                <option value="low">Простое</option>
+              </select>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label class="setting-name" for="pg-theme">Тема</label>
+            <div class="setting-control"><select id="pg-theme"><option value="dark">Тёмная</option><option value="light">Светлая</option></select></div>
+          </div>
+          <div class="setting-item">
+            <span class="setting-name">Преломление</span>
+            <label class="setting-toggle"><input type="checkbox" id="pg-refraction" checked /><span class="setting-toggle-track" aria-hidden="true"></span></label>
+          </div>
+          <div class="setting-item">
+            <span class="setting-name">Анимации</span>
+            <label class="setting-toggle"><input type="checkbox" id="pg-animations" checked /><span class="setting-toggle-track" aria-hidden="true"></span></label>
+          </div>
+          <div class="setting-item">
+            <span class="setting-name">Цвет тонировки</span>
+            <input type="color" id="pg-tint" class="pg-color" aria-label="Цвет тонировки" />
+          </div>
+          <div id="pg-sliders"></div>
+          <div class="pg-actions">
+            <button class="button-secondary" id="pg-copy" type="button">Скопировать JSON</button>
+          </div>
+          <p class="settings-note" id="pg-info"></p>
+        </div>
+      </aside>
+
+      <section class="pg-stage" aria-label="Сцена">
+        <div class="pg-toolbar">
+          <div class="view-switch" role="group" aria-label="Фон">
+            <button data-bg="text" aria-pressed="true">Текст</button>
+            <button data-bg="photo" aria-pressed="false">Фото</button>
+            <button data-bg="gradient" aria-pressed="false">Градиент</button>
+            <button data-bg="color" aria-pressed="false">Цвета</button>
+          </div>
+          <div class="view-switch" role="group" aria-label="Сравнение">
+            <button data-compare="before" aria-pressed="false">Обычный blur</button>
+            <button data-compare="after" aria-pressed="true">Liquid Glass</button>
+          </div>
+          <div class="view-switch" role="group" aria-label="Действия">
+            <button id="pg-morph" aria-pressed="false">Морфинг</button>
+            <button id="pg-multi" aria-pressed="false">Много элементов</button>
+          </div>
+        </div>
+        <div class="pg-world" id="pg-world" data-bg="text">
+          <div class="pg-backdrop" id="pg-backdrop"></div>
+          <div class="pg-overlay">
+            <nav class="pg-nav" data-pg-glass aria-label="Панель навигации">
+              <strong>Navbar</strong>
+              <span class="pg-nav-items"><button class="pg-pill" data-pg-glass data-selected>Обзор</button><button class="pg-pill" data-pg-glass>Файлы</button><button class="pg-pill" data-pg-glass>Настройки</button></span>
+            </nav>
+            <aside class="pg-side" data-pg-glass aria-label="Боковая панель">
+              <button class="pg-round" data-pg-glass data-icon="file" aria-label="Файл"></button>
+              <button class="pg-round" data-pg-glass data-icon="folder" aria-label="Папка"></button>
+              <button class="pg-round" data-pg-glass data-icon="save" aria-label="Сохранить"></button>
+              <button class="pg-round" data-pg-glass data-icon="settings" aria-label="Настройки"></button>
+            </aside>
+            <article class="pg-card" id="pg-card" data-pg-glass data-lg-morph tabindex="0">
+              <h2>Карточка</h2>
+              <p>Перетащите меня по тексту, фото и градиенту. Кромка преломляет фон, центр остаётся спокойным.</p>
+              <button class="button-primary" type="button">Действие</button>
+            </article>
+            <div class="pg-float" data-pg-glass role="toolbar" aria-label="Плавающая панель">
+              <button class="tool-button" data-icon="bold" aria-label="Жирный"></button>
+              <button class="tool-button" data-icon="italic" aria-label="Курсив"></button>
+              <button class="tool-button" data-icon="link" aria-label="Ссылка"></button>
+              <button class="tool-button" data-icon="code" aria-label="Код"></button>
+            </div>
+            <button class="pg-round pg-fab" data-pg-glass data-icon="plus" aria-label="Добавить"></button>
+            <button class="pg-pill pg-disabled" data-pg-glass disabled>Отключено</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="optics.js"></script>
+    <script src="presets.js"></script>
+    <script src="displacement.js"></script>
+    <script src="liquid-glass.js"></script>
+    <script src="playground.js"></script>
+  </body>
+</html>

@@ -1,0 +1,62 @@
+/* Liquid Glass layers. Everything is driven by --lg-* tokens set from presets.js (root) or per element.
+   Layers: backdrop (blur + lens refraction) -> tint -> soft reflections -> rim specular -> shadows. */
+.lg {
+    position: relative;
+    isolation: isolate;
+    --lg-hover: 0; --lg-press: 0; --lg-px: .5; --lg-py: .5; --lg-light-offset: 0deg;
+    --lg-bf-plain: blur(var(--lg-blur)) saturate(var(--lg-saturation)) brightness(var(--lg-brightness)) contrast(var(--lg-contrast));
+    -webkit-backdrop-filter: var(--lg-bf-plain);
+    backdrop-filter: var(--lg-bf, var(--lg-bf-plain));
+    background: color-mix(in srgb, var(--lg-tint) calc((var(--lg-opacity) + var(--lg-hover) * .03 - var(--lg-press) * .04) * 100%), transparent);
+    border: 0;
+    box-shadow:
+        0 var(--lg-shadow-distance) var(--lg-shadow-blur) rgb(var(--lg-shadow-rgb) / var(--lg-shadow-opacity)),
+        0 1px 3px rgb(var(--lg-shadow-rgb) / calc(var(--lg-ambient) * .6)),
+        0 0 0 .5px rgb(var(--lg-shadow-rgb) / calc(var(--lg-ambient) * .5)),
+        inset 0 -1px 8px rgb(var(--lg-shadow-rgb) / calc(var(--lg-inner-shadow) * .35)),
+        inset 0 0 18px rgb(var(--lg-rim-rgb) / calc(var(--lg-inner-glow) * .18));
+    transform: scale(calc(1 - var(--lg-press) * .012));
+    transition: transform var(--lg-speed) cubic-bezier(.2, .8, .3, 1);
+}
+/* Soft reflection that appears only under the pointer (hover); nothing glows at rest. */
+.lg::before {
+    content: '';
+    position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+    background:
+        radial-gradient(80% 110% at calc(var(--lg-px) * 100%) calc(var(--lg-py) * 100%), rgb(var(--lg-rim-rgb) / calc(var(--lg-highlight) * var(--lg-hover) * .16)), transparent 60%);
+}
+/* Rim specular: a thin ring lit from the light direction (strong) and from the opposite side (weak). */
+.lg::after {
+    content: '';
+    position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+    padding: var(--lg-border-width);
+    background:
+        conic-gradient(from calc(var(--lg-light-angle) + var(--lg-light-offset) - var(--lg-spec-width)),
+            transparent 0deg,
+            rgb(var(--lg-rim-rgb) / calc(var(--lg-specular) * (1 - var(--lg-press) * .35))) var(--lg-spec-width),
+            transparent calc(var(--lg-spec-width) * 2),
+            transparent 180deg,
+            rgb(var(--lg-rim-rgb) / calc(var(--lg-specular) * .38)) calc(180deg + var(--lg-spec-width)),
+            transparent calc(180deg + var(--lg-spec-width) * 2)),
+        linear-gradient(rgb(var(--lg-rim-rgb) / calc(var(--lg-edge-highlight) * .22)), rgb(var(--lg-rim-rgb) / calc(var(--lg-edge-highlight) * .22)));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.lg > * { position: relative; z-index: 1; }
+.lg:focus-within { z-index: 2; }
+
+/* Reduced transparency: opaque, readable surface; no refraction. */
+@media (prefers-reduced-transparency: reduce) {
+    .lg { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--lg-solid, var(--header-bg, var(--lg-tint))); }
+    .lg::before { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lg { transition: none; transform: none; }
+}
+/* Browsers without backdrop-filter get a solid, still polished surface. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .lg { background: color-mix(in srgb, var(--lg-tint) 88%, transparent); }
+}
+/* Morphing: size and radius ease together; the lens map is rebuilt at most once per frame. */
+.lg[data-lg-morph] { transition: width var(--lg-speed), height var(--lg-speed), border-radius var(--lg-speed), transform var(--lg-speed) cubic-bezier(.2, .8, .3, 1); }

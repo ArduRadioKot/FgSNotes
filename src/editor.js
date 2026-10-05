@@ -1,3 +1,27 @@
+// A glass lens behind the active item of a group. On a switch it stretches over both items and settles on the new one.
+function createLens(container, lens, itemSelector) {
+    let rect = null;
+    function place(from) {
+        const active = container.querySelector(itemSelector);
+        if (!active || getComputedStyle(lens).display === 'none') { rect = null; return; }
+        const next = { left: active.offsetLeft, top: active.offsetTop, width: active.offsetWidth, height: active.offsetHeight };
+        Object.assign(lens.style, { left: next.left + 'px', top: next.top + 'px', width: next.width + 'px', height: next.height + 'px' });
+        if (from && lens.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            const start = Math.min(from.left, next.left), end = Math.max(from.left + from.width, next.left + next.width);
+            lens.getAnimations().forEach(animation => animation.cancel());
+            lens.animate([
+                { left: from.left + 'px', width: from.width + 'px' },
+                { left: start + 'px', width: (end - start) + 'px', offset: 0.45 },
+                { left: next.left + 'px', width: next.width + 'px' }
+            ], { duration: 460, easing: 'cubic-bezier(.3, .9, .3, 1)' });
+        }
+        rect = next;
+    }
+    new ResizeObserver(() => place()).observe(container);
+    new MutationObserver(() => place()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-liquid-glass'] });
+    return { place, current: () => rect && { ...rect } };
+}
+
 const markdownFormats = {
     heading: ['## ', '', 'Заголовок', true], bold: ['**', '**', 'текст'],
     italic: ['*', '*', 'текст'], strike: ['~~', '~~', 'текст'],
@@ -28,6 +52,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const editor = document.getElementById('markdown-editor');
     const preview = document.getElementById('preview');
     const workspace = document.querySelector('.workspace');
+
+    // Syntax highlighting: a mirror <pre> sits under the transparent textarea and repeats its text with coloured spans.
+    const surface = document.createElement('div');
+    surface.className = 'editor-surface';
+    const mirror = document.createElement('pre');
+    mirror.className = 'editor-highlight';
+    mirror.setAttribute('aria-hidden', 'true');
+    editor.parentNode.insertBefore(surface, editor);
+    surface.append(mirror, editor);
+    const highlightLimit = 300000;
+    const mirrorStyleProps = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'fontFamily', 'fontSize', 'lineHeight', 'letterSpacing', 'tabSize', 'whiteSpace', 'overflowWrap', 'wordBreak'];
+    function highlightEnabled() {
+        return document.documentElement.dataset.codeHighlight !== 'off' && editor.value.length < highlightLimit;
+    }
+    function syncMirror() {
+        const style = getComputedStyle(editor);
+        mirrorStyleProps.forEach(prop => { mirror.style[prop] = style[prop]; });
+        // The textarea scrollbar takes width away from the text; the mirror must wrap at the same width.
+        mirror.style.width = editor.clientWidth + 'px';
+        mirror.style.height = editor.clientHeight + 'px';
+        mirror.scrollTop = editor.scrollTop;
+        mirror.scrollLeft = editor.scrollLeft;
+    }
+    function renderHighlight() {
+        const on = highlightEnabled();
+        surface.classList.toggle('is-highlighted', on);
+        // The trailing newline keeps the last empty line the same height as in the textarea.
+        mirror.innerHTML = on ? highlightMarkdown(editor.value) + '\n' : '';
+        syncMirror();
+    }
+    new ResizeObserver(syncMirror).observe(editor);
+    new MutationObserver(syncMirror).observe(editor, { attributes: true, attributeFilter: ['style'] });
+    new MutationObserver(() => { renderHighlight(); updatePreview(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-code-highlight'] });
+    editor.addEventListener('scroll', syncMirror);
     const tabBar = document.querySelector('.tab-bar');
     const newTabButton = document.querySelector('.new-tab-button');
     let documents = [];
@@ -46,6 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function updatePreview() {
         preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>Здесь оживут ваши идеи</h2><p>Начните писать в редакторе — результат появится здесь.</p></div>`;
+        if (document.documentElement.dataset.codeHighlight !== 'off') {
+            preview.querySelectorAll('pre code').forEach(block => {
+                block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
+            });
+        }
+        renderHighlight();
         const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
         const characters = Array.from(editor.value).length;
         document.getElementById('word-count').textContent = `${words} ${plural(words, ['слово', 'слова', 'слов'])}`;
@@ -85,11 +149,17 @@ document.addEventListener('DOMContentLoaded', () => {
         setView(workspace.dataset.view === 'preview' ? 'editor' : workspace.dataset.view);
         editor.focus();
     }
+    const tabGlass = document.createElement('span');
+    tabGlass.className = 'tab-glass';
+    tabGlass.setAttribute('aria-hidden', 'true');
+    const tabLens = createLens(tabBar, tabGlass, '.tab-item.active');
     function switchTab(index) {
         if (index === activeDocumentIndex) return;
         saveCurrentDocument();
         activeDocumentIndex = index;
+        const from = tabLens.current();
         renderTabs();
+        tabLens.place(from);
         loadDocument(index);
         persistWorkspace();
     }
@@ -105,13 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
         tabBar.querySelector('.active .tab-select').focus();
     }
     function renderTabs() {
-        tabBar.replaceChildren();
+        tabBar.replaceChildren(tabGlass);
         documents.forEach((doc, index) => {
             const tab = document.createElement('div');
             tab.className = `tab-item${index === activeDocumentIndex ? ' active' : ''}`;
             const select = document.createElement('button');
             select.className = 'tab-select';
-            select.innerHTML = icon('file');
+            select.innerHTML = icon('markdown');
             select.setAttribute('aria-pressed', index === activeDocumentIndex);
             select.title = doc.title;
             const title = document.createElement('span');
@@ -138,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         tabBar.append(newTabButton);
         tabBar.querySelector('.active').scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        tabLens.place();
     }
     function openFile() {
         const input = document.createElement('input');
@@ -178,10 +249,18 @@ document.addEventListener('DOMContentLoaded', () => {
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+    const viewSwitch = document.querySelector('.view-switch');
+    const viewGlass = document.createElement('span');
+    viewGlass.className = 'view-glass';
+    viewGlass.setAttribute('aria-hidden', 'true');
+    viewSwitch.prepend(viewGlass);
+    const viewLens = createLens(viewSwitch, viewGlass, 'button[aria-pressed="true"]');
     function setView(view) {
         if (!['editor', 'split', 'preview'].includes(view)) view = 'split';
+        const from = viewLens.current();
         workspace.dataset.view = view;
         document.querySelectorAll('.view-switch button').forEach(button => button.setAttribute('aria-pressed', button.dataset.view === view));
+        viewLens.place(from);
         document.querySelectorAll('[data-format]').forEach(button => { button.disabled = view === 'preview'; });
         localStorage.setItem('editorView', view);
     }

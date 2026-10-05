@@ -1,37 +1,85 @@
 {
   "name": "fgsnotes",
   "version": "2.0.0",
-  "description": "",
+  "description": "FgSNotes — Markdown editor",
   "main": "main.js",
   "scripts": {
     "test": "node --test tests/*.test.js",
     "start": "electron .",
+    "glass": "electron . --glass-playground",
     "dist": "electron-builder --dir",
     "build:mac-arm64": "electron-builder --mac --arm64",
     "build:win32": "electron-builder --win --ia32",
-    "build:all": "electron-builder --mac --x64 --win --ia32"
+    "build:all": "electron-builder --mac --win --linux --x64 --arm64 --ia32",
+    "build:mac": "electron-builder --mac --arm64 --x64",
+    "build:win": "electron-builder --win --x64 --ia32",
+    "build:linux": "electron-builder --linux --x64"
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "name": "FrogeeSoft",
+    "email": "frogeesoft.team@gmail.com"
+  },
   "license": "ISC",
   "build": {
     "appId": "FrogeeSoft",
     "productName": "FgSNotes",
     "mac": {
       "icon": "src/icon.icns",
-      "target": [{
-        "target": "dmg",
-        "arch": ["arm64"]
-      }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "identity": null
     },
     "win": {
       "icon": "src/icon.png",
-      "target": ["nsis", "portable"]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
     },
     "linux": {
-      "icon": "src/icon.png"
-    }
+      "icon": "src/icon.png",
+      "category": "Office",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "package.json"
+    ]
   },
   "devDependencies": {
     "electron": "^28.0.0",

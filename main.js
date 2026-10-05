@@ -1,6 +1,21 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+function openGlassPlayground() {
+  const playground = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    title: 'Liquid Glass — песочница',
+    webPreferences: { nodeIntegration: false, contextIsolation: true }
+  });
+  playground.loadFile(path.join(__dirname, 'src', 'liquid-glass', 'playground.html'));
+}
+
+// Registered once at startup: createWindow runs again on macOS 'activate'.
+ipcMain.on('open-glass-playground', openGlassPlayground);
+// The native blur follows the system appearance, so keep it in step with the app theme.
+ipcMain.on('set-native-theme', (event, theme) => { nativeTheme.themeSource = theme === 'light' ? 'light' : 'dark'; });
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -13,6 +28,10 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
+    // A translucent native window: the page stays opaque until Liquid Glass makes its background transparent.
+    backgroundColor: '#00000000',
+    ...(process.platform === 'darwin' ? { vibrancy: 'under-window', visualEffectState: 'active' } : {}),
+    ...(process.platform === 'win32' ? { backgroundMaterial: 'acrylic' } : {}),
     icon: path.join(__dirname, 'src', 'icon.png')
   });
 
@@ -86,6 +105,10 @@ function createWindow() {
     }
   }
 
+  // createWindow runs again on macOS 'activate', so drop handlers from the previous window first.
+  ['get-config', 'get-themes-path', 'get-themes-list'].forEach(channel => ipcMain.removeHandler(channel));
+  ipcMain.removeAllListeners('save-config');
+
   ipcMain.handle('get-config', () => {
     return configContent;
   });
@@ -123,7 +146,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  if (process.argv.includes('--glass-playground')) openGlassPlayground();
+  else createWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

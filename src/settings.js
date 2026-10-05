@@ -4,6 +4,8 @@ const defaultSettings = {
     'font-family': 'mono',
     'line-height': '1.6',
     'liquid-glass': 'off',
+    'glass-quality': 'auto',
+    'glass-window-transparency': '30',
     'tab-size': '4',
     'word-wrap': 'on',
     'preview-theme': 'default',
@@ -102,26 +104,8 @@ function applySettings(settings) {
         }
     }
     
-    if (settings['code-highlight'] === 'on') {
-        if (!document.getElementById('highlight-script')) {
-            const script = document.createElement('script');
-            script.id = 'highlight-script';
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js';
-            script.async = true;
-            document.head.appendChild(script);
-            
-            const style = document.createElement('link');
-            style.id = 'highlight-style';
-            style.rel = 'stylesheet';
-            style.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css';
-            document.head.appendChild(style);
-        }
-    } else {
-        const highlightScript = document.getElementById('highlight-script');
-        const highlightStyle = document.getElementById('highlight-style');
-        if (highlightScript) highlightScript.remove();
-        if (highlightStyle) highlightStyle.remove();
-    }
+    // Highlighting is built in (highlight.js module); editor.js reacts to this flag.
+    document.documentElement.dataset.codeHighlight = settings['code-highlight'] === 'on' ? 'on' : 'off';
 
     // Handle external theme
     const externalThemeLink = document.getElementById('external-theme-link');
@@ -157,11 +141,27 @@ function applySettings(settings) {
     const theme = settings['theme'] === 'light' ? 'light' : 'dark';
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('theme', theme);
+    if (window.electron && window.electron.setNativeTheme) window.electron.setNativeTheme(theme);
 
-    const liquidGlass = ['off', 'subtle', 'medium', 'strong'].includes(settings['liquid-glass'])
-        ? settings['liquid-glass']
-        : 'off';
+    // Older configs stored medium/strong; they map to the closest new preset.
+    const legacyGlass = { medium: 'regular', strong: 'frosted', dark: 'regular' };
+    const requested = legacyGlass[settings['liquid-glass']] || settings['liquid-glass'];
+    const liquidGlass = requested === 'off' || (window.LiquidGlass && window.LiquidGlass.presets[requested]) ? requested : 'off';
     document.documentElement.dataset.liquidGlass = liquidGlass;
+    const transparency = Math.min(100, Math.max(0, Number(settings['glass-window-transparency'])));
+    document.documentElement.style.setProperty('--sg-opacity', String(0.95 - 0.55 * (Number.isFinite(transparency) ? transparency : 30) / 100));
+    if (window.LiquidGlass) {
+        if (liquidGlass === 'off') window.LiquidGlass.detachAll('[data-glass]');
+        else {
+            window.LiquidGlass.configure({ preset: liquidGlass, quality: settings['glass-quality'] || 'auto' }, { persist: false });
+            // One shared substrate for the whole window (no refraction: there is nothing of the page behind it);
+            // only floating controls get a refracting lens.
+            window.LiquidGlass.attachAll('[data-glass="substrate"]', { interactive: false, overrides: { refraction: 0 } });
+            window.LiquidGlass.attachAll('[data-glass=""]');
+            // Settings dialog: a light lens, its transparency set by the slider.
+            window.LiquidGlass.attachAll('[data-glass="dialog"]', { interactive: false, overrides: { refraction: 0.4, displacement: 16, edgeWidth: 14, blur: 16, opacity: 0.1, highlight: 0.2, dispersion: 0.04, specular: 0.35 } });
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -237,8 +237,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    document.querySelectorAll('.setting-control select, .setting-toggle input[type="checkbox"]').forEach(input => {
-        input.addEventListener('change', (e) => {
+    document.querySelectorAll('.setting-control select, .setting-control input[type="range"], .setting-toggle input[type="checkbox"]').forEach(input => {
+        input.addEventListener(input.type === 'range' ? 'input' : 'change', (e) => {
             const key = e.target.id;
             if (!(key in defaultSettings)) return;
             currentSettings = {
@@ -254,6 +254,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         item.addEventListener('click', () => {
             showSettingsSection(item.dataset.settingsSection);
         });
+    });
+
+    document.getElementById('open-glass-playground')?.addEventListener('click', () => {
+        if (window.electron && window.electron.openGlassPlayground) window.electron.openGlassPlayground();
+        else window.open('liquid-glass/playground.html', '_blank');
     });
 
     settingsButton.addEventListener('click', () => {
