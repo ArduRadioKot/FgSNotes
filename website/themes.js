@@ -38,8 +38,10 @@
         viewer.querySelector('h3').textContent = theme.name;
         viewer.querySelector('img').src = theme.image;
         viewer.querySelector('img').alt = `Тема ${theme.name} в редакторе`;
-        viewer.querySelector('a.btn').href = `themes/${theme.id}.css`;
-        viewer.querySelector('a.btn').setAttribute('download', theme.id + '.css');
+        viewer.querySelector('.viewer-body p').textContent = theme.description;
+        viewer.querySelector('.viewer-foot .dots').innerHTML = theme.colors.map(color => `<i style="background:${color}"></i>`).join('');
+        viewer.querySelector('.viewer-foot a.btn').href = `themes/${theme.id}.css`;
+        viewer.querySelector('.viewer-foot a.btn').setAttribute('download', theme.id + '.css');
         viewer.showModal();
     });
     viewer.addEventListener('click', event => { if (event.target === viewer || event.target.closest('[data-close]')) viewer.close(); });

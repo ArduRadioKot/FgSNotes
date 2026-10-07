@@ -132,16 +132,21 @@
         }));
     }
 
-    // Docs: highlight the current section in the contents
+    // Docs: highlight the current section in the contents (and keep its chip in view on phones)
     const links = [...document.querySelectorAll('.toc a')];
     if (links.length) {
         const sections = links.map(link => document.querySelector(link.getAttribute('href'))).filter(Boolean);
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (!entry.isIntersecting) return;
-                links.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id));
-            });
-        }, { rootMargin: '-20% 0px -70% 0px' });
-        sections.forEach(section => observer.observe(section));
+        function spy() {
+            const line = innerWidth <= 960 ? 150 : 120;
+            let current = sections[0];
+            sections.forEach(section => { if (section.getBoundingClientRect().top <= line) current = section; });
+            if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) current = sections[sections.length - 1];
+            links.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + current.id));
+            const chip = links.find(link => link.classList.contains('active')), strip = chip && chip.parentElement;
+            if (strip && strip.scrollWidth > strip.clientWidth) strip.scrollTo({ left: chip.offsetLeft - (strip.clientWidth - chip.offsetWidth) / 2, behavior: reduceMotion() ? 'auto' : 'smooth' });
+        }
+        addEventListener('scroll', spy, { passive: true });
+        addEventListener('resize', spy);
+        spy();
     }
 })();
