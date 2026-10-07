@@ -1,0 +1,35 @@
+/* cyberpunk — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #070112;
+    --bg-color: var(--window-bg);
+    --card-bg: #0d0221;
+    --header-bg: #150336;
+    --preview-bg: var(--card-bg);
+    --text-color: #e6f1ff;
+    --text-muted: #8a7fb0;
+    --border-color: #2d1259;
+    --hover-color: #1c1331;
+    --active-bg: #2b2340;
+    --accent-color: #ff2a6d;
+    --accent-text: #ffffff;
+    --link-color: #05d9e8;
+    --code-bg: #0a0119;
+    --selection: #ff2a6d59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #ff2a6d;
+    --syn-string: #f9f871;
+    --syn-number: #05d9e8;
+    --syn-comment: #6b5b95;
+    --syn-function: #05d9e8;
+    --syn-type: #d1f7ff;
+    --syn-field: #ff9ff3;
+    --syn-tag: #ff2a6d;
+    --syn-attr: #f9f871;
+    --syn-annotation: #ff9f1c;
+    --syn-heading: #ff2a6d;
+    --syn-mark: #8a7fb0;
+}
+body, .workspace { background: linear-gradient(160deg, #070112 0%, #1a0436 100%); }
+.tab-item.active, .view-switch button[aria-pressed="true"] { box-shadow: inset 0 -2px 0 var(--accent-color); }

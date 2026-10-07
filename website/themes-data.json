@@ -1,0 +1,492 @@
+{
+  "format": 2,
+  "themes": [
+    {
+      "id": "midnight-pro",
+      "name": "Midnight Pro",
+      "description": "Элегантная темная тема с акцентами синего цвета",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Профессиональная"
+      ],
+      "colors": [
+        "#0f1115",
+        "#15171c",
+        "#4a9eff",
+        "#c792ea",
+        "#a5e075",
+        "#4a9eff"
+      ],
+      "image": "img/themes/midnight-pro.jpg"
+    },
+    {
+      "id": "solar-light",
+      "name": "Solar Light",
+      "description": "Чистая светлая тема с мягкими тенями",
+      "author": "S.I.T",
+      "mode": "light",
+      "category": "light",
+      "tags": [
+        "Светлая",
+        "Минималистичная"
+      ],
+      "colors": [
+        "#e8ebf1",
+        "#ffffff",
+        "#3b82f6",
+        "#0033b3",
+        "#067d17",
+        "#00627a"
+      ],
+      "image": "img/themes/solar-light.jpg"
+    },
+    {
+      "id": "aurora",
+      "name": "Aurora",
+      "description": "Красочная градиентная тема с эффектом северного сияния",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "gradient",
+      "tags": [
+        "Градиентная",
+        "Креативная"
+      ],
+      "colors": [
+        "#12132b",
+        "#1a1b3a",
+        "#b388ff",
+        "#f093fb",
+        "#a8ff78",
+        "#82b1ff"
+      ],
+      "image": "img/themes/aurora.jpg"
+    },
+    {
+      "id": "zen",
+      "name": "Zen",
+      "description": "Минималистичная тема для максимальной концентрации",
+      "author": "S.I.T",
+      "mode": "light",
+      "category": "minimal",
+      "tags": [
+        "Минималистичная",
+        "Фокус"
+      ],
+      "colors": [
+        "#e9e9e6",
+        "#fbfbfa",
+        "#4a4a4a",
+        "#6b5b95",
+        "#5b8a5b",
+        "#3d6f94"
+      ],
+      "image": "img/themes/zen.jpg"
+    },
+    {
+      "id": "carbon",
+      "name": "Carbon",
+      "description": "Темная тема в стиле углеродного волокна",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Техническая"
+      ],
+      "colors": [
+        "#0c0c0c",
+        "#161616",
+        "#0f62fe",
+        "#be95ff",
+        "#42be65",
+        "#78a9ff"
+      ],
+      "image": "img/themes/carbon.jpg"
+    },
+    {
+      "id": "paper",
+      "name": "Paper",
+      "description": "Светлая тема в стиле бумаги с теплыми оттенками",
+      "author": "S.I.T",
+      "mode": "light",
+      "category": "light",
+      "tags": [
+        "Светлая",
+        "Теплая"
+      ],
+      "colors": [
+        "#e5dcc8",
+        "#fbf7ef",
+        "#a0522d",
+        "#9c3d2e",
+        "#4f7a3a",
+        "#2f6a8a"
+      ],
+      "image": "img/themes/paper.jpg"
+    },
+    {
+      "id": "ocean-deep",
+      "name": "Ocean Deep",
+      "description": "Глубокая синяя тема, вдохновленная океаном",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Синяя"
+      ],
+      "colors": [
+        "#07131c",
+        "#0b1d2a",
+        "#2ec4b6",
+        "#7cc4ff",
+        "#8be28b",
+        "#2ec4b6"
+      ],
+      "image": "img/themes/ocean-deep.jpg"
+    },
+    {
+      "id": "forest-green",
+      "name": "Forest Green",
+      "description": "Природная тема с зелеными акцентами",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Светлая",
+        "Природная"
+      ],
+      "colors": [
+        "#0f1713",
+        "#16201a",
+        "#6fcf7f",
+        "#d6a65c",
+        "#9fd37a",
+        "#6fcf7f"
+      ],
+      "image": "img/themes/forest-green.jpg"
+    },
+    {
+      "id": "sunset-glow",
+      "name": "Sunset Glow",
+      "description": "Теплая градиентная тема с закатными красками",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "gradient",
+      "tags": [
+        "Градиентная",
+        "Теплая"
+      ],
+      "colors": [
+        "#170f15",
+        "#241820",
+        "#ff8a5c",
+        "#ff7e9d",
+        "#ffd37a",
+        "#ff8a5c"
+      ],
+      "image": "img/themes/sunset-glow.jpg"
+    },
+    {
+      "id": "monochrome",
+      "name": "Monochrome",
+      "description": "Черно-белая минималистичная тема",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "minimal",
+      "tags": [
+        "Минималистичная",
+        "Черно-белая"
+      ],
+      "colors": [
+        "#101010",
+        "#1a1a1a",
+        "#e6e6e6",
+        "#ffffff",
+        "#b8b8b8",
+        "#e6e6e6"
+      ],
+      "image": "img/themes/monochrome.jpg"
+    },
+    {
+      "id": "cyberpunk",
+      "name": "Cyberpunk",
+      "description": "Неоново-киберпанк тема с яркими акцентами",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "gradient",
+      "tags": [
+        "Темная",
+        "Киберпанк"
+      ],
+      "colors": [
+        "#070112",
+        "#0d0221",
+        "#ff2a6d",
+        "#ff2a6d",
+        "#f9f871",
+        "#05d9e8"
+      ],
+      "image": "img/themes/cyberpunk.jpg"
+    },
+    {
+      "id": "pastel-dreams",
+      "name": "Pastel Dreams",
+      "description": "Мягкая пастельная тема с нежными цветами",
+      "author": "S.I.T",
+      "mode": "light",
+      "category": "gradient",
+      "tags": [
+        "Светлая",
+        "Пастельная"
+      ],
+      "colors": [
+        "#f3e6f2",
+        "#fffafc",
+        "#c77dff",
+        "#c77dff",
+        "#3f9d7f",
+        "#5b8cf0"
+      ],
+      "image": "img/themes/pastel-dreams.jpg"
+    },
+    {
+      "id": "atom-light",
+      "name": "Atom Light",
+      "description": "Классическая светлая тема в стиле Atom",
+      "author": "S.I.T",
+      "mode": "light",
+      "category": "light",
+      "tags": [
+        "Светлая",
+        "Классическая"
+      ],
+      "colors": [
+        "#dfdfe0",
+        "#fafafa",
+        "#4078f2",
+        "#a626a4",
+        "#50a14f",
+        "#4078f2"
+      ],
+      "image": "img/themes/atom-light.jpg"
+    },
+    {
+      "id": "tomorrow-night",
+      "name": "Tomorrow Night",
+      "description": "Темная тема в стиле Tomorrow Night",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Классическая"
+      ],
+      "colors": [
+        "#151718",
+        "#1d1f21",
+        "#81a2be",
+        "#b294bb",
+        "#b5bd68",
+        "#81a2be"
+      ],
+      "image": "img/themes/tomorrow-night.jpg"
+    },
+    {
+      "id": "one-dark",
+      "name": "One Dark",
+      "description": "Популярная темная тема One Dark",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Популярная"
+      ],
+      "colors": [
+        "#1b1f23",
+        "#282c34",
+        "#61afef",
+        "#c678dd",
+        "#98c379",
+        "#61afef"
+      ],
+      "image": "img/themes/one-dark.jpg"
+    },
+    {
+      "id": "solarized-dark",
+      "name": "Solarized Dark",
+      "description": "Темная тема Solarized с научным подходом к цветам",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Научная"
+      ],
+      "colors": [
+        "#00212b",
+        "#002b36",
+        "#268bd2",
+        "#859900",
+        "#2aa198",
+        "#268bd2"
+      ],
+      "image": "img/themes/solarized-dark.jpg"
+    },
+    {
+      "id": "solarized-light",
+      "name": "Solarized Light",
+      "description": "Светлая тема Solarized с научным подходом к цветам",
+      "author": "S.I.T",
+      "mode": "light",
+      "category": "light",
+      "tags": [
+        "Светлая",
+        "Научная"
+      ],
+      "colors": [
+        "#e6dfc8",
+        "#fdf6e3",
+        "#268bd2",
+        "#859900",
+        "#2aa198",
+        "#268bd2"
+      ],
+      "image": "img/themes/solarized-light.jpg"
+    },
+    {
+      "id": "github-light",
+      "name": "GitHub Light",
+      "description": "Светлая тема в стиле GitHub",
+      "author": "S.I.T",
+      "mode": "light",
+      "category": "light",
+      "tags": [
+        "Светлая",
+        "GitHub"
+      ],
+      "colors": [
+        "#eaeef2",
+        "#ffffff",
+        "#0969da",
+        "#cf222e",
+        "#0a3069",
+        "#8250df"
+      ],
+      "image": "img/themes/github-light.jpg"
+    },
+    {
+      "id": "monokai",
+      "name": "Monokai",
+      "description": "Классическая темная тема Monokai",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Классическая"
+      ],
+      "colors": [
+        "#181916",
+        "#272822",
+        "#a6e22e",
+        "#f92672",
+        "#e6db74",
+        "#a6e22e"
+      ],
+      "image": "img/themes/monokai.jpg"
+    },
+    {
+      "id": "nord",
+      "name": "Nord",
+      "description": "Арктическая тема с холодными оттенками",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Арктическая"
+      ],
+      "colors": [
+        "#242933",
+        "#2e3440",
+        "#88c0d0",
+        "#81a1c1",
+        "#a3be8c",
+        "#88c0d0"
+      ],
+      "image": "img/themes/nord.jpg"
+    },
+    {
+      "id": "dracula",
+      "name": "Dracula",
+      "description": "Темная тема Dracula с яркими акцентами",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "Яркая"
+      ],
+      "colors": [
+        "#191a21",
+        "#282a36",
+        "#bd93f9",
+        "#ff79c6",
+        "#f1fa8c",
+        "#50fa7b"
+      ],
+      "image": "img/themes/dracula.jpg"
+    },
+    {
+      "id": "github-dark",
+      "name": "GitHub Dark",
+      "description": "Темная тема в стиле GitHub",
+      "author": "S.I.T",
+      "mode": "dark",
+      "category": "dark",
+      "tags": [
+        "Темная",
+        "GitHub"
+      ],
+      "colors": [
+        "#010409",
+        "#0d1117",
+        "#1f6feb",
+        "#ff7b72",
+        "#a5d6ff",
+        "#d2a8ff"
+      ],
+      "image": "img/themes/github-dark.jpg"
+    }
+  ],
+  "categories": [
+    {
+      "id": "all",
+      "name": "Все"
+    },
+    {
+      "id": "dark",
+      "name": "Тёмные"
+    },
+    {
+      "id": "light",
+      "name": "Светлые"
+    },
+    {
+      "id": "gradient",
+      "name": "С градиентом"
+    },
+    {
+      "id": "minimal",
+      "name": "Минимализм"
+    }
+  ],
+  "stats": {
+    "totalThemes": 22
+  }
+}

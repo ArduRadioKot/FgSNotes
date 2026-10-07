@@ -1,0 +1,33 @@
+/* monochrome — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #101010;
+    --bg-color: var(--window-bg);
+    --card-bg: #1a1a1a;
+    --header-bg: #242424;
+    --preview-bg: var(--card-bg);
+    --text-color: #e6e6e6;
+    --text-muted: #8c8c8c;
+    --border-color: #343434;
+    --hover-color: #282828;
+    --active-bg: #373737;
+    --accent-color: #e6e6e6;
+    --accent-text: #111111;
+    --link-color: #cfcfcf;
+    --code-bg: #141414;
+    --selection: #e6e6e659;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #ffffff;
+    --syn-string: #b8b8b8;
+    --syn-number: #d0d0d0;
+    --syn-comment: #6e6e6e;
+    --syn-function: #e6e6e6;
+    --syn-type: #cfcfcf;
+    --syn-field: #bdbdbd;
+    --syn-tag: #ffffff;
+    --syn-attr: #aaaaaa;
+    --syn-annotation: #999999;
+    --syn-heading: #ffffff;
+    --syn-mark: #8c8c8c;
+}

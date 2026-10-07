@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Как сделать тему | FgSNotes</title>
+<meta name="description" content="Документация по темам FgSNotes: установка, список переменных интерфейса и подсветки синтаксиса, шаблон и советы.">
+<meta name="theme-color" content="#1e1e1e">
+<link rel="icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<script>try{var t=localStorage.getItem('fgsnotes.site.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4 1.2-4-2-6-2.500M15 21v-3.200a2.800 2.800 0 0 0-.800-2.200c2.700-.300 5.500-1.300 5.500-6a4.600 4.600 0 0 0-1.300-3.200 4.300 4.300 0 0 0-.100-3.200s-1-.300-3.300 1.300a11.400 11.400 0 0 0-6 0C6.700 2.900 5.700 3.200 5.700 3.200a4.300 4.300 0 0 0-.100 3.200A4.600 4.600 0 0 0 4.300 9.600c0 4.600 2.800 5.600 5.500 6a2.800 2.800 0 0 0-.800 2.200V21"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.500v2M12 19.500v2M2.500 12h2M19.500 12h2M5.300 5.300l1.400 1.400M17.300 17.300l1.400 1.400M5.300 18.700l1.400-1.400M17.300 6.700l1.400-1.400"/></symbol><symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500z"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.500"/><path d="m16 16 4.500 4.500"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol><symbol id="i-windows" viewBox="0 0 24 24"><path d="M3.500 5.500 11 4.500v7H3.500zM12.500 4.300 20.500 3v8.500h-8zM3.500 12.500H11v7l-7.500-1zM12.500 12.500h8V21l-8-1.300z"/></symbol><symbol id="i-apple" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M16.37 12.62c-.03-2.67 2.18-3.95 2.28-4.01-1.24-1.82-3.17-2.07-3.86-2.1-1.64-.17-3.2.97-4.03.97-.84 0-2.12-.95-3.49-.92-1.8.03-3.45 1.05-4.38 2.65-1.87 3.24-.48 8.04 1.34 10.67.89 1.29 1.95 2.73 3.34 2.68 1.34-.05 1.85-.87 3.47-.87 1.62 0 2.08.87 3.5.84 1.44-.03 2.36-1.31 3.24-2.6 1.02-1.49 1.44-2.93 1.47-3-.03-.01-2.82-1.08-2.85-4.29zM13.7 4.78c.74-.9 1.24-2.14 1.1-3.38-1.07.04-2.36.71-3.13 1.61-.69.79-1.29 2.06-1.13 3.27 1.19.09 2.4-.6 3.16-1.5z"/></symbol><symbol id="i-linux" viewBox="0 0 24 24"><rect x="3" y="4.500" width="18" height="15" rx="3"/><path d="m7.500 10 3 2.500-3 2.500M12.500 15h4"/></symbol><symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol></defs></svg>
+<header class="nav"><div class="nav-bar">
+<a class="brand" href="index.html"><img src="img/icon.png" alt="" width="30" height="30">FgSNotes</a>
+<nav class="nav-links" aria-label="Разделы"><a href="index.html#features">Возможности</a><a href="themes.html">Темы</a><a href="docs-themes.html" aria-current="page">Документация</a></nav>
+<button class="icon-btn" id="themeToggle" aria-label="Включить светлую тему"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
+<a class="icon-btn" href="https://github.com/ArduRadioKot/FgSNotes" aria-label="GitHub" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg></a>
+<a class="btn primary small" href="index.html#download">Скачать</a>
+<button class="icon-btn menu-btn" id="menuToggle" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobileMenu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+</div></header>
+<div class="menu" id="mobileMenu" role="dialog" aria-modal="true" aria-label="Меню">
+<div class="menu-head"><a class="brand" href="index.html"><img src="img/icon.png" alt="" width="30" height="30">FgSNotes</a><button class="icon-btn" id="menuClose" aria-label="Закрыть меню"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+<nav class="menu-links" aria-label="Разделы"><a href="index.html#features">Возможности</a><a href="themes.html">Темы</a><a href="docs-themes.html" aria-current="page">Документация</a></nav>
+<div class="menu-foot"><a class="btn primary" href="index.html#download">Скачать</a><a class="btn" href="https://github.com/ArduRadioKot/FgSNotes" target="_blank" rel="noopener">GitHub</a></div>
+</div>
+<main class="page">
+<div class="docs">
+<aside class="toc" aria-label="Содержание"><a href="#how">Как это работает</a><a href="#install">Установка</a><a href="#ui">Цвета интерфейса</a><a href="#syntax">Подсветка кода</a><a href="#template">Шаблон</a><a href="#extra">Свои правила</a><a href="#check">Проверка</a></aside>
+<article class="doc">
+ <section id="how"><h1 style="font-size:clamp(34px,4.6vw,56px)">Как сделать тему</h1>
+ <p>Тема — это обычный CSS-файл. Интерфейс FgSNotes целиком собран из переменных, поэтому достаточно переопределить цвета в одном блоке <code>:root</code>. Селекторы компонентов переписывать не нужно.</p>
+ <div class="callout">Формат 2 работает в FgSNotes 2.0 и новее. Темы старого формата (с селекторами вроде <code>.sidebar-toolbar</code>) не подходят: интерфейс был переработан.</div></section>
+
+ <section id="install"><h2>Установка темы</h2>
+ <ol><li>Положите файл <code>my-theme.css</code> в папку <code>Документы/FgSNotes/themes</code>. Папка создаётся при первом запуске приложения.</li><li>Откройте настройки → «Предпросмотр».</li><li>В пункте «Сторонняя тема» выберите файл. Тема применится сразу.</li></ol>
+ <p>Чтобы отключить тему, выберите «Нет».</p></section>
+
+ <section id="ui"><h2>Цвета интерфейса</h2>
+ <p>Все переменные необязательны, но лучше задать весь набор: так тема выглядит цельно. Образцы цветов взяты из темы Dracula.</p>
+ <h3>Поверхности</h3><div class="table-wrap"><table class="tokens"><thead><tr><th>Переменная</th><th>За что отвечает</th></tr></thead><tbody><tr><td><span class="sw" style="background:#191a21"></span><code>--window-bg</code></td><td>Фон окна и боковой полосы. Виден по краям между панелями</td></tr><tr><td><span class="sw" style="background:#282a36"></span><code>--card-bg</code></td><td>Редактор и основные панели</td></tr><tr><td><span class="sw" style="background:#21222c"></span><code>--header-bg</code></td><td>Панель вкладок и плавающие панели</td></tr><tr><td><span class="sw" style="background:#282a36"></span><code>--preview-bg</code></td><td>Панель предпросмотра (обычно <code>var(--card-bg)</code>)</td></tr><tr><td><code>--code-bg</code></td><td>Блоки кода, цитаты, вставки</td></tr></tbody></table></div>
+ <h3>Текст</h3><div class="table-wrap"><table class="tokens"><thead><tr><th>Переменная</th><th>За что отвечает</th></tr></thead><tbody><tr><td><span class="sw" style="background:#f8f8f2"></span><code>--text-color</code></td><td>Основной текст</td></tr><tr><td><span class="sw" style="background:#6e7bb0"></span><code>--text-muted</code></td><td>Подписи, подсказки, неактивные элементы</td></tr></tbody></table></div>
+ <h3>Линии и состояния</h3><div class="table-wrap"><table class="tokens"><thead><tr><th>Переменная</th><th>За что отвечает</th></tr></thead><tbody><tr><td><span class="sw" style="background:#44475a"></span><code>--border-color</code></td><td>Тонкие линии и рамки</td></tr><tr><td><code>--hover-color</code></td><td>Наведение на кнопки и вкладки</td></tr><tr><td><code>--active-bg</code></td><td>Выбранная вкладка и режим</td></tr><tr><td><code>--selection</code></td><td>Выделение текста (с прозрачностью)</td></tr></tbody></table></div>
+ <h3>Акцент</h3><div class="table-wrap"><table class="tokens"><thead><tr><th>Переменная</th><th>За что отвечает</th></tr></thead><tbody><tr><td><span class="sw" style="background:#bd93f9"></span><code>--accent-color</code></td><td>Главные кнопки, переключатели, ползунки</td></tr><tr><td><code>--accent-text</code></td><td>Текст на акцентном цвете</td></tr><tr><td><code>--link-color</code></td><td>Ссылки в предпросмотре</td></tr><tr><td><code>--success-color</code></td><td>Значок «Черновик сохранён»</td></tr></tbody></table></div>
+ <p><code>--shadow-color</code> задаёт цвет теней у плавающих панелей. Если тема светлая, добавьте <code>color-scheme: light</code>, чтобы системные элементы (полосы прокрутки, поля) тоже стали светлыми.</p></section>
+
+ <section id="syntax"><h2>Подсветка кода</h2>
+ <p>Те же переменные раскрашивают блоки кода в предпросмотре и разметку в редакторе.</p><div class="table-wrap"><table class="tokens"><thead><tr><th>Переменная</th><th>За что отвечает</th></tr></thead><tbody><tr><td><span class="sw" style="background:#ff79c6"></span><code>--syn-keyword</code></td><td>Ключевые слова: <code>const</code>, <code>def</code></td></tr><tr><td><span class="sw" style="background:#f1fa8c"></span><code>--syn-string</code></td><td>Строки</td></tr><tr><td><span class="sw" style="background:#bd93f9"></span><code>--syn-number</code></td><td>Числа</td></tr><tr><td><span class="sw" style="background:#6272a4"></span><code>--syn-comment</code></td><td>Комментарии</td></tr><tr><td><span class="sw" style="background:#50fa7b"></span><code>--syn-function</code></td><td>Вызовы функций</td></tr><tr><td><span class="sw" style="background:#8be9fd"></span><code>--syn-type</code></td><td>Типы и классы</td></tr><tr><td><span class="sw" style="background:#ffb86c"></span><code>--syn-field</code></td><td>Поля и ключи JSON</td></tr><tr><td><span class="sw" style="background:#ff79c6"></span><code>--syn-tag</code></td><td>HTML-теги</td></tr><tr><td><span class="sw" style="background:#50fa7b"></span><code>--syn-attr</code></td><td>Атрибуты и флаги</td></tr><tr><td><span class="sw" style="background:#ffb86c"></span><code>--syn-annotation</code></td><td>Аннотации и язык в ограждении ```</td></tr><tr><td><span class="sw" style="background:#bd93f9"></span><code>--syn-heading</code></td><td>Заголовки Markdown в редакторе</td></tr><tr><td><span class="sw" style="background:#6e7bb0"></span><code>--syn-mark</code></td><td>Служебные символы: <code>#</code>, <code>**</code>, <code>[]</code></td></tr></tbody></table></div></section>
+
+ <section id="template"><h2>Шаблон темы</h2>
+ <p>Скопируйте файл целиком и замените цвета. Блок работает и для светлой, и для тёмной темы приложения.</p>
+ <pre class="code"><code>:root, [data-theme=&quot;dark&quot;], [data-theme=&quot;light&quot;] {
+    color-scheme: dark;
+    --window-bg: #242933;
+    --bg-color: var(--window-bg);
+    --card-bg: #2e3440;
+    --header-bg: #3b4252;
+    --preview-bg: var(--card-bg);
+    --text-color: #d8dee9;
+    --text-muted: #7b88a1;
+    --border-color: #434c5e;
+    --hover-color: #3a404c;
+    --active-bg: #464c58;
+    --accent-color: #88c0d0;
+    --accent-text: #111111;
+    --link-color: #81a1c1;
+    --code-bg: #282e39;
+    --selection: #88c0d059;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #81a1c1;
+    --syn-string: #a3be8c;
+    --syn-number: #b48ead;
+    --syn-comment: #616e88;
+    --syn-function: #88c0d0;
+    --syn-type: #8fbcbb;
+    --syn-field: #88c0d0;
+    --syn-tag: #81a1c1;
+    --syn-attr: #8fbcbb;
+    --syn-annotation: #d08770;
+    --syn-heading: #88c0d0;
+    --syn-mark: #7b88a1;
+}
+</code></pre></section>
+
+ <section id="extra"><h2>Свои правила</h2>
+ <p>Кроме переменных можно добавить обычный CSS. Устойчивые точки опоры: <code>.workspace</code>, <code>.sidebar-toolbar</code>, <code>.document-bar</code>, <code>.tab-item.active</code>, <code>.editor-column</code>, <code>.preview-column</code>, <code>.editor-tools</code>, <code>.status-bar</code>, <code>.preview-content</code>.</p>
+ <p>Например, градиентный фон окна (сплошной цвет <code>--window-bg</code> всё равно задайте как запасной):</p>
+ <pre class="code"><code>body, .workspace { background: linear-gradient(135deg, #12132b 0%, #2a1650 100%); }</code></pre>
+ <div class="callout">При включённом Liquid Glass фон окна становится прозрачным, поэтому градиент на <code>body</code> не будет виден: сквозь окно просвечивает рабочий стол. Тонировку стекла тема не меняет, она зависит от светлой или тёмной темы приложения.</div></section>
+
+ <section id="check"><h2>Проверка и публикация</h2>
+ <ol><li>Откройте документ с заголовками, списком, цитатой, таблицей и блоками кода: так видны все цвета.</li><li>Проверьте контраст текста с фоном: не ниже 4.5:1 для основного текста и 3:1 для подписей.</li><li>Переключите режимы «Редактор», «Рядом», «Просмотр» и откройте настройки.</li><li>Сделайте скриншот и пришлите тему вместе с файлом через <a href="https://github.com/ArduRadioKot/FgSNotes/issues" target="_blank" rel="noopener" style="color:var(--text)">GitHub</a>.</li></ol></section>
+</article>
+</div>
+<footer class="island foot">
+<a class="brand" href="index.html"><img src="img/icon.png" alt="" width="30" height="30">FgSNotes</a>
+<nav aria-label="Ссылки"><a href="themes.html">Темы</a><a href="docs-themes.html">Документация</a><a href="https://github.com/ArduRadioKot/FgSNotes" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/ArduRadioKot/FgSNotes/releases" target="_blank" rel="noopener">Релизы</a><a href="https://t.me/SIT_team" target="_blank" rel="noopener">Telegram</a></nav>
+<span class="copy">© FgSNotes</span>
+</footer>
+</main>
+<script src="site.js"></script>
+</body>
+</html>

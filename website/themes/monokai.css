@@ -1,0 +1,33 @@
+/* monokai — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #181916;
+    --bg-color: var(--window-bg);
+    --card-bg: #272822;
+    --header-bg: #1e1f1c;
+    --preview-bg: var(--card-bg);
+    --text-color: #f8f8f2;
+    --text-muted: #8f908a;
+    --border-color: #3e3d32;
+    --hover-color: #363731;
+    --active-bg: #44453f;
+    --accent-color: #a6e22e;
+    --accent-text: #ffffff;
+    --link-color: #66d9ef;
+    --code-bg: #1f201b;
+    --selection: #a6e22e59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #f92672;
+    --syn-string: #e6db74;
+    --syn-number: #ae81ff;
+    --syn-comment: #75715e;
+    --syn-function: #a6e22e;
+    --syn-type: #66d9ef;
+    --syn-field: #fd971f;
+    --syn-tag: #f92672;
+    --syn-attr: #a6e22e;
+    --syn-annotation: #fd971f;
+    --syn-heading: #a6e22e;
+    --syn-mark: #8f908a;
+}

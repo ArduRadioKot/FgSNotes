@@ -1,0 +1,33 @@
+/* github-dark — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #010409;
+    --bg-color: var(--window-bg);
+    --card-bg: #0d1117;
+    --header-bg: #161b22;
+    --preview-bg: var(--card-bg);
+    --text-color: #e6edf3;
+    --text-muted: #8b949e;
+    --border-color: #30363d;
+    --hover-color: #1c2026;
+    --active-bg: #2b3036;
+    --accent-color: #1f6feb;
+    --accent-text: #ffffff;
+    --link-color: #58a6ff;
+    --code-bg: #060a0f;
+    --selection: #1f6feb59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #ff7b72;
+    --syn-string: #a5d6ff;
+    --syn-number: #79c0ff;
+    --syn-comment: #8b949e;
+    --syn-function: #d2a8ff;
+    --syn-type: #ffa657;
+    --syn-field: #79c0ff;
+    --syn-tag: #7ee787;
+    --syn-attr: #79c0ff;
+    --syn-annotation: #ffa657;
+    --syn-heading: #79c0ff;
+    --syn-mark: #8b949e;
+}

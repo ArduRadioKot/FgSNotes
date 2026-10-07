@@ -1,0 +1,33 @@
+/* tomorrow-night — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #151718;
+    --bg-color: var(--window-bg);
+    --card-bg: #1d1f21;
+    --header-bg: #282a2e;
+    --preview-bg: var(--card-bg);
+    --text-color: #c5c8c6;
+    --text-muted: #969896;
+    --border-color: #373b41;
+    --hover-color: #292b2d;
+    --active-bg: #353738;
+    --accent-color: #81a2be;
+    --accent-text: #ffffff;
+    --link-color: #81a2be;
+    --code-bg: #191b1c;
+    --selection: #81a2be59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #b294bb;
+    --syn-string: #b5bd68;
+    --syn-number: #de935f;
+    --syn-comment: #969896;
+    --syn-function: #81a2be;
+    --syn-type: #f0c674;
+    --syn-field: #cc6666;
+    --syn-tag: #cc6666;
+    --syn-attr: #de935f;
+    --syn-annotation: #8abeb7;
+    --syn-heading: #81a2be;
+    --syn-mark: #969896;
+}

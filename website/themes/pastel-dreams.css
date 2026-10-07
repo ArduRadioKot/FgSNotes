@@ -1,0 +1,34 @@
+/* pastel-dreams — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: light;
+    --window-bg: #f3e6f2;
+    --bg-color: var(--window-bg);
+    --card-bg: #fffafc;
+    --header-bg: #fdeef6;
+    --preview-bg: var(--card-bg);
+    --text-color: #4a3f55;
+    --text-muted: #9a8aa6;
+    --border-color: #f0d9e8;
+    --hover-color: #f4eff2;
+    --active-bg: #ede7eb;
+    --accent-color: #c77dff;
+    --accent-text: #111111;
+    --link-color: #7b6cf6;
+    --code-bg: #fbf3f8;
+    --selection: #c77dff40;
+    --success-color: #3a9a4a;
+    --shadow-color: #1d233a33;
+    --syn-keyword: #c77dff;
+    --syn-string: #3f9d7f;
+    --syn-number: #e8786e;
+    --syn-comment: #b3a5c0;
+    --syn-function: #5b8cf0;
+    --syn-type: #c98a3a;
+    --syn-field: #e0608d;
+    --syn-tag: #e0608d;
+    --syn-attr: #c98a3a;
+    --syn-annotation: #3f9d7f;
+    --syn-heading: #a85ee0;
+    --syn-mark: #9a8aa6;
+}
+body, .workspace { background: linear-gradient(135deg, #f6e9f4 0%, #e9e6fb 100%); }

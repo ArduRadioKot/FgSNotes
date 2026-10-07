@@ -1,0 +1,33 @@
+/* solarized-light — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: light;
+    --window-bg: #e6dfc8;
+    --bg-color: var(--window-bg);
+    --card-bg: #fdf6e3;
+    --header-bg: #eee8d5;
+    --preview-bg: var(--card-bg);
+    --text-color: #586e75;
+    --text-muted: #93a1a1;
+    --border-color: #ddd6c1;
+    --hover-color: #f3eedc;
+    --active-bg: #ede8d8;
+    --accent-color: #268bd2;
+    --accent-text: #ffffff;
+    --link-color: #1f78b4;
+    --code-bg: #f5eeda;
+    --selection: #268bd240;
+    --success-color: #3a9a4a;
+    --shadow-color: #1d233a33;
+    --syn-keyword: #859900;
+    --syn-string: #2aa198;
+    --syn-number: #d33682;
+    --syn-comment: #93a1a1;
+    --syn-function: #268bd2;
+    --syn-type: #b58900;
+    --syn-field: #cb4b16;
+    --syn-tag: #268bd2;
+    --syn-attr: #586e75;
+    --syn-annotation: #cb4b16;
+    --syn-heading: #268bd2;
+    --syn-mark: #93a1a1;
+}

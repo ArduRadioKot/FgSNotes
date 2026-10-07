@@ -1,0 +1,33 @@
+/* midnight-pro — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #0f1115;
+    --bg-color: var(--window-bg);
+    --card-bg: #15171c;
+    --header-bg: #1c1f26;
+    --preview-bg: var(--card-bg);
+    --text-color: #e2e6ee;
+    --text-muted: #8590a2;
+    --border-color: #2a2e38;
+    --hover-color: #23252b;
+    --active-bg: #323439;
+    --accent-color: #4a9eff;
+    --accent-text: #ffffff;
+    --link-color: #6cb2ff;
+    --code-bg: #121418;
+    --selection: #4a9eff59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #c792ea;
+    --syn-string: #a5e075;
+    --syn-number: #f78c6c;
+    --syn-comment: #5c6573;
+    --syn-function: #4a9eff;
+    --syn-type: #ffcb6b;
+    --syn-field: #82aaff;
+    --syn-tag: #f07178;
+    --syn-attr: #ffcb6b;
+    --syn-annotation: #89ddff;
+    --syn-heading: #4a9eff;
+    --syn-mark: #8590a2;
+}

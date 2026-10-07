@@ -1,0 +1,33 @@
+/* one-dark — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #1b1f23;
+    --bg-color: var(--window-bg);
+    --card-bg: #282c34;
+    --header-bg: #21252b;
+    --preview-bg: var(--card-bg);
+    --text-color: #abb2bf;
+    --text-muted: #7f848e;
+    --border-color: #3a3f4b;
+    --hover-color: #31353e;
+    --active-bg: #3a3f47;
+    --accent-color: #61afef;
+    --accent-text: #ffffff;
+    --link-color: #61afef;
+    --code-bg: #21252b;
+    --selection: #61afef59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #c678dd;
+    --syn-string: #98c379;
+    --syn-number: #d19a66;
+    --syn-comment: #5c6370;
+    --syn-function: #61afef;
+    --syn-type: #e5c07b;
+    --syn-field: #e06c75;
+    --syn-tag: #e06c75;
+    --syn-attr: #d19a66;
+    --syn-annotation: #e5c07b;
+    --syn-heading: #e06c75;
+    --syn-mark: #7f848e;
+}

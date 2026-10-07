@@ -1,0 +1,33 @@
+/* atom-light — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: light;
+    --window-bg: #dfdfe0;
+    --bg-color: var(--window-bg);
+    --card-bg: #fafafa;
+    --header-bg: #eaeaeb;
+    --preview-bg: var(--card-bg);
+    --text-color: #383a42;
+    --text-muted: #8e8f96;
+    --border-color: #dbdbdc;
+    --hover-color: #eeeeef;
+    --active-bg: #e7e7e8;
+    --accent-color: #4078f2;
+    --accent-text: #ffffff;
+    --link-color: #4078f2;
+    --code-bg: #f1f1f1;
+    --selection: #4078f240;
+    --success-color: #3a9a4a;
+    --shadow-color: #1d233a33;
+    --syn-keyword: #a626a4;
+    --syn-string: #50a14f;
+    --syn-number: #986801;
+    --syn-comment: #a0a1a7;
+    --syn-function: #4078f2;
+    --syn-type: #c18401;
+    --syn-field: #e45649;
+    --syn-tag: #e45649;
+    --syn-attr: #986801;
+    --syn-annotation: #c18401;
+    --syn-heading: #e45649;
+    --syn-mark: #8e8f96;
+}

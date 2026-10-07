@@ -1,0 +1,34 @@
+/* aurora — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #12132b;
+    --bg-color: var(--window-bg);
+    --card-bg: #1a1b3a;
+    --header-bg: #22244d;
+    --preview-bg: var(--card-bg);
+    --text-color: #e8e8ff;
+    --text-muted: #9a9bd0;
+    --border-color: #34377a;
+    --hover-color: #282948;
+    --active-bg: #373856;
+    --accent-color: #b388ff;
+    --accent-text: #111111;
+    --link-color: #84ffff;
+    --code-bg: #161732;
+    --selection: #b388ff59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #f093fb;
+    --syn-string: #a8ff78;
+    --syn-number: #ffc371;
+    --syn-comment: #6f72b3;
+    --syn-function: #82b1ff;
+    --syn-type: #ffe082;
+    --syn-field: #80deea;
+    --syn-tag: #f093fb;
+    --syn-attr: #ffc371;
+    --syn-annotation: #ff80ab;
+    --syn-heading: #b388ff;
+    --syn-mark: #9a9bd0;
+}
+body, .workspace { background: linear-gradient(135deg, #12132b 0%, #2a1650 100%); }

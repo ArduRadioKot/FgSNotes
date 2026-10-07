@@ -1,0 +1,33 @@
+/* nord — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #242933;
+    --bg-color: var(--window-bg);
+    --card-bg: #2e3440;
+    --header-bg: #3b4252;
+    --preview-bg: var(--card-bg);
+    --text-color: #d8dee9;
+    --text-muted: #7b88a1;
+    --border-color: #434c5e;
+    --hover-color: #3a404c;
+    --active-bg: #464c58;
+    --accent-color: #88c0d0;
+    --accent-text: #111111;
+    --link-color: #81a1c1;
+    --code-bg: #282e39;
+    --selection: #88c0d059;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #81a1c1;
+    --syn-string: #a3be8c;
+    --syn-number: #b48ead;
+    --syn-comment: #616e88;
+    --syn-function: #88c0d0;
+    --syn-type: #8fbcbb;
+    --syn-field: #88c0d0;
+    --syn-tag: #81a1c1;
+    --syn-attr: #8fbcbb;
+    --syn-annotation: #d08770;
+    --syn-heading: #88c0d0;
+    --syn-mark: #7b88a1;
+}

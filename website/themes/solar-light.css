@@ -1,0 +1,33 @@
+/* solar-light — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: light;
+    --window-bg: #e8ebf1;
+    --bg-color: var(--window-bg);
+    --card-bg: #ffffff;
+    --header-bg: #f7f8fa;
+    --preview-bg: var(--card-bg);
+    --text-color: #27282e;
+    --text-muted: #6c707e;
+    --border-color: #ebecf0;
+    --hover-color: #f2f2f2;
+    --active-bg: #e9eaea;
+    --accent-color: #3b82f6;
+    --accent-text: #ffffff;
+    --link-color: #2470b3;
+    --code-bg: #f7f8fa;
+    --selection: #3b82f640;
+    --success-color: #3a9a4a;
+    --shadow-color: #1d233a33;
+    --syn-keyword: #0033b3;
+    --syn-string: #067d17;
+    --syn-number: #1750eb;
+    --syn-comment: #8c8c8c;
+    --syn-function: #00627a;
+    --syn-type: #7a5a00;
+    --syn-field: #871094;
+    --syn-tag: #0033b3;
+    --syn-attr: #174ad4;
+    --syn-annotation: #9e880d;
+    --syn-heading: #0033b3;
+    --syn-mark: #6c707e;
+}

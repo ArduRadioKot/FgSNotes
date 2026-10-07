@@ -1,0 +1,33 @@
+/* ocean-deep — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #07131c;
+    --bg-color: var(--window-bg);
+    --card-bg: #0b1d2a;
+    --header-bg: #11293a;
+    --preview-bg: var(--card-bg);
+    --text-color: #d3e4ef;
+    --text-muted: #6f8ea3;
+    --border-color: #1c3a4f;
+    --hover-color: #192b38;
+    --active-bg: #273946;
+    --accent-color: #2ec4b6;
+    --accent-text: #ffffff;
+    --link-color: #5fd3e0;
+    --code-bg: #091822;
+    --selection: #2ec4b659;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #7cc4ff;
+    --syn-string: #8be28b;
+    --syn-number: #ffb86b;
+    --syn-comment: #56778c;
+    --syn-function: #2ec4b6;
+    --syn-type: #ffd479;
+    --syn-field: #9ad1ff;
+    --syn-tag: #7cc4ff;
+    --syn-attr: #2ec4b6;
+    --syn-annotation: #ffb86b;
+    --syn-heading: #2ec4b6;
+    --syn-mark: #6f8ea3;
+}

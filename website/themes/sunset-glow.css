@@ -1,0 +1,34 @@
+/* sunset-glow — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #170f15;
+    --bg-color: var(--window-bg);
+    --card-bg: #241820;
+    --header-bg: #2e1f29;
+    --preview-bg: var(--card-bg);
+    --text-color: #f1dfd6;
+    --text-muted: #a58c92;
+    --border-color: #433039;
+    --hover-color: #32262d;
+    --active-bg: #413439;
+    --accent-color: #ff8a5c;
+    --accent-text: #ffffff;
+    --link-color: #ffb37a;
+    --code-bg: #1d131a;
+    --selection: #ff8a5c59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #ff7e9d;
+    --syn-string: #ffd37a;
+    --syn-number: #ff9d6c;
+    --syn-comment: #7f6870;
+    --syn-function: #ff8a5c;
+    --syn-type: #ffc27a;
+    --syn-field: #ff9db5;
+    --syn-tag: #ff7e9d;
+    --syn-attr: #ffd37a;
+    --syn-annotation: #ffa66b;
+    --syn-heading: #ff8a5c;
+    --syn-mark: #a58c92;
+}
+body, .workspace { background: linear-gradient(160deg, #170f15 0%, #2b1621 100%); }

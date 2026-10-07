@@ -1,0 +1,33 @@
+/* forest-green — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #0f1713;
+    --bg-color: var(--window-bg);
+    --card-bg: #16201a;
+    --header-bg: #1d2a22;
+    --preview-bg: var(--card-bg);
+    --text-color: #d6e4d8;
+    --text-muted: #7d9786;
+    --border-color: #2b3d31;
+    --hover-color: #232e27;
+    --active-bg: #313b35;
+    --accent-color: #6fcf7f;
+    --accent-text: #ffffff;
+    --link-color: #8be0a0;
+    --code-bg: #121b16;
+    --selection: #6fcf7f59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #d6a65c;
+    --syn-string: #9fd37a;
+    --syn-number: #e6a06b;
+    --syn-comment: #5f7a68;
+    --syn-function: #6fcf7f;
+    --syn-type: #e3cf7a;
+    --syn-field: #8fd4c5;
+    --syn-tag: #d6a65c;
+    --syn-attr: #8fd4c5;
+    --syn-annotation: #e3cf7a;
+    --syn-heading: #6fcf7f;
+    --syn-mark: #7d9786;
+}

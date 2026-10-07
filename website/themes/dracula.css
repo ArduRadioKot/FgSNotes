@@ -1,0 +1,33 @@
+/* dracula — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #191a21;
+    --bg-color: var(--window-bg);
+    --card-bg: #282a36;
+    --header-bg: #21222c;
+    --preview-bg: var(--card-bg);
+    --text-color: #f8f8f2;
+    --text-muted: #6e7bb0;
+    --border-color: #44475a;
+    --hover-color: #373843;
+    --active-bg: #454750;
+    --accent-color: #bd93f9;
+    --accent-text: #111111;
+    --link-color: #8be9fd;
+    --code-bg: #20212a;
+    --selection: #bd93f959;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #ff79c6;
+    --syn-string: #f1fa8c;
+    --syn-number: #bd93f9;
+    --syn-comment: #6272a4;
+    --syn-function: #50fa7b;
+    --syn-type: #8be9fd;
+    --syn-field: #ffb86c;
+    --syn-tag: #ff79c6;
+    --syn-attr: #50fa7b;
+    --syn-annotation: #ffb86c;
+    --syn-heading: #bd93f9;
+    --syn-mark: #6e7bb0;
+}

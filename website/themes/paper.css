@@ -1,0 +1,33 @@
+/* paper — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: light;
+    --window-bg: #e5dcc8;
+    --bg-color: var(--window-bg);
+    --card-bg: #fbf7ef;
+    --header-bg: #f1eadb;
+    --preview-bg: var(--card-bg);
+    --text-color: #3b342a;
+    --text-muted: #8c8070;
+    --border-color: #e0d6c2;
+    --hover-color: #efebe3;
+    --active-bg: #e8e4db;
+    --accent-color: #a0522d;
+    --accent-text: #ffffff;
+    --link-color: #8b4513;
+    --code-bg: #f3eee1;
+    --selection: #a0522d40;
+    --success-color: #3a9a4a;
+    --shadow-color: #1d233a33;
+    --syn-keyword: #9c3d2e;
+    --syn-string: #4f7a3a;
+    --syn-number: #b0701f;
+    --syn-comment: #a49a86;
+    --syn-function: #2f6a8a;
+    --syn-type: #8a6a1f;
+    --syn-field: #7a4a8a;
+    --syn-tag: #9c3d2e;
+    --syn-attr: #b0701f;
+    --syn-annotation: #8a6a1f;
+    --syn-heading: #7a3b1d;
+    --syn-mark: #8c8070;
+}

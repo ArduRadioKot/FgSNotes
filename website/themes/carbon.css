@@ -1,0 +1,33 @@
+/* carbon — тема FgSNotes 2.1+. Задаёт только токены интерфейса, подсветку синтаксиса и тень. */
+:root, [data-theme="dark"], [data-theme="light"] {
+    color-scheme: dark;
+    --window-bg: #0c0c0c;
+    --bg-color: var(--window-bg);
+    --card-bg: #161616;
+    --header-bg: #1f1f1f;
+    --preview-bg: var(--card-bg);
+    --text-color: #f4f4f4;
+    --text-muted: #8d8d8d;
+    --border-color: #333333;
+    --hover-color: #262626;
+    --active-bg: #353535;
+    --accent-color: #0f62fe;
+    --accent-text: #ffffff;
+    --link-color: #78a9ff;
+    --code-bg: #101010;
+    --selection: #0f62fe59;
+    --success-color: #5fb865;
+    --shadow-color: #0009;
+    --syn-keyword: #be95ff;
+    --syn-string: #42be65;
+    --syn-number: #ff7eb6;
+    --syn-comment: #6f6f6f;
+    --syn-function: #78a9ff;
+    --syn-type: #ffd66b;
+    --syn-field: #33b1ff;
+    --syn-tag: #ff7eb6;
+    --syn-attr: #08bdba;
+    --syn-annotation: #ff832b;
+    --syn-heading: #78a9ff;
+    --syn-mark: #8d8d8d;
+}
