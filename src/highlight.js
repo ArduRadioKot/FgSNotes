@@ -100,20 +100,29 @@
         return compiled.get(key);
     }
 
-    function highlightCode(code, language = '') {
+    // Tokens with positions: [{ start, end, type }], shared by the HTML renderer and the live editor.
+    function tokenizeCode(code, language = '') {
         const name = String(language).toLowerCase();
         const rules = languages[name] || generic;
         const pattern = compile(rules, name === 'sql' ? 'im' : 'm');
         pattern.lastIndex = 0;
-        let html = '', last = 0, match;
+        const tokens = [];
+        let match;
         while ((match = pattern.exec(code))) {
             if (!match[0]) { pattern.lastIndex++; continue; }
             const group = match.findIndex((value, index) => index > 0 && value !== undefined) - 1;
-            // Shell comments and flags are matched with a leading space; keep it outside the span.
+            // Shell comments and flags are matched with a leading space; keep it outside the token.
             const lead = /^\s/.test(match[0]) && (rules[group][0] === 'comment' || rules[group][0] === 'attr') ? 1 : 0;
-            html += escapeHTML(code.slice(last, match.index + lead));
-            html += `<span class="tok-${rules[group][0]}">${escapeHTML(match[0].slice(lead))}</span>`;
-            last = match.index + match[0].length;
+            tokens.push({ start: match.index + lead, end: match.index + match[0].length, type: rules[group][0] });
+        }
+        return tokens;
+    }
+    function highlightCode(code, language = '') {
+        let html = '', last = 0;
+        for (const token of tokenizeCode(code, language)) {
+            html += escapeHTML(code.slice(last, token.start));
+            html += `<span class="tok-${token.type}">${escapeHTML(code.slice(token.start, token.end))}</span>`;
+            last = token.end;
         }
         return html + escapeHTML(code.slice(last));
     }
@@ -165,7 +174,7 @@
         return out.join('\n');
     }
 
-    const api = { highlightCode, highlightMarkdown, escapeHTML };
+    const api = { highlightCode, tokenizeCode, highlightMarkdown, escapeHTML };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else Object.assign(root, api);
 })(typeof window !== 'undefined' ? window : globalThis);

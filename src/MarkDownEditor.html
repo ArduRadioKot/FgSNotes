@@ -2,11 +2,12 @@
 <html lang="ru" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#2b2d30" />
     <title>FgSNotes — Markdown-редактор</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="liquid-glass/liquid-glass.css" />
+    <script src="platform.js"></script>
     <script src="icons.js"></script>
     <script src="theme.js"></script>
   </head>
@@ -42,6 +43,14 @@
         <div class="sidebar-bottom-buttons">
           <button
             class="sidebar-button icon-button"
+            id="theme-button"
+            title="Тема оформления"
+            aria-label="Тема оформления"
+            aria-haspopup="menu"
+            data-icon="palette"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
             id="settings-button"
             title="Настройки"
             aria-label="Настройки"
@@ -66,6 +75,13 @@
               title="Только редактор"
             >
               <span data-icon="edit"></span><span>Редактор</span>
+            </button>
+            <button
+              data-view="live"
+              aria-pressed="false"
+              title="Живое оформление: Markdown применяется сразу"
+            >
+              <span data-icon="live"></span><span>Живой</span>
             </button>
             <button
               data-view="split"
@@ -324,6 +340,37 @@
               </div>
               <div class="setting-item">
                 <div class="setting-info">
+                  <label class="setting-name" for="external-theme">Сторонняя тема</label>
+                  <div class="setting-desc">Файл из папки Documents/FgSNotes/themes или добавленный вручную. Быстрое переключение: значок палитры слева</div>
+                </div>
+                <div class="setting-control theme-control">
+                  <select id="external-theme">
+                    <option value="">Нет</option>
+                  </select>
+                  <button type="button" class="button-secondary" id="add-theme">Добавить</button>
+                  <button type="button" class="button-secondary" id="remove-theme" hidden>Удалить</button>
+                </div>
+              </div>
+              <div class="setting-item accent-item">
+                <div class="setting-info">
+                  <span class="setting-name" id="accent-label">Акцентный цвет</span>
+                  <div class="setting-desc">Кнопки, переключатели, ссылки и выделение текста</div>
+                </div>
+                <div class="setting-control">
+                  <div class="accent-picker" role="radiogroup" aria-labelledby="accent-label">
+                    <button type="button" class="accent-swatch accent-default" role="radio" data-accent="default" aria-label="Из темы" title="Из темы"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#21aabe" style="--c:#21aabe" aria-label="Бирюзовый" title="Бирюзовый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#4cb35f" style="--c:#4cb35f" aria-label="Зелёный" title="Зелёный"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#8b5cf6" style="--c:#8b5cf6" aria-label="Фиолетовый" title="Фиолетовый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#e5538f" style="--c:#e5538f" aria-label="Розовый" title="Розовый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#f0883e" style="--c:#f0883e" aria-label="Оранжевый" title="Оранжевый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#e5534b" style="--c:#e5534b" aria-label="Красный" title="Красный"></button>
+                    <label class="accent-custom" title="Свой цвет"><input type="color" id="accent-custom" value="#3574f0" aria-label="Свой цвет" /></label>
+                  </div>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
                   <label class="setting-name" for="font-size">Размер шрифта</label>
                   <div class="setting-desc">Размер текста в редакторе и предпросмотре</div>
                 </div>
@@ -362,7 +409,7 @@
                   </select>
                 </div>
               </div>
-              <div class="setting-item">
+              <div class="setting-item desktop-only">
                 <div class="setting-info">
                   <label class="setting-name" for="liquid-glass">Liquid Glass</label>
                   <div class="setting-desc">Стеклянные панели с преломлением света</div>
@@ -379,7 +426,7 @@
                   </select>
                 </div>
               </div>
-              <div class="setting-item">
+              <div class="setting-item desktop-only">
                 <div class="setting-info">
                   <label class="setting-name" for="glass-quality">Качество стекла</label>
                   <div class="setting-desc">Автоматически учитывает браузер, анимации и прозрачность системы</div>
@@ -393,7 +440,7 @@
                   </select>
                 </div>
               </div>
-              <div class="setting-item">
+              <div class="setting-item desktop-only">
                 <div class="setting-info">
                   <label class="setting-name" for="glass-window-transparency">Прозрачность окна настроек</label>
                   <div class="setting-desc">Насколько стекло этого окна пропускает приложение за ним</div>
@@ -402,7 +449,7 @@
                   <input type="range" id="glass-window-transparency" min="0" max="100" step="1" value="30" />
                 </div>
               </div>
-              <div class="setting-item">
+              <div class="setting-item desktop-only">
                 <div class="setting-info">
                   <span class="setting-name">Песочница стекла</span>
                   <div class="setting-desc">Тонкая настройка линзы, света и движения в отдельном окне</div>
@@ -411,6 +458,7 @@
                   <button class="button-secondary" id="open-glass-playground" type="button">Открыть</button>
                 </div>
               </div>
+              <p class="settings-note native-only">Liquid Glass и его песочница доступны в версии для компьютера: у телефона нет прозрачного окна.</p>
             </section>
 
             <section
@@ -442,6 +490,19 @@
                     <input type="checkbox" id="word-wrap" checked />
                     <span class="setting-toggle-track" aria-hidden="true"></span>
                   </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="live-preview">Живое оформление</label>
+                  <div class="setting-desc">Заголовки, списки и выделение видны сразу. «Авто»: на телефоне и в режиме «Живой»; «Выключено» убирает режим «Живой»</div>
+                </div>
+                <div class="setting-control">
+                  <select id="live-preview">
+                    <option value="auto" selected>Авто</option>
+                    <option value="on">Включено</option>
+                    <option value="off">Выключено</option>
+                  </select>
                 </div>
               </div>
               <p class="settings-note">
@@ -479,17 +540,6 @@
                     <input type="checkbox" id="math-support" checked />
                     <span class="setting-toggle-track" aria-hidden="true"></span>
                   </label>
-                </div>
-              </div>
-              <div class="setting-item">
-                <div class="setting-info">
-                  <label class="setting-name" for="external-theme">Сторонняя тема</label>
-                  <div class="setting-desc">CSS-файл из папки Documents/FgSNotes/themes</div>
-                </div>
-                <div class="setting-control">
-                  <select id="external-theme">
-                    <option value="">Нет</option>
-                  </select>
                 </div>
               </div>
             </section>
@@ -551,5 +601,8 @@
     <script src="liquid-glass/displacement.js"></script>
     <script src="liquid-glass/liquid-glass.js"></script>
     <script src="settings.js"></script>
+    <script src="mobile.js"></script>
+    <script src="live-editor.js"></script>
+    <script src="live.js"></script>
   </body>
 </html>

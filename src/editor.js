@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const highlightLimit = 300000;
     const mirrorStyleProps = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'fontFamily', 'fontSize', 'lineHeight', 'letterSpacing', 'tabSize', 'whiteSpace', 'overflowWrap', 'wordBreak'];
     function highlightEnabled() {
-        return document.documentElement.dataset.codeHighlight !== 'off' && editor.value.length < highlightLimit;
+        return document.documentElement.dataset.live === undefined && document.documentElement.dataset.codeHighlight !== 'off' && editor.value.length < highlightLimit;
     }
     function syncMirror() {
         const style = getComputedStyle(editor);
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openFile() {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.md,.markdown,.txt';
+        input.accept = '.md,.markdown,.txt,text/markdown,text/plain';
         input.hidden = true;
         document.body.append(input);
         input.addEventListener('cancel', () => input.remove(), { once: true });
@@ -239,11 +239,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveCurrentDocument();
         persistWorkspace();
         const doc = documents[activeDocumentIndex];
+        const fileName = /\.(md|markdown|txt)$/i.test(doc.title) ? doc.title : `${doc.title}.md`;
+        if (window.fgsPlatform && window.fgsPlatform.native) {
+            window.fgsPlatform.saveText(fileName, doc.content).catch(error => {
+                if (!/cancel/i.test(String(error && error.message))) document.getElementById('save-status').textContent = 'Не удалось сохранить файл';
+            });
+            return;
+        }
         const blob = new Blob([doc.content], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = /\.(md|markdown|txt)$/i.test(doc.title) ? doc.title : `${doc.title}.md`;
+        link.download = fileName;
         document.body.append(link);
         link.click();
         link.remove();
@@ -256,7 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
     viewSwitch.prepend(viewGlass);
     const viewLens = createLens(viewSwitch, viewGlass, 'button[aria-pressed="true"]');
     function setView(view) {
-        if (!['editor', 'split', 'preview'].includes(view)) view = 'split';
+        if (!['editor', 'live', 'split', 'preview'].includes(view)) view = 'split';
+        // A phone has no room for two panes: show one at a time.
+        if ((view === 'split' || view === 'live') && document.documentElement.dataset.mobile !== undefined) view = 'editor';
+        // "Off" in the settings removes the live mode altogether.
+        if (view === 'live' && document.documentElement.dataset.livePreview === 'off') view = 'editor';
         const from = viewLens.current();
         workspace.dataset.view = view;
         document.querySelectorAll('.view-switch button').forEach(button => button.setAttribute('aria-pressed', button.dataset.view === view));

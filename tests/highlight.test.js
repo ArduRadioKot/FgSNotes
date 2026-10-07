@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { highlightCode, highlightMarkdown } = require('../src/highlight');
+const { highlightCode, highlightMarkdown, tokenizeCode } = require('../src/highlight');
 
 test('code tokens are wrapped and HTML is escaped', () => {
     const html = highlightCode('const a = "<b>"; // note\nfoo(1)', 'js');
@@ -26,4 +26,9 @@ test('markdown highlighting keeps text 1:1 and marks structure', () => {
     assert.match(html, /tok-md-code">`code \*x\*`/);
     assert.match(html, /tok-md-task/);
     assert.match(html, /tok-keyword">let/);
+});
+test('token positions point at the source text', () => {
+    const source = 'const a = "x"; // note';
+    const tokens = tokenizeCode(source, 'js');
+    assert.deepEqual(tokens.map(token => [token.type, source.slice(token.start, token.end)]), [['keyword', 'const'], ['string', '"x"'], ['comment', '// note']]);
 });

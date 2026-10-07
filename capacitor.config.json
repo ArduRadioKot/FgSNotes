@@ -1,0 +1,13 @@
+{
+  "appId": "com.frogeesoft.fgsnotes",
+  "appName": "FgSNotes",
+  "webDir": "www",
+  "backgroundColor": "#1e1e1e",
+  "ios": { "contentInset": "never", "scrollEnabled": false },
+  "android": { "backgroundColor": "#1e1e1e" },
+  "plugins": {
+    "Keyboard": { "resize": "native", "resizeOnFullScreen": true },
+    "SplashScreen": { "launchAutoHide": true, "launchShowDuration": 0, "backgroundColor": "#1e1e1e" },
+    "StatusBar": { "overlaysWebView": true, "style": "DARK", "backgroundColor": "#1e1e1e" }
+  }
+}

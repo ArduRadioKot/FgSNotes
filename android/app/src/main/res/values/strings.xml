@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FgSNotes</string>
+    <string name="title_activity_main">FgSNotes</string>
+    <string name="package_name">com.frogeesoft.fgsnotes</string>
+    <string name="custom_url_scheme">com.frogeesoft.fgsnotes</string>
+</resources>

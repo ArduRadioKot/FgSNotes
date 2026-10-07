@@ -84,3 +84,25 @@ tests/                  Automated tests
 ## License
 
 The project is distributed under the license specified in [LICENSE](LICENSE).
+
+## Mobile app (Capacitor)
+
+The same web code runs as an iOS and Android app. Capacitor config: `capacitor.config.json`, native projects: `ios/` and `android/`.
+
+```bash
+npm run cap:sync   # build www/ from src/ and copy it into both native projects
+npm run ios        # sync and open Xcode
+npm run android    # sync and open Android Studio
+```
+
+Phones use a one-pane layout with a bottom action bar. Saving opens the system share sheet (Save to Files); Liquid Glass and the theme store are desktop-only. Building for iOS needs Xcode, for Android needs Android Studio with the SDK.
+
+### Install on an iPhone over a cable
+
+1. `npm run ios` (builds the web part, syncs it and opens Xcode).
+2. In Xcode choose the **App** target → **Signing & Capabilities**: tick *Automatically manage signing* and pick your team (a free Apple ID works).
+3. Connect the iPhone, unlock it, tap **Trust**, and turn on **Settings → Privacy & Security → Developer Mode** (the phone restarts).
+4. Choose your iPhone at the top of Xcode and press **Run**.
+5. First launch: **Settings → General → VPN & Device Management** → your Apple ID → **Trust**. With a free Apple ID the build stops working after 7 days; run it again to renew.
+
+Icons and splash screens for iOS and Android are generated from `src/icon.png` with `npm run icons` (needs ImageMagick), then `npm run cap:sync`.
