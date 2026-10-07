@@ -4,7 +4,7 @@
 
 FgSNotes is a desktop Markdown editor built with Electron. The application combines an editor and a live preview, so you can see the rendered document while working on it.
 
-![FgSNotes interface](images/landing.png)
+![FgSNotes interface](images/landing1.png)
 
 ## Features
 
@@ -100,7 +100,7 @@ Phones use a one-pane layout with a bottom action bar. Saving opens the system s
 ### Install on an iPhone over a cable
 
 1. `npm run ios` (builds the web part, syncs it and opens Xcode).
-2. In Xcode choose the **App** target → **Signing & Capabilities**: tick *Automatically manage signing* and pick your team (a free Apple ID works).
+2. In Xcode choose the **App** target → **Signing & Capabilities**: tick _Automatically manage signing_ and pick your team (a free Apple ID works).
 3. Connect the iPhone, unlock it, tap **Trust**, and turn on **Settings → Privacy & Security → Developer Mode** (the phone restarts).
 4. Choose your iPhone at the top of Xcode and press **Run**.
 5. First launch: **Settings → General → VPN & Device Management** → your Apple ID → **Trust**. With a free Apple ID the build stops working after 7 days; run it again to renew.
