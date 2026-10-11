@@ -1,6 +1,6 @@
 {
   "name": "fgsnotes",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "FgSNotes — Markdown editor",
   "main": "main.js",
   "scripts": {
