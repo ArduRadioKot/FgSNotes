@@ -22,7 +22,26 @@
 
     const $ = (selector, root = document) => root.querySelector(selector);
     const settings = () => (window.FgsSettings && window.FgsSettings.get()) || {};
-    const serverUrl = () => (settings()['ai-url'] || DEFAULT_URL).trim();
+    // Providers. Local ones talk to a server on this computer; hosted ones send the text to the company and need an API key.
+    const PROVIDERS = {
+        ollama: { name: 'Ollama', local: true, url: true, urlKey: 'ai-url', urlDefault: DEFAULT_URL, modelKey: 'ai-model', wizard: true },
+        lmstudio: { name: 'LM Studio', local: true, url: true, urlKey: 'ai-url-lmstudio', urlDefault: 'http://localhost:1234/v1', modelKey: 'ai-model-lmstudio', keyOptional: true, key: true, keyLink: 'https://lmstudio.ai' },
+        openai: { name: 'OpenAI', key: true, modelKey: 'ai-model-openai', keyLink: 'https://platform.openai.com/api-keys' },
+        anthropic: { name: 'Anthropic Claude', key: true, modelKey: 'ai-model-anthropic', keyLink: 'https://console.anthropic.com/settings/keys' },
+        gemini: { name: 'Google Gemini', key: true, modelKey: 'ai-model-gemini', keyLink: 'https://aistudio.google.com/apikey' },
+        openrouter: { name: 'OpenRouter', key: true, modelKey: 'ai-model-openrouter', keyLink: 'https://openrouter.ai/keys' },
+        groq: { name: 'Groq', key: true, modelKey: 'ai-model-groq', keyLink: 'https://console.groq.com/keys' },
+        custom: { name: 'Свой сервер', url: true, urlKey: 'ai-url-custom', urlDefault: '', modelKey: 'ai-model-custom', keyOptional: true, key: true }
+    };
+    const providerId = () => (PROVIDERS[settings()['ai-provider']] ? settings()['ai-provider'] : 'ollama');
+    const cfg = () => PROVIDERS[providerId()];
+    const serverUrl = () => cfg().url ? ((settings()[cfg().urlKey] || cfg().urlDefault || '').trim()) : '';
+    const modelOf = () => (settings()[cfg().modelKey] || '').trim();
+    const setModel = model => window.FgsSettings.update({ [cfg().modelKey]: model });
+    let keyStatus = { keys: {}, secure: true };
+    const refreshKeys = () => api.aiKeyStatus().then(status => { keyStatus = status; return status; }).catch(() => keyStatus);
+    const hasKey = () => !!keyStatus.keys[providerId()];
+    const privacy = () => cfg().local ? `Текст остаётся на этом компьютере: работает ${cfg().name}.` : `Текст заметки отправляется в ${cfg().name}. Не прикрепляйте то, что не хотите отдавать провайдеру.`;
     const format = number => number.toLocaleString('ru-RU');
     const stripThinking = text => text.replace(/<think>[\s\S]*?<\/think>\s*/g, '').replace(/<think>[\s\S]*$/, '').replace(/^\s+/, '');
     // Answers are rendered from model output: images are dropped so a prompt-injected reply cannot make the app load remote URLs.
@@ -254,7 +273,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         const last = index === chat.messages.length - 1;
         const done = !(running && last);
         const body = message.content ? md(message.content) : '';
-        const error = message.error ? `<div class="ai-error">${escapeHtml(message.error)} <button type="button" class="ai-link" data-setup-link>Настроить Ollama</button></div>` : '';
+        const error = message.error ? `<div class="ai-error">${escapeHtml(message.error)} <button type="button" class="ai-link" data-setup-link>Настроить</button></div>` : '';
         const prev = chat.messages[index - 1];
         const canReplace = prev && prev.ctx && prev.ctx.scope === 'selection';
         const actions = done && message.content ? `<div class="ai-msg-actions">
@@ -269,14 +288,14 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         const scroll = $('.ai-scroll', panel);
         $('.ai-title', panel).textContent = chat.messages.length ? chat.title : 'Помощник';
         if (!chat.messages.length) {
-            scroll.innerHTML = `<div class="ai-empty"><h3>Чем помочь?</h3><p>Выделите текст и нажмите ${isMac() ? '⌘' : 'Ctrl'} J — он прикрепится к сообщению. Или выберите действие.</p><div class="ai-chips">${ACTIONS.map(action => `<button type="button" class="ai-chip" data-action="${action.id}">${action.label}</button>`).join('')}</div></div>`;
+            scroll.innerHTML = `<div class="ai-empty"><h3>Чем помочь?</h3><p>Выделите текст и нажмите ${isMac() ? '⌘' : 'Ctrl'} J — он прикрепится к сообщению. Или выберите действие.</p><div class="ai-chips">${ACTIONS.map(action => `<button type="button" class="ai-chip" data-action="${action.id}">${action.label}</button>`).join('')}</div><p class="ai-privacy${cfg().local ? '' : ' is-cloud'}">${escapeHtml(privacy())}</p></div>`;
         } else {
             scroll.innerHTML = chat.messages.map(messageHtml).join('');
             if (window.renderMath) window.renderMath(scroll);
             scroll.scrollTop = scroll.scrollHeight;
         }
         renderAttach();
-        $('.ai-model-name', panel).textContent = settings()['ai-model'] || 'модель не выбрана';
+        $('.ai-model-name', panel).textContent = (cfg().local && providerId() === 'ollama' ? '' : cfg().name + ' · ') + (modelOf() || 'модель не выбрана');
     }
     const isMac = () => /Mac/i.test(navigator.platform);
 
@@ -307,36 +326,54 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
 
     // --- connection ---------------------------------------------------------------------------------
     async function checkConnection() {
-        const [found, install] = await Promise.all([api.aiModels(serverUrl()), api.aiDetect()]);
-        const ready = found.ok && found.models.length > 0;
+        await refreshKeys();
+        let ready, title, text, button = 'Настроить';
+        if (providerId() === 'ollama') {
+            const [found, install] = await Promise.all([api.aiModels({ provider: 'ollama', url: serverUrl() }), api.aiDetect()]);
+            ready = found.ok && found.models.length > 0;
+            [title, text] = !install.installed && !found.ok ? ['Ollama не установлена', 'Нужна бесплатная программа Ollama: она запускает модели на вашем компьютере. Установка займёт пару минут.']
+                : !found.ok ? ['Ollama не запущена', 'Ollama установлена, но не работает. Запустите её, и помощник заработает.']
+                : ['Нет ни одной модели', 'Ollama работает, но модель ещё не скачана. Выберите её в настройке.'];
+            button = 'Настроить Ollama';
+        } else {
+            const needKey = cfg().key && !cfg().keyOptional;
+            ready = (!needKey || hasKey()) && (!cfg().url || !!serverUrl());
+            [title, text] = needKey && !hasKey() ? [`Нужен ключ ${cfg().name}`, 'Добавьте ключ API в настройках. Он хранится только на этом компьютере и никогда не показывается в окне.']
+                : ['Не указан адрес сервера', 'Впишите адрес сервера в настройках.'];
+            button = 'Открыть настройки';
+        }
         $('.ai-offline', panel).hidden = ready;
         $('.ai-scroll', panel).hidden = !ready || !$('.ai-history', panel).hidden;
         $('.ai-composer', panel).hidden = !ready || !$('.ai-history', panel).hidden;
         if (!ready) {
-            const [title, text] = !install.installed && !found.ok ? ['Ollama не установлена', 'Нужна бесплатная программа Ollama: она запускает модели на вашем компьютере. Установка займёт пару минут.']
-                : !found.ok ? ['Ollama не запущена', 'Ollama установлена, но не работает. Запустите её, и помощник заработает.']
-                : ['Нет ни одной модели', 'Ollama работает, но модель ещё не скачана. Выберите её в настройке.'];
             $('.ai-offline-title', panel).textContent = title;
             $('.ai-offline-text', panel).textContent = text;
+            $('[data-setup]', panel).textContent = button;
         }
         return ready;
     }
+    // Ollama has a guided installer; the other providers are configured in the settings.
     function setup() {
+        if (providerId() !== 'ollama') { if (window.FgsSettings) window.FgsSettings.open('ai'); return; }
         if (!window.FgsAiSetup) return;
         window.FgsAiSetup.open({ onDone: () => { checkConnection().then(() => { render(); if (!panel.hidden) input().focus(); }); } });
     }
-    // The saved model may have been removed from Ollama: fall back to an installed one instead of failing with "not found".
+    // Ollama: the saved model may have been removed, so fall back to an installed one. Others: the saved model, or the first of a local server.
     async function ensureModel() {
-        const found = await api.aiModels(serverUrl());
-        if (!found.ok) throw new Error(found.error);
-        if (!found.models.length) throw new Error('В Ollama нет моделей.');
-        let model = settings()['ai-model'];
-        if (!model || !found.models.includes(model)) {
-            model = found.models[0];
-            window.FgsSettings.update({ 'ai-model': model });
-            const name = $('.ai-model-name', panel);
-            if (name) name.textContent = model;
+        if (providerId() === 'ollama') {
+            const found = await api.aiModels({ provider: 'ollama', url: serverUrl() });
+            if (!found.ok) throw new Error(found.error);
+            if (!found.models.length) throw new Error('В Ollama нет моделей.');
+            let model = modelOf();
+            if (!model || !found.models.includes(model)) { model = found.models[0]; setModel(model); }
+            return model;
         }
+        let model = modelOf();
+        if (!model && (cfg().local || cfg().keyOptional)) {
+            const found = await api.aiModels({ provider: providerId(), url: serverUrl() });
+            if (found.ok && found.models.length) { model = found.models[0]; setModel(model); }
+        }
+        if (!model) throw new Error('Выберите модель в настройках → ИИ.');
         return model;
     }
 
@@ -391,7 +428,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         });
         try {
             const model = await ensureModel();
-            const result = await api.aiChat({ id, url: serverUrl(), model, messages: request });
+            const result = await api.aiChat({ id, provider: providerId(), url: serverUrl(), model, messages: request });
             if (!result.ok && !result.aborted) throw new Error(result.error);
         } catch (error) {
             message.error = error.message;
@@ -480,23 +517,44 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     }
 
     // --- settings panel -----------------------------------------------------------------------------
+    let shownProvider = null, loadId = 0;
+    function syncProviderUI() {
+        const info = cfg(), id = providerId();
+        $('#ai-privacy').textContent = privacy();
+        $('#ai-privacy').classList.toggle('is-cloud', !info.local);
+        $('#ai-row-url').hidden = !info.url;
+        $('#ai-url-hint').textContent = id === 'ollama' ? 'По умолчанию сервер слушает http://localhost:11434' : id === 'lmstudio' ? 'Включите локальный сервер в LM Studio (по умолчанию http://localhost:1234/v1)' : 'Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI';
+        $('#ai-url-field').placeholder = info.urlDefault || 'https://example.com/v1';
+        $('#ai-url-field').value = settings()[info.urlKey] || (id === 'custom' ? '' : info.urlDefault);
+        $('#ai-row-key').hidden = !info.key;
+        $('#ai-row-wizard').hidden = !info.wizard;
+        $('#ai-model-field').value = modelOf();
+        const has = hasKey();
+        $('#ai-key-status').textContent = has ? (keyStatus.secure ? 'Ключ сохранён и зашифрован системой. Показать его нельзя.' : 'Ключ сохранён на этом компьютере в обычном файле: системного шифрования здесь нет.') : (info.keyOptional ? 'Необязательно: нужен, только если сервер просит ключ.' : 'Ключ хранится только на этом компьютере.');
+        $('#ai-key-clear').hidden = !has;
+        $('#ai-key-field').placeholder = has ? 'Ключ сохранён — вставьте новый, чтобы заменить' : 'Вставьте ключ';
+        $('#ai-note').innerHTML = info.keyLink ? `Ключ можно получить на <a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>. Оплату запросов ведёт сам провайдер.` : id === 'ollama' ? 'Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.' : '';
+    }
     async function refreshModels() {
-        const select = $('#ai-model'), status = $('#ai-status');
-        if (!select || !status) return;
+        const status = $('#ai-status'), list = $('#ai-model-list');
+        if (!status) return;
+        const mine = ++loadId, id = providerId();
+        await refreshKeys();
+        syncProviderUI();
         status.className = 'setting-desc';
+        list.replaceChildren();
+        if (cfg().key && !cfg().keyOptional && !hasKey()) { status.textContent = 'Сначала сохраните ключ API.'; return; }
         status.textContent = 'Проверяю подключение…';
-        const result = await api.aiModels(serverUrl());
-        const saved = settings()['ai-model'] || '';
-        const names = result.ok ? [...result.models] : [];
-        if (saved && !names.includes(saved)) names.unshift(saved);
-        select.replaceChildren(...(names.length ? names : ['']).map(name => Object.assign(document.createElement('option'), { value: name, textContent: name || 'Нет моделей' })));
-        select.value = saved || names[0] || '';
-        if (!result.ok) { status.classList.add('is-error'); status.textContent = result.error; }
-        else if (!result.models.length) { status.classList.add('is-error'); status.textContent = 'Подключено, но моделей нет. Откройте мастер и скачайте модель.'; }
+        const result = await api.aiModels({ provider: id, url: serverUrl() });
+        if (mine !== loadId) return;                       // the provider was switched while the request was running
+        const names = result.ok ? result.models : [];
+        list.replaceChildren(...names.map(name => Object.assign(document.createElement('option'), { value: name })));
+        if (!result.ok) { status.classList.add('is-error'); status.textContent = result.error + (id === 'ollama' ? '' : ' Имя модели можно вписать вручную.'); }
+        else if (!names.length) { status.classList.add('is-error'); status.textContent = id === 'ollama' ? 'Подключено, но моделей нет. Откройте мастер и скачайте модель.' : 'Подключено, но сервер не вернул моделей. Впишите имя вручную.'; }
         else {
             status.classList.add('is-ok');
-            status.textContent = `Подключено · моделей: ${result.models.length}`;
-            if (!saved) window.FgsSettings.update({ 'ai-model': select.value });
+            status.textContent = `Подключено · моделей: ${names.length}`;
+            if (!modelOf() && (cfg().local || id === 'ollama')) { setModel(names[0]); $('#ai-model-field').value = names[0]; }
         }
     }
 
@@ -506,19 +564,39 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         document.addEventListener('keydown', event => {
             if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'j') { event.preventDefault(); hotkey(); }
         });
-        const urlInput = $('#ai-url');
-        urlInput.addEventListener('change', () => {
-            const value = urlInput.value.trim() || DEFAULT_URL;
-            window.FgsSettings.update({ 'ai-url': value, 'ai-model': '' });
+        $('#ai-url-field').addEventListener('change', () => {
+            const value = $('#ai-url-field').value.trim();
+            window.FgsSettings.update({ [cfg().urlKey]: value || cfg().urlDefault || '' });
+            if (providerId() === 'ollama') setModel('');
             refreshModels();
         });
+        $('#ai-model-field').addEventListener('change', () => { setModel($('#ai-model-field').value.trim()); if (panel && !panel.hidden) render(); });
         $('#ai-refresh').addEventListener('click', refreshModels);
         $('#ai-setup-open').addEventListener('click', () => window.FgsAiSetup && window.FgsAiSetup.open({ onDone: refreshModels }));
-        $('#ai-model').addEventListener('change', () => { if (panel && !panel.hidden) $('.ai-model-name', panel).textContent = settings()['ai-model'] || 'модель не выбрана'; });
+        const saveKey = async () => {
+            const field = $('#ai-key-field');
+            if (!field.value.trim()) return field.focus();
+            keyStatus = await api.aiKeySet(providerId(), field.value);
+            field.value = '';
+            await refreshModels();
+        };
+        $('#ai-key-save').addEventListener('click', saveKey);
+        $('#ai-key-field').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); saveKey(); } });
+        $('#ai-key-clear').addEventListener('click', async () => { keyStatus = await api.aiKeyClear(providerId()); await refreshModels(); });
         $('#settings-button').addEventListener('click', () => setTimeout(() => {
             if ($('.settings-nav-item[data-settings-section="ai"]').classList.contains('is-active')) refreshModels();
         }, 0));
         $('.settings-nav-item[data-settings-section="ai"]').addEventListener('click', refreshModels);
-        window.addEventListener('fgs-settings', () => { if (document.documentElement.dataset.ai !== 'on') close(); });
+        window.addEventListener('fgs-settings', () => {
+            if (document.documentElement.dataset.ai !== 'on') close();
+            // A different provider was picked: show its fields and look at its models.
+            if (shownProvider !== null && shownProvider !== providerId()) {
+                shownProvider = providerId();
+                refreshModels();
+                if (panel && !panel.hidden) checkConnection().then(() => render());
+            }
+            shownProvider = providerId();
+        });
+        syncProviderUI();
     });
 })();

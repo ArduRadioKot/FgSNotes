@@ -786,3 +786,11 @@ html[data-native] .native-only { display: block; }
 .ai-msg.is-user .ai-bubble { border-radius: var(--radius-lg); }
 .ai-ctx-card { border-radius: var(--radius-md); }
 .ai-avatar { border-radius: var(--radius-md); }
+
+/* Providers: the privacy line and the key/model rows */
+.setting-item[hidden] { display: none; }
+#ai-privacy.is-cloud, .ai-privacy.is-cloud { color: var(--accent-color); }
+.ai-privacy { margin: 14px 0 0; max-width: 340px; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+#ai-row-key .setting-control, #ai-row-url .setting-control { flex-wrap: wrap; justify-content: flex-end; }
+#ai-model-field, #ai-key-field, #ai-url-field { width: 240px; }
+@media (max-width: 720px) { #ai-model-field, #ai-key-field, #ai-url-field { width: 100%; } }

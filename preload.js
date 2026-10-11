@@ -28,7 +28,10 @@ contextBridge.exposeInMainWorld(
     getAppInfo: () => ipcRenderer.invoke('get-app-info'),
     openExternal: (url) => ipcRenderer.send('open-external', url),
     // Ollama
-    aiModels: (url) => ipcRenderer.invoke('ai-models', url),
+    aiModels: (request) => ipcRenderer.invoke('ai-models', request),
+    aiKeyStatus: () => ipcRenderer.invoke('ai-key-status'),
+    aiKeySet: (provider, key) => ipcRenderer.invoke('ai-key-set', { provider, key }),
+    aiKeyClear: (provider) => ipcRenderer.invoke('ai-key-clear', provider),
     aiChat: (request) => ipcRenderer.invoke('ai-chat', request),
     aiDetect: () => ipcRenderer.invoke('ai-detect'),
     aiLaunch: () => ipcRenderer.invoke('ai-launch'),
