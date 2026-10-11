@@ -31,7 +31,7 @@
     const reached = () => ({ install: 0, start: 1, catalog: 2, ready: 3 }[phase()]);
 
     async function probe() {
-        const [install, server] = await Promise.all([api.aiDetect(), api.aiModels(url())]);
+        const [install, server] = await Promise.all([api.aiDetect(), api.aiModels({ provider: 'ollama', url: url() })]);
         if (!root) return;
         state.install = install;
         state.server = server.ok ? server : { ok: false, models: [], error: server.error };
@@ -142,7 +142,7 @@
         unsubscribe();
         state.pull = null;
         if (!result.ok && !result.aborted) state.error = result.error;
-        if (result.ok) { state.view = null; window.FgsSettings && window.FgsSettings.update({ 'ai-model': name }); state.custom = ''; }
+        if (result.ok) { state.view = null; window.FgsSettings && window.FgsSettings.update({ 'ai-provider': 'ollama', 'ai-model': name }); state.custom = ''; }
         await probe();
     }
 
@@ -169,10 +169,10 @@
         else if (act === 'pick') { state.picked = name; render(); }
         else if (act === 'pull') pullModel(state.picked);
         else if (act === 'cancel') { const id = state.pull && state.pull.id; if (id) api.aiAbort(id); }
-        else if (act === 'use') { window.FgsSettings.update({ 'ai-model': state.picked }); state.view = null; finish(); }
+        else if (act === 'use') { window.FgsSettings.update({ 'ai-provider': 'ollama', 'ai-model': state.picked }); state.view = null; finish(); }
         else if (act === 'back') { state.view = null; render(); }
         else if (act === 'more') { state.view = 'catalog'; render(); }
-        else if (act === 'choose') { window.FgsSettings.update({ 'ai-model': name }); render(); }
+        else if (act === 'choose') { window.FgsSettings.update({ 'ai-provider': 'ollama', 'ai-model': name }); render(); }
         else if (act === 'finish') finish();
     }
 

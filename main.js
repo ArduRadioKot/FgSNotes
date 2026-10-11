@@ -1,7 +1,9 @@
-const { app, BrowserWindow, ipcMain, nativeTheme, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme, shell, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const ollama = require('./ollama');
+const providers = require('./providers');
+const { createKeystore } = require('./keystore');
 
 // `npm start` and the installed app share the name, so they would share one profile, and the installed (single-instance)
 // copy keeps it locked: the dev copy then quits silently. Development gets a profile of its own.
@@ -32,20 +34,27 @@ ipcMain.handle('get-app-info', () => ({
   nativeBlur
 }));
 ipcMain.on('open-external', (event, url) => {
-  if (/^https:\/\/(?:github\.com\/ArduRadioKot|ollama\.com)/i.test(String(url))) shell.openExternal(url);
+  const allowed = /^https:\/\/(?:github\.com\/ArduRadioKot|ollama\.com|platform\.openai\.com\/api-keys|console\.anthropic\.com\/settings\/keys|aistudio\.google\.com\/apikey|openrouter\.ai\/keys|console\.groq\.com\/keys|lmstudio\.ai)/i;
+  if (allowed.test(String(url))) shell.openExternal(url);
 });
 
 // Ollama: the renderer asks for models and streams a chat; every request has an id so it can be stopped.
 const aiRequests = new Map();
-ipcMain.handle('ai-models', (event, url) => ollama.listModels(url));
-ipcMain.handle('ai-chat', async (event, { id, url, model, messages, temperature }) => {
+// API keys are kept in the main process (encrypted by the system keychain when possible) and never sent to the page.
+let keystore = null;
+const keys = () => keystore || (keystore = createKeystore(path.join(app.getPath('userData'), 'ai-keys.json'), safeStorage));
+const knownProvider = id => { if (!providers.PRESETS[id]) throw new Error('Неизвестный провайдер'); return id; };
+const keyStatus = () => ({ keys: keys().status(Object.keys(providers.PRESETS)), secure: keys().secure() });
+ipcMain.handle('ai-key-status', () => keyStatus());
+ipcMain.handle('ai-key-set', (event, { provider, key }) => { keys().set(knownProvider(provider), key); return keyStatus(); });
+ipcMain.handle('ai-key-clear', (event, provider) => { keys().clear(knownProvider(provider)); return keyStatus(); });
+ipcMain.handle('ai-models', (event, { provider, url }) => providers.listModels({ provider, url, key: keys().get(provider) }));
+ipcMain.handle('ai-chat', async (event, { id, provider, url, model, messages, temperature }) => {
   const controller = new AbortController();
   aiRequests.set(id, controller);
-  const result = await ollama.chat({ url, model, messages, temperature }, delta => {
-    if (!event.sender.isDestroyed()) event.sender.send('ai-chunk', { id, delta });
-  }, controller.signal, () => {
-    if (!event.sender.isDestroyed()) event.sender.send('ai-chunk', { id, thinking: true });
-  });
+  const send = payload => { if (!event.sender.isDestroyed()) event.sender.send('ai-chunk', { id, ...payload }); };
+  const result = await providers.chat({ provider, url, key: keys().get(provider), model, messages, temperature },
+    delta => send({ delta }), controller.signal, () => send({ thinking: true }));
   aiRequests.delete(id);
   return result;
 });

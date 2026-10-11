@@ -17,19 +17,27 @@ FgSNotes is a desktop Markdown editor built with Electron. The application combi
 - switch the interface and preview themes;
 - resize the editor and preview panels;
 - write formulas in LaTeX (`$E=mc^2$` inline, `$$ ... $$` as a block), typeset locally by KaTeX;
-- rewrite, fix, translate or continue text with a local language model through Ollama (desktop).
+- rewrite, fix, translate or continue text with an AI chat: a local model (Ollama, LM Studio) or your own key for OpenAI, Claude, Gemini, OpenRouter, Groq or a custom server (desktop).
 
-## AI assistant (Ollama)
+## AI assistant
 
-The assistant runs entirely on your computer: [Ollama](https://ollama.com) serves the model, FgSNotes only talks to `http://localhost:11434`
-(the address can be changed in Settings → ИИ). Nothing is sent to a cloud service.
+A chat that drops down next to the editor (`Ctrl / Cmd + J`). With a selection it works on the selection, otherwise on the whole note.
+Pick an action (continue, improve, fix mistakes, shorten, translate, summary, to-do list, headings) or ask anything; answers stream in,
+can replace the selection, be inserted or copied, and chats are kept in a history.
 
-1. Open the assistant: if Ollama is missing, not running or has no model, the setup dialog (also in Settings → ИИ) installs it step by step — download link, one-click start, model download with progress. Or do it by hand: `ollama pull llama3.2` (`gemma3` handles Russian well).
-2. Press `Ctrl / Cmd + J` or the ✦ button in the sidebar. With a selection the assistant works on it, otherwise on the whole note.
-3. Pick an action (continue, improve, fix mistakes, shorten, translate, summary, to-do list) or type your own request.
-   The answer streams in; replace the selection, insert it, copy it, or refine it with a follow-up message.
+**Providers** (Settings → ИИ):
 
-The requests go through the main process (`ollama.js`), because a `file://` page cannot call a local server (CORS).
+| Where | Providers | Needs |
+| --- | --- | --- |
+| On this computer | [Ollama](https://ollama.com), LM Studio | nothing (no key, no internet after the model is downloaded) |
+| Hosted | OpenAI, Anthropic Claude, Google Gemini, OpenRouter, Groq | your API key |
+| Anything else | custom server speaking the OpenAI API (vLLM, llama.cpp, a proxy...) | address, optional key |
+
+Local providers keep your text on the computer. Hosted ones send the attached text to the provider: the settings say which is which.
+API keys are stored in the main process only, encrypted with the system keychain (Electron `safeStorage`) when it is available, and are never
+shown or sent back to the page. All requests go through the main process (`providers.js`, `ollama.js`), because a `file://` page cannot call these APIs (CORS).
+
+Ollama has a guided installer (download link, one-click start, model download with progress, a field for any model name).
 The assistant is desktop-only for now: a phone cannot reach `localhost`.
 
 ## Running from Source
@@ -86,7 +94,9 @@ The build commands use Electron Builder. Output is written to the `dist/` direct
 ```text
 main.js                 Electron main process
 preload.js              Secure bridge between processes
-ollama.js               Ollama client (models list, streaming chat)
+ollama.js               Ollama client (models, streaming chat, install helpers)
+providers.js            OpenAI-compatible / Claude / Gemini / Ollama behind one interface
+keystore.js             API keys, encrypted with the system keychain
 src/MarkDownEditor.html Application markup
 src/editor.js           Document and preview handling
 src/markdown.js         Markdown processing

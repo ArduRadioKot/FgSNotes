@@ -320,7 +320,7 @@
               aria-selected="false"
               data-settings-section="ai"
             >
-              ИИ (Ollama)
+              ИИ
             </button>
             <button
               type="button"
@@ -608,7 +608,7 @@
               <div class="setting-item">
                 <div class="setting-info">
                   <label class="setting-name" for="ai-enabled">Помощник ИИ</label>
-                  <div class="setting-desc">Кнопка в боковой панели и сочетание Ctrl / ⌘ J. Текст не покидает компьютер: модель работает локально в Ollama</div>
+                  <div class="setting-desc">Чат в боковой панели и сочетание Ctrl / ⌘ J. Модель выбираете вы: на своём компьютере или в облаке</div>
                 </div>
                 <div class="setting-control">
                   <label class="setting-toggle">
@@ -619,24 +619,60 @@
               </div>
               <div class="setting-item">
                 <div class="setting-info">
-                  <label class="setting-name" for="ai-url">Адрес Ollama</label>
-                  <div class="setting-desc">По умолчанию сервер слушает http://localhost:11434</div>
+                  <label class="setting-name" for="ai-provider">Провайдер</label>
+                  <div class="setting-desc" id="ai-privacy"></div>
                 </div>
                 <div class="setting-control">
-                  <input type="text" id="ai-url" class="setting-text" spellcheck="false" autocomplete="off" placeholder="http://localhost:11434" />
+                  <select id="ai-provider">
+                    <optgroup label="На вашем компьютере">
+                      <option value="ollama">Ollama</option>
+                      <option value="lmstudio">LM Studio</option>
+                    </optgroup>
+                    <optgroup label="Облако (нужен ключ API)">
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic Claude</option>
+                      <option value="gemini">Google Gemini</option>
+                      <option value="openrouter">OpenRouter</option>
+                      <option value="groq">Groq</option>
+                    </optgroup>
+                    <optgroup label="Другое">
+                      <option value="custom">Свой сервер (OpenAI-совместимый)</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item" id="ai-row-url">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-url-field">Адрес сервера</label>
+                  <div class="setting-desc" id="ai-url-hint"></div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" id="ai-url-field" class="setting-text" spellcheck="false" autocomplete="off" />
+                </div>
+              </div>
+              <div class="setting-item" id="ai-row-key">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-key-field">Ключ API</label>
+                  <div class="setting-desc" id="ai-key-status"></div>
+                </div>
+                <div class="setting-control theme-control">
+                  <input type="password" id="ai-key-field" class="setting-text" spellcheck="false" autocomplete="off" placeholder="Вставьте ключ" />
+                  <button class="button-secondary" id="ai-key-save" type="button">Сохранить</button>
+                  <button class="button-secondary" id="ai-key-clear" type="button" hidden>Удалить</button>
                 </div>
               </div>
               <div class="setting-item">
                 <div class="setting-info">
-                  <label class="setting-name" for="ai-model">Модель</label>
-                  <div class="setting-desc" id="ai-status" role="status">Проверяю подключение…</div>
+                  <label class="setting-name" for="ai-model-field">Модель</label>
+                  <div class="setting-desc" id="ai-status" role="status"></div>
                 </div>
                 <div class="setting-control theme-control">
-                  <select id="ai-model"></select>
+                  <input type="text" id="ai-model-field" class="setting-text" list="ai-model-list" spellcheck="false" autocomplete="off" placeholder="Выберите или впишите имя" />
+                  <datalist id="ai-model-list"></datalist>
                   <button class="button-secondary" id="ai-refresh" type="button">Обновить</button>
                 </div>
               </div>
-              <div class="setting-item">
+              <div class="setting-item" id="ai-row-wizard">
                 <div class="setting-info">
                   <span class="setting-name">Установка и модели</span>
                   <div class="setting-desc">Поможет установить Ollama, запустить её и скачать модель</div>
@@ -645,6 +681,7 @@
                   <button class="button-secondary" id="ai-setup-open" type="button">Открыть мастер</button>
                 </div>
               </div>
+              <p class="settings-note" id="ai-note"></p>
             </section>
 
             <section class="settings-panel" data-settings-panel="about" role="tabpanel" hidden>

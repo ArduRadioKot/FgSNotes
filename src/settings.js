@@ -17,8 +17,18 @@ const defaultSettings = {
     'code-highlight': 'on',
     'external-theme': '',
     'ai-enabled': 'on',
+    'ai-provider': 'ollama',
     'ai-url': 'http://localhost:11434',
-    'ai-model': ''
+    'ai-model': '',
+    'ai-url-lmstudio': 'http://localhost:1234/v1',
+    'ai-url-custom': '',
+    'ai-model-lmstudio': '',
+    'ai-model-openai': '',
+    'ai-model-anthropic': '',
+    'ai-model-gemini': '',
+    'ai-model-openrouter': '',
+    'ai-model-groq': '',
+    'ai-model-custom': ''
 };
 
 async function loadSettings() {
