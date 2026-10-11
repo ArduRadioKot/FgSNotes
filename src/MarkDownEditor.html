@@ -39,6 +39,14 @@
             aria-label="Сохранить файл"
             data-icon="save"
           ></button>
+          <button
+            class="sidebar-button icon-button ai-only"
+            id="ai-button"
+            title="Помощник ИИ (Ctrl / ⌘ J)"
+            aria-label="Помощник ИИ"
+            aria-expanded="false"
+            data-icon="sparkles"
+          ></button>
         </div>
         <div class="sidebar-bottom-buttons">
           <button
@@ -245,7 +253,6 @@
         <footer class="status-bar">
           <div class="status-group">
             <span class="save-state" id="save-state" role="status"
-              ><span data-icon="check"></span
               ><span id="save-status">Черновик сохранён</span></span
             ><span class="status-divider"></span
             ><span id="word-count">0 слов</span
@@ -306,6 +313,24 @@
             >
               Плагины
             </button>
+            <button
+              type="button"
+              class="settings-nav-item ai-config"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="ai"
+            >
+              ИИ (Ollama)
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="about"
+            >
+              О приложении
+            </button>
           </div>
           <button type="button" class="settings-nav-reset" id="reset-settings">
             Сбросить настройки
@@ -365,7 +390,7 @@
                     <button type="button" class="accent-swatch" role="radio" data-accent="#e5538f" style="--c:#e5538f" aria-label="Розовый" title="Розовый"></button>
                     <button type="button" class="accent-swatch" role="radio" data-accent="#f0883e" style="--c:#f0883e" aria-label="Оранжевый" title="Оранжевый"></button>
                     <button type="button" class="accent-swatch" role="radio" data-accent="#e5534b" style="--c:#e5534b" aria-label="Красный" title="Красный"></button>
-                    <label class="accent-custom" title="Свой цвет"><input type="color" id="accent-custom" value="#3574f0" aria-label="Свой цвет" /></label>
+                    <label class="accent-custom" title="Свой цвет"><input type="color" id="accent-custom" value="#22b0c4" aria-label="Свой цвет" /></label>
                   </div>
                 </div>
               </div>
@@ -449,16 +474,7 @@
                   <input type="range" id="glass-window-transparency" min="0" max="100" step="1" value="30" />
                 </div>
               </div>
-              <div class="setting-item desktop-only">
-                <div class="setting-info">
-                  <span class="setting-name">Песочница стекла</span>
-                  <div class="setting-desc">Тонкая настройка линзы, света и движения в отдельном окне</div>
-                </div>
-                <div class="setting-control">
-                  <button class="button-secondary" id="open-glass-playground" type="button">Открыть</button>
-                </div>
-              </div>
-              <p class="settings-note native-only">Liquid Glass и его песочница доступны в версии для компьютера: у телефона нет прозрачного окна.</p>
+              <p class="settings-note native-only">Liquid Glass доступен в версии для компьютера: у телефона нет прозрачного окна.</p>
             </section>
 
             <section
@@ -533,7 +549,7 @@
               <div class="setting-item">
                 <div class="setting-info">
                   <label class="setting-name" for="math-support">Поддержка формул</label>
-                  <div class="setting-desc">Рендер математических формул через MathJax</div>
+                  <div class="setting-desc">Формулы LaTeX в предпросмотре: $E=mc^2$ в строке и $$…$$ отдельным блоком</div>
                 </div>
                 <div class="setting-control">
                   <label class="setting-toggle">
@@ -587,6 +603,63 @@
                 </div>
               </div>
             </section>
+
+            <section class="settings-panel" data-settings-panel="ai" role="tabpanel" hidden>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-enabled">Помощник ИИ</label>
+                  <div class="setting-desc">Кнопка в боковой панели и сочетание Ctrl / ⌘ J. Текст не покидает компьютер: модель работает локально в Ollama</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="ai-enabled" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-url">Адрес Ollama</label>
+                  <div class="setting-desc">По умолчанию сервер слушает http://localhost:11434</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" id="ai-url" class="setting-text" spellcheck="false" autocomplete="off" placeholder="http://localhost:11434" />
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-model">Модель</label>
+                  <div class="setting-desc" id="ai-status" role="status">Проверяю подключение…</div>
+                </div>
+                <div class="setting-control theme-control">
+                  <select id="ai-model"></select>
+                  <button class="button-secondary" id="ai-refresh" type="button">Обновить</button>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-name">Установка и модели</span>
+                  <div class="setting-desc">Поможет установить Ollama, запустить её и скачать модель</div>
+                </div>
+                <div class="setting-control">
+                  <button class="button-secondary" id="ai-setup-open" type="button">Открыть мастер</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-settings-panel="about" role="tabpanel" hidden>
+              <div class="about">
+                <img class="about-logo" src="logo.png" alt="" width="72" height="72" />
+                <h3 class="about-name">FgSNotes</h3>
+                <p class="about-tagline">Markdown-редактор с живым оформлением, темами и локальным ИИ</p>
+                <p class="about-version"><span id="about-version">версия</span></p>
+                <div class="about-links">
+                  <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes" data-external>Исходный код</a>
+                  <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/releases/latest" data-external>Обновления</a>
+                  <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/issues/new" data-external>Сообщить об ошибке</a>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>
@@ -594,6 +667,7 @@
 
     <script src="markdown.js"></script>
     <script src="highlight.js"></script>
+    <script src="math.js"></script>
     <script src="editor.js"></script>
     <script src="resize.js"></script>
     <script src="liquid-glass/optics.js"></script>
@@ -602,7 +676,9 @@
     <script src="liquid-glass/liquid-glass.js"></script>
     <script src="settings.js"></script>
     <script src="mobile.js"></script>
-    <script src="live-editor.js"></script>
+    <script src="ai-setup.js"></script>
+    <script src="ai.js"></script>
+    <script src="about.js"></script>
     <script src="live.js"></script>
   </body>
 </html>

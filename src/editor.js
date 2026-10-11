@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
             });
         }
+        if (window.renderMath) window.renderMath(preview);
         renderHighlight();
         const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
         const characters = Array.from(editor.value).length;
@@ -320,36 +321,75 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
     if (!documents.length) {
-        documents.push({ id: nextDocumentId++, title: 'Начните здесь.md', content: `# Хорошие идеи начинаются с заметки
-
-Это ваше пространство для мыслей, планов и небольших открытий. Просто начните писать — оформление появится справа.
-
-## Всё важное под рукой
-
-Выделите текст и выберите **жирный**, *курсив* или другой инструмент на панели. А если знаете Markdown — пишите как привыкли.
-
-- Создавайте отдельную вкладку для каждой идеи
-- Открывайте и сохраняйте файлы в формате .md
-- Переключайте вид, чтобы сосредоточиться на тексте
-
-## Маленький план на сегодня
-
-- [x] Найти место для своих идей
-- [ ] Записать первую мысль
-- [ ] Превратить её в небольшой план
-
-> Не обязательно сразу писать идеально. Важно начать.
-
-## Пара полезных сочетаний
-
-**Ctrl / ⌘ S** — сохранить файл\x20\x20
-**Ctrl / ⌘ B** — выделить жирным\x20\x20
-**Ctrl / ⌘ I** — добавить курсив
-
-Черновики открытых вкладок сохраняются на этом устройстве автоматически.` });
+        const intro = [
+            '# Хорошие идеи начинаются с заметки',
+            '',
+            'Пишите слева, а оформление появляется справа. Ниже — то, что умеет FgSNotes, на живых примерах. Меняйте их прямо здесь.',
+            '',
+            '## Разметка',
+            '',
+            'Выделите слово и нажмите **Ctrl / ⌘ B** — получится **жирный**, а **Ctrl / ⌘ I** даст *курсив*. Ещё есть ~~зачёркнутый~~ текст, `код в строке` и [ссылки](https://github.com/ArduRadioKot/FgSNotes).',
+            '',
+            '- Одна вкладка — одна идея',
+            '- Вложенные списки работают:',
+            '  - так',
+            '  - и так',
+            '',
+            '1. Первый шаг',
+            '2. Второй шаг',
+            '',
+            '> Не обязательно сразу писать идеально. Важно начать.',
+            '',
+            '## Задачи',
+            '',
+            '- [x] Открыть FgSNotes',
+            '- [ ] Записать первую мысль',
+            '- [ ] Превратить её в план',
+            '',
+            '## Таблицы и код',
+            '',
+            '| Режим | Что делает |',
+            '| --- | --- |',
+            '| Редактор | Только текст |',
+            '| Живой | Оформление прямо в тексте |',
+            '| Рядом | Текст и предпросмотр |',
+            '',
+            '```js',
+            'const greeting = "Привет, FgSNotes!";',
+            'console.log(greeting);',
+            '```',
+            '',
+            '## Формулы',
+            '',
+            'В строке: $E = mc^2$. Отдельным блоком:',
+            '',
+            '$$',
+            '\\int_0^1 x^2\\,dx = \\frac{1}{3}',
+            '$$',
+            '',
+            '## Помощник',
+            '',
+            'Выделите абзац и нажмите **Ctrl / ⌘ J**: помощник исправит ошибки, сократит, переведёт или продолжит текст. Он работает на вашем компьютере через Ollama, заметки никуда не уходят. Попробуйте на этой строке: *этот тект написан с ашибками*.',
+            '',
+            '## Сочетания клавиш',
+            '',
+            '**Ctrl / ⌘ N** — новая вкладка  ',
+            '**Ctrl / ⌘ S** — сохранить файл  ',
+            '**Ctrl / ⌘ J** — помощник',
+            '',
+            'Черновики открытых вкладок сохраняются на этом устройстве автоматически.'
+        ].join('\n');
+        documents.push({ id: nextDocumentId++, title: 'Начните здесь.md', content: intro });
     }
     renderTabs();
-    loadDocument(activeDocumentIndex);
-    persistWorkspace();
+    editor.value = documents[activeDocumentIndex].content;
+    editor.setSelectionRange(0, 0);
+    editor.scrollTop = 0;
+    document.title = `${documents[activeDocumentIndex].title} — FgSNotes`;
     setView(localStorage.getItem('editorView') || 'split');
+    // Preview, highlighting and math wait a tick so the window can paint before the heavy first render.
+    setTimeout(() => {
+        preview.scrollTop = 0;
+        updatePreview();
+    }, 0);
 });

@@ -5,9 +5,22 @@
     const root = document.documentElement;
     const textarea = document.getElementById('markdown-editor');
     const surface = document.querySelector('.editor-surface');
-    if (!textarea || !surface || !window.FgsLiveEditor) return;
+    if (!textarea || !surface) return;
     const phone = matchMedia('(max-width: 720px)');
-    let live = null, host = null, styleWatcher = null;
+    let live = null, host = null, styleWatcher = null, loading = null;
+
+    // The CodeMirror bundle is large and only the live view needs it, so it is fetched on first use.
+    function loadBundle() {
+        if (window.FgsLiveEditor) return Promise.resolve();
+        if (!loading) loading = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'live-editor.js';
+            script.onload = resolve;
+            script.onerror = () => { loading = null; reject(new Error('live-editor.js failed to load')); };
+            document.head.appendChild(script);
+        });
+        return loading;
+    }
 
     const workspace = document.querySelector('.workspace');
     // Live on: always ("on"), on a phone or in the "Живой" view ("auto"); never when the setting is off.
@@ -22,6 +35,7 @@
         host.style.lineHeight = textarea.style.lineHeight;
     };
     function enable() {
+        if (!window.FgsLiveEditor) { loadBundle().then(sync, () => {}); return; }
         host = document.createElement('div');
         host.className = 'live-host';
         surface.prepend(host);

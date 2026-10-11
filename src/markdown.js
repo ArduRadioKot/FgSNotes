@@ -6,6 +6,8 @@ function markdownInline(source) {
     const keep = html => `\u0000${fragments.push(html) - 1}\u0000`;
     const safeURL = url => /^(?:https?:\/\/|mailto:|#|\.\.?\/)/i.test(url) || !/^[\w\s]*:|^\/\//.test(url);
     let text = source.replace(/`([^`]+)`/g, (_, code) => keep(`<code>${escapeMarkdownHTML(code)}</code>`));
+    // $formula$: no space inside the dollars and no digit right after the closing one, so "$5 and $10" stays text.
+    text = text.replace(/(?<![\\$])\$(?![\s$])((?:\\.|[^$\\\n])+?)(?<!\s)\$(?![\d$])/g, (_, tex) => keep(`<span class="math" data-tex="${escapeMarkdownHTML(tex)}">${escapeMarkdownHTML(tex)}</span>`));
     text = text.replace(/!\[([^\]]*)\]\(([^\s)]+)\)/g, (_, alt, url) => safeURL(url) ? keep(`<img src="${escapeMarkdownHTML(url)}" alt="${escapeMarkdownHTML(alt)}" loading="lazy">`) : escapeMarkdownHTML(alt));
     text = text.replace(/\[([^\]]+)\]\(([^\s)]+)\)/g, (_, label, url) => safeURL(url) ? keep(`<a href="${escapeMarkdownHTML(url)}">${escapeMarkdownHTML(label)}</a>`) : escapeMarkdownHTML(label));
     text = escapeMarkdownHTML(text)
@@ -25,7 +27,7 @@ function parseMarkdown(source) {
     function blocks(input) {
         const result = [];
         let i = 0;
-        const special = index => /^(?:#{1,6}\s|```|\s*>|\[toc\]$|\s*(?:[-*_]){3,}\s*$)/i.test(input[index]) || isList(input[index]) || isTableDivider(input[index + 1]);
+        const special = index => /^(?:#{1,6}\s|```|\$\$|\s*>|\[toc\]$|\s*(?:[-*_]){3,}\s*$)/i.test(input[index]) || isList(input[index]) || isTableDivider(input[index + 1]);
         while (i < input.length) {
             const line = input[i];
             if (!line.trim()) { i++; continue; }
@@ -36,6 +38,24 @@ function parseMarkdown(source) {
                 while (i < input.length && !/^```/.test(input[i])) code.push(input[i++]);
                 if (i < input.length) i++;
                 result.push(`<pre><code${language ? ` class="language-${language}"` : ''}>${escapeMarkdownHTML(code.join('\n'))}</code></pre>`);
+                continue;
+            }
+            if (/^\s*\$\$/.test(line)) {
+                const math = [];
+                let rest = line.replace(/^\s*\$\$/, '');
+                const sameLine = rest.indexOf('$$');
+                if (sameLine >= 0) { math.push(rest.slice(0, sameLine)); i++; }
+                else {
+                    math.push(rest);
+                    i++;
+                    while (i < input.length) {
+                        const end = input[i].indexOf('$$');
+                        if (end >= 0) { math.push(input[i].slice(0, end)); i++; break; }
+                        math.push(input[i++]);
+                    }
+                }
+                const tex = math.join('\n').trim();
+                result.push(`<div class="math-block" data-tex="${escapeMarkdownHTML(tex)}">${escapeMarkdownHTML(tex)}</div>`);
                 continue;
             }
             const heading = /^(#{1,6})\s+(.+)$/.exec(line);

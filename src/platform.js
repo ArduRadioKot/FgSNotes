@@ -9,6 +9,8 @@
 
     root.dataset.platform = name;
     if (native) root.dataset.native = '';
+    // Desktop: does the system blur what is behind the window? (decided by the main process)
+    if (window.electron) root.dataset.nativeBlur = window.electron.nativeBlur ? 'on' : 'off';
     // Phone layout: any native shell, or a small touch screen in a browser.
     const mobileQuery = matchMedia('(max-width: 720px) and (pointer: coarse)');
     const syncMobile = () => { if (native || mobileQuery.matches) root.dataset.mobile = ''; else delete root.dataset.mobile; };
