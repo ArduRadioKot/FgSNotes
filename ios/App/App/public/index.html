@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#2b2d30" />
+    <title>FgSNotes — Markdown-редактор</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="platform.js"></script>
+    <script src="icons.js"></script>
+    <script src="theme.js"></script>
+  </head>
+  <body>
+    <main class="workspace" data-view="split" data-glass="substrate">
+      <aside class="sidebar-toolbar" aria-label="Основные действия">
+        <div class="logo" title="FgSNotes">
+          <img src="logo.png" class="logo-icon" alt="Логотип FgSNotes" />
+        </div>
+        <div class="sidebar-main-buttons">
+          <button
+            class="sidebar-button icon-button"
+            id="new-file-button"
+            title="Новый документ (Ctrl / ⌘ N)"
+            aria-label="Новый документ"
+            data-icon="file"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
+            id="open-file-button"
+            title="Открыть файл (Ctrl / ⌘ O)"
+            aria-label="Открыть файл"
+            data-icon="folder"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
+            id="save-file-button"
+            title="Сохранить файл (Ctrl / ⌘ S)"
+            aria-label="Сохранить файл"
+            data-icon="save"
+          ></button>
+          <button
+            class="sidebar-button icon-button ai-only"
+            id="ai-button"
+            title="Помощник ИИ (Ctrl / ⌘ J)"
+            aria-label="Помощник ИИ"
+            aria-expanded="false"
+            data-icon="sparkles"
+          ></button>
+        </div>
+        <div class="sidebar-bottom-buttons">
+          <button
+            class="sidebar-button icon-button"
+            id="theme-button"
+            title="Тема оформления"
+            aria-label="Тема оформления"
+            aria-haspopup="menu"
+            data-icon="palette"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
+            id="settings-button"
+            title="Настройки"
+            aria-label="Настройки"
+            data-icon="settings"
+          ></button>
+        </div>
+      </aside>
+      <div class="editor-container">
+        <div class="document-bar">
+          <div class="tab-bar" aria-label="Открытые документы">
+            <button
+              class="new-tab-button icon-button"
+              title="Новый документ (Ctrl / ⌘ N)"
+              aria-label="Новая вкладка"
+              data-icon="plus"
+            ></button>
+          </div>
+          <div class="view-switch" role="group" aria-label="Режим отображения">
+            <button
+              data-view="editor"
+              aria-pressed="false"
+              title="Только редактор"
+            >
+              <span data-icon="edit"></span><span>Редактор</span>
+            </button>
+            <button
+              data-view="live"
+              aria-pressed="false"
+              title="Живое оформление: Markdown применяется сразу"
+            >
+              <span data-icon="live"></span><span>Живой</span>
+            </button>
+            <button
+              data-view="split"
+              aria-pressed="true"
+              title="Редактор и предпросмотр"
+            >
+              <span data-icon="columns"></span><span>Рядом</span>
+            </button>
+            <button
+              data-view="preview"
+              aria-pressed="false"
+              title="Только предпросмотр"
+            >
+              <span data-icon="eye"></span><span>Просмотр</span>
+            </button>
+          </div>
+        </div>
+        <div class="editor-wrapper">
+          <section class="editor-column" aria-label="Редактор">
+            <div class="editor-label">
+              <span data-icon="code"></span
+              ><label for="markdown-editor">Markdown</label
+              ><span class="panel-hint"></span>
+            </div>
+            <textarea
+              id="markdown-editor"
+              spellcheck="false"
+              placeholder="# С чего начнём?&#10;&#10;Запишите мысль, составьте план или откройте файл…"
+            ></textarea>
+          </section>
+          <div
+            class="panel-divider"
+            role="separator"
+            tabindex="0"
+            aria-label="Ширина редактора"
+            aria-orientation="vertical"
+            aria-valuemin="25"
+            aria-valuemax="75"
+            aria-valuenow="50"
+            title="Потяните для изменения ширины. Двойной щелчок — поровну."
+          ></div>
+          <section class="preview-column" aria-label="Предпросмотр">
+            <div class="editor-label">
+              <span data-icon="eye"></span><span>Предпросмотр</span
+              ><span class="panel-hint"></span>
+            </div>
+            <div
+              id="preview"
+              class="preview-content"
+              tabindex="0"
+              aria-label="Содержимое предпросмотра"
+            ></div>
+          </section>
+        </div>
+        <div class="tools-dock">
+          <div
+            class="editor-tools"
+            data-glass=""
+            role="toolbar"
+            aria-label="Форматирование текста"
+          >
+            <div class="tool-group">
+              <button
+                class="tool-button"
+                title="Заголовок"
+                aria-label="Заголовок"
+                data-format="heading"
+                data-icon="heading"
+              ></button>
+              <button
+                class="tool-button"
+                title="Жирный текст (Ctrl / ⌘ B)"
+                aria-label="Жирный текст"
+                data-format="bold"
+                data-icon="bold"
+              ></button>
+              <button
+                class="tool-button"
+                title="Курсив (Ctrl / ⌘ I)"
+                aria-label="Курсив"
+                data-format="italic"
+                data-icon="italic"
+              ></button>
+              <button
+                class="tool-button"
+                title="Зачёркнутый текст"
+                aria-label="Зачёркнутый текст"
+                data-format="strike"
+                data-icon="strike"
+              ></button>
+              <button
+                class="tool-button"
+                title="Подчёркнутый текст"
+                aria-label="Подчёркнутый текст"
+                data-format="underline"
+                data-icon="underline"
+              ></button>
+            </div>
+            <div class="tool-group">
+              <button
+                class="tool-button"
+                title="Список"
+                aria-label="Список"
+                data-format="list"
+                data-icon="list"
+              ></button>
+              <button
+                class="tool-button"
+                title="Список задач"
+                aria-label="Список задач"
+                data-format="task"
+                data-icon="check-square"
+              ></button>
+              <button
+                class="tool-button"
+                title="Цитата"
+                aria-label="Цитата"
+                data-format="quote"
+                data-icon="quote"
+              ></button>
+            </div>
+            <div class="tool-group">
+              <button
+                class="tool-button"
+                title="Ссылка"
+                aria-label="Ссылка"
+                data-format="link"
+                data-icon="link"
+              ></button>
+              <button
+                class="tool-button"
+                title="Изображение"
+                aria-label="Изображение"
+                data-format="image"
+                data-icon="image"
+              ></button>
+              <button
+                class="tool-button"
+                title="Блок кода"
+                aria-label="Блок кода"
+                data-format="code"
+                data-icon="code"
+              ></button>
+              <button
+                class="tool-button"
+                title="Надстрочный текст"
+                aria-label="Надстрочный текст"
+                data-format="sup"
+                data-icon="sup"
+              ></button>
+              <button
+                class="tool-button"
+                title="Подстрочный текст"
+                aria-label="Подстрочный текст"
+                data-format="sub"
+                data-icon="sub"
+              ></button>
+            </div>
+          </div>
+        </div>
+        <footer class="status-bar">
+          <div class="status-group">
+            <span class="save-state" id="save-state" role="status"
+              ><span id="save-status">Черновик сохранён</span></span
+            ><span class="status-divider"></span
+            ><span id="word-count">0 слов</span
+            ><span id="character-count">0 символов</span>
+          </div>
+          <div class="status-group">
+            <span id="cursor-position">Стр 1, стлб 1</span
+            ><span class="status-divider"></span><span>UTF-8</span>
+          </div>
+        </footer>
+      </div>
+    </main>
+    <!-- Модальное окно настроек -->
+    <div
+      id="settings-modal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+    >
+      <div class="modal-content settings-window" data-glass="dialog">
+        <nav class="settings-nav" aria-label="Разделы настроек">
+          <div class="settings-nav-header" id="settings-title">Настройки</div>
+          <div class="settings-nav-list" role="tablist" aria-orientation="vertical">
+            <button
+              type="button"
+              class="settings-nav-item is-active"
+              role="tab"
+              aria-selected="true"
+              data-settings-section="appearance"
+            >
+              Внешний вид
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="editor"
+            >
+              Редактор
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="preview"
+            >
+              Предпросмотр
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="plugins"
+            >
+              Плагины
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item ai-config"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="ai"
+            >
+              ИИ (Ollama)
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="about"
+            >
+              О приложении
+            </button>
+          </div>
+          <button type="button" class="settings-nav-reset" id="reset-settings">
+            Сбросить настройки
+          </button>
+        </nav>
+        <div class="settings-main">
+          <div class="settings-main-header">
+            <h2 id="settings-panel-title">Внешний вид</h2>
+            <button
+              class="close-modal icon-button"
+              aria-label="Закрыть настройки"
+              data-icon="close"
+            ></button>
+          </div>
+          <div class="settings-main-body">
+            <section
+              class="settings-panel is-active"
+              data-settings-panel="appearance"
+              role="tabpanel"
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="theme">Тема</label>
+                  <div class="setting-desc">Цветовая схема интерфейса</div>
+                </div>
+                <div class="setting-control">
+                  <select id="theme">
+                    <option value="dark" selected>Тёмная</option>
+                    <option value="light">Светлая</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="external-theme">Сторонняя тема</label>
+                  <div class="setting-desc">Файл из папки Documents/FgSNotes/themes или добавленный вручную. Быстрое переключение: значок палитры слева</div>
+                </div>
+                <div class="setting-control theme-control">
+                  <select id="external-theme">
+                    <option value="">Нет</option>
+                  </select>
+                  <button type="button" class="button-secondary" id="add-theme">Добавить</button>
+                  <button type="button" class="button-secondary" id="remove-theme" hidden>Удалить</button>
+                </div>
+              </div>
+              <div class="setting-item accent-item">
+                <div class="setting-info">
+                  <span class="setting-name" id="accent-label">Акцентный цвет</span>
+                  <div class="setting-desc">Кнопки, переключатели, ссылки и выделение текста</div>
+                </div>
+                <div class="setting-control">
+                  <div class="accent-picker" role="radiogroup" aria-labelledby="accent-label">
+                    <button type="button" class="accent-swatch accent-default" role="radio" data-accent="default" aria-label="Из темы" title="Из темы"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#21aabe" style="--c:#21aabe" aria-label="Бирюзовый" title="Бирюзовый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#4cb35f" style="--c:#4cb35f" aria-label="Зелёный" title="Зелёный"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#8b5cf6" style="--c:#8b5cf6" aria-label="Фиолетовый" title="Фиолетовый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#e5538f" style="--c:#e5538f" aria-label="Розовый" title="Розовый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#f0883e" style="--c:#f0883e" aria-label="Оранжевый" title="Оранжевый"></button>
+                    <button type="button" class="accent-swatch" role="radio" data-accent="#e5534b" style="--c:#e5534b" aria-label="Красный" title="Красный"></button>
+                    <label class="accent-custom" title="Свой цвет"><input type="color" id="accent-custom" value="#22b0c4" aria-label="Свой цвет" /></label>
+                  </div>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="font-size">Размер шрифта</label>
+                  <div class="setting-desc">Размер текста в редакторе и предпросмотре</div>
+                </div>
+                <div class="setting-control">
+                  <select id="font-size">
+                    <option value="small">Маленький</option>
+                    <option value="medium" selected>Средний</option>
+                    <option value="large">Большой</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="font-family">Шрифт</label>
+                  <div class="setting-desc">Семейство шрифта редактора</div>
+                </div>
+                <div class="setting-control">
+                  <select id="font-family">
+                    <option value="system">Системный</option>
+                    <option value="mono" selected>Моноширинный</option>
+                    <option value="serif">С засечками</option>
+                    <option value="sans">Без засечек</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="line-height">Межстрочный интервал</label>
+                  <div class="setting-desc">Расстояние между строками текста</div>
+                </div>
+                <div class="setting-control">
+                  <select id="line-height">
+                    <option value="1.4">Узкий</option>
+                    <option value="1.6" selected>Средний</option>
+                    <option value="1.8">Широкий</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item desktop-only">
+                <div class="setting-info">
+                  <label class="setting-name" for="liquid-glass">Liquid Glass</label>
+                  <div class="setting-desc">Стеклянные панели с преломлением света</div>
+                </div>
+                <div class="setting-control">
+                  <select id="liquid-glass">
+                    <option value="off" selected>Выключен</option>
+                    <option value="subtle">Тонкое</option>
+                    <option value="regular">Обычное</option>
+                    <option value="clear">Прозрачное</option>
+                    <option value="frosted">Матовое</option>
+                    <option value="vivid">Яркое</option>
+                    <option value="ultraClear">Ультрапрозрачное</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item desktop-only">
+                <div class="setting-info">
+                  <label class="setting-name" for="glass-quality">Качество стекла</label>
+                  <div class="setting-desc">Автоматически учитывает браузер, анимации и прозрачность системы</div>
+                </div>
+                <div class="setting-control">
+                  <select id="glass-quality">
+                    <option value="auto" selected>Авто</option>
+                    <option value="high">Высокое</option>
+                    <option value="medium">Среднее</option>
+                    <option value="low">Простое</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item desktop-only">
+                <div class="setting-info">
+                  <label class="setting-name" for="glass-window-transparency">Прозрачность окна настроек</label>
+                  <div class="setting-desc">Насколько стекло этого окна пропускает приложение за ним</div>
+                </div>
+                <div class="setting-control">
+                  <input type="range" id="glass-window-transparency" min="0" max="100" step="1" value="30" />
+                </div>
+              </div>
+              <p class="settings-note native-only">Liquid Glass доступен в версии для компьютера: у телефона нет прозрачного окна.</p>
+            </section>
+
+            <section
+              class="settings-panel"
+              data-settings-panel="editor"
+              role="tabpanel"
+              hidden
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="tab-size">Размер табуляции</label>
+                  <div class="setting-desc">Ширина отступа при нажатии Tab</div>
+                </div>
+                <div class="setting-control">
+                  <select id="tab-size">
+                    <option value="2">2 пробела</option>
+                    <option value="4" selected>4 пробела</option>
+                    <option value="8">8 пробелов</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="word-wrap">Перенос слов</label>
+                  <div class="setting-desc">Переносить длинные строки в редакторе</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="word-wrap" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="live-preview">Живое оформление</label>
+                  <div class="setting-desc">Заголовки, списки и выделение видны сразу. «Авто»: на телефоне и в режиме «Живой»; «Выключено» убирает режим «Живой»</div>
+                </div>
+                <div class="setting-control">
+                  <select id="live-preview">
+                    <option value="auto" selected>Авто</option>
+                    <option value="on">Включено</option>
+                    <option value="off">Выключено</option>
+                  </select>
+                </div>
+              </div>
+              <p class="settings-note">
+                Черновики открытых вкладок сохраняются автоматически на этом
+                устройстве.
+              </p>
+            </section>
+
+            <section
+              class="settings-panel"
+              data-settings-panel="preview"
+              role="tabpanel"
+              hidden
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="preview-theme">Тема предпросмотра</label>
+                  <div class="setting-desc">Оформление панели предпросмотра Markdown</div>
+                </div>
+                <div class="setting-control">
+                  <select id="preview-theme">
+                    <option value="default" selected>По умолчанию</option>
+                    <option value="github">GitHub</option>
+                    <option value="dark">Тёмная</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="math-support">Поддержка формул</label>
+                  <div class="setting-desc">Формулы LaTeX в предпросмотре: $E=mc^2$ в строке и $$…$$ отдельным блоком</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="math-support" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section
+              class="settings-panel"
+              data-settings-panel="plugins"
+              role="tabpanel"
+              hidden
+            >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="table-of-contents">Оглавление</label>
+                  <div class="setting-desc">Показывать оглавление по заголовкам документа</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="table-of-contents" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="todo-list">Список задач</label>
+                  <div class="setting-desc">Интерактивные чекбоксы для задач в Markdown</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="todo-list" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="code-highlight">Подсветка кода</label>
+                  <div class="setting-desc">Подсветка синтаксиса в редакторе и блоках кода</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="code-highlight" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-settings-panel="ai" role="tabpanel" hidden>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-enabled">Помощник ИИ</label>
+                  <div class="setting-desc">Кнопка в боковой панели и сочетание Ctrl / ⌘ J. Текст не покидает компьютер: модель работает локально в Ollama</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="ai-enabled" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-url">Адрес Ollama</label>
+                  <div class="setting-desc">По умолчанию сервер слушает http://localhost:11434</div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" id="ai-url" class="setting-text" spellcheck="false" autocomplete="off" placeholder="http://localhost:11434" />
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-model">Модель</label>
+                  <div class="setting-desc" id="ai-status" role="status">Проверяю подключение…</div>
+                </div>
+                <div class="setting-control theme-control">
+                  <select id="ai-model"></select>
+                  <button class="button-secondary" id="ai-refresh" type="button">Обновить</button>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-name">Установка и модели</span>
+                  <div class="setting-desc">Поможет установить Ollama, запустить её и скачать модель</div>
+                </div>
+                <div class="setting-control">
+                  <button class="button-secondary" id="ai-setup-open" type="button">Открыть мастер</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-settings-panel="about" role="tabpanel" hidden>
+              <div class="about">
+                <img class="about-logo" src="logo.png" alt="" width="72" height="72" />
+                <h3 class="about-name">FgSNotes</h3>
+                <p class="about-tagline">Markdown-редактор с живым оформлением, темами и локальным ИИ</p>
+                <p class="about-version"><span id="about-version">версия</span></p>
+                <div class="about-links">
+                  <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes" data-external>Исходный код</a>
+                  <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/releases/latest" data-external>Обновления</a>
+                  <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/issues/new" data-external>Сообщить об ошибке</a>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="markdown.js"></script>
+    <script src="highlight.js"></script>
+    <script src="math.js"></script>
+    <script src="editor.js"></script>
+    <script src="resize.js"></script>
+    <script src="settings.js"></script>
+    <script src="mobile.js"></script>
+    <script src="ai-setup.js"></script>
+    <script src="ai.js"></script>
+    <script src="about.js"></script>
+    <script src="live.js"></script>
+  </body>
+</html>

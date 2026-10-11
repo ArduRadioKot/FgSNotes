@@ -345,3 +345,37 @@ dialog.viewer img { width: 100%; height: auto; }
 /* Single-column grids must not grow to their widest child (that made phones zoom the page out) */
 .store-top, .hero, .doc, .doc section, .tcard, .viewer-body, .keys, .menu-links, .minidoc .pane { grid-template-columns: minmax(0, 1fr); }
 .hero { justify-items: center; }
+
+/* AI assistant and phone sections */
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(24px, 4vw, 64px); align-items: center; }
+.split.rev { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); margin-top: clamp(40px, 6vw, 96px); }
+.split-copy { display: grid; gap: 18px; align-content: start; }
+.split-copy p { color: var(--muted); text-wrap: pretty; }
+.split-copy .lead { max-width: 46ch; }
+.split-copy .hero-cta { margin-top: 6px; }
+.ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+.ticks li { position: relative; padding-left: 26px; color: var(--muted); font-size: 16px; line-height: 1.55; text-wrap: pretty; }
+.ticks li::before { content: ''; position: absolute; left: 4px; top: .6em; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.ticks b { color: var(--text); font-weight: 600; }
+.ticks.cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 40px; margin-top: clamp(32px, 4vw, 56px); }
+.phones { display: flex; justify-content: center; align-items: flex-start; gap: clamp(16px, 3vw, 48px); }
+.phone-fig { margin: 0; flex: 0 1 300px; min-width: 0; display: grid; gap: 18px; }
+.phone-fig:nth-child(2) { margin-top: clamp(24px, 4vw, 64px); }
+.phone { padding: 9px; border-radius: 42px; background: #0b0b0c; box-shadow: inset 0 0 0 1.5px #3a3a3d, 0 28px 60px #0006; }
+.phone img { width: 100%; border-radius: 34px; }
+.phone-fig figcaption { color: var(--muted); font-size: 15px; line-height: 1.5; text-align: center; text-wrap: balance; padding: 0 8px; }
+.note a { color: var(--accent-hi); }
+.dl-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .dl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 960px) {
+    .split, .split.rev { grid-template-columns: minmax(0, 1fr); }
+    .split.rev .shot { order: 2; }
+    .dl-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+    .ticks.cols { grid-template-columns: minmax(0, 1fr); }
+    .phones { justify-content: flex-start; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 8px 12px; margin: 0 -8px; scrollbar-width: none; }
+    .phones::-webkit-scrollbar { display: none; }
+    .phone-fig { flex: 0 0 min(72vw, 280px); scroll-snap-align: center; }
+    .phone-fig:nth-child(2) { margin-top: 0; }
+}
