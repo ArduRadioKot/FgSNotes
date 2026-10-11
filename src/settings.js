@@ -15,7 +15,10 @@ const defaultSettings = {
     'table-of-contents': 'on',
     'todo-list': 'on',
     'code-highlight': 'on',
-    'external-theme': ''
+    'external-theme': '',
+    'ai-enabled': 'on',
+    'ai-url': 'http://localhost:11434',
+    'ai-model': ''
 };
 
 async function loadSettings() {
@@ -140,21 +143,16 @@ function applySettings(settings) {
     
     preview.className = 'preview-content ' + (previewThemes[settings['preview-theme']] || '');
 
-    if (settings['math-support'] === 'on') {
-        if (!document.getElementById('mathjax-script')) {
-            const script = document.createElement('script');
-            script.id = 'mathjax-script';
-            script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
-            script.async = true;
-            document.head.appendChild(script);
-        }
-    } else {
-        const mathjaxScript = document.getElementById('mathjax-script');
-        if (mathjaxScript) {
-            mathjaxScript.remove();
-        }
-    }
-    
+    // The assistant needs the desktop app (it talks to Ollama through the main process).
+    const aiAvailable = !!(window.electron && window.electron.aiChat);
+    document.documentElement.dataset.aiAvailable = aiAvailable ? 'on' : 'off';
+    document.documentElement.dataset.ai = aiAvailable && settings['ai-enabled'] === 'on' ? 'on' : 'off';
+    window.dispatchEvent(new CustomEvent('fgs-settings', { detail: settings }));
+
+    // Formulas are typeset by math.js (KaTeX); this flag turns it on and off.
+    document.documentElement.dataset.math = settings['math-support'] === 'on' ? 'on' : 'off';
+    if (window.renderMath) window.renderMath(preview);
+
     document.documentElement.dataset.livePreview = ['auto', 'on', 'off'].includes(settings['live-preview']) ? settings['live-preview'] : 'auto';
     // Highlighting is built in (highlight.js module); editor.js reacts to this flag.
     document.documentElement.dataset.codeHighlight = settings['code-highlight'] === 'on' ? 'on' : 'off';
@@ -304,7 +302,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    currentSettings = await loadSettings();
+    currentSettings = (window.electron && window.electron.bootConfig)
+        ? { ...defaultSettings, ...window.electron.bootConfig }
+        : await loadSettings();
     applySettings(currentSettings);
     syncControlsFromSettings(currentSettings);
 
@@ -438,15 +438,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.accent-swatch').forEach(swatch => swatch.addEventListener('click', () => chooseAccent(swatch.dataset.accent)));
     document.getElementById('accent-custom')?.addEventListener('input', event => chooseAccent(event.target.value.toLowerCase()));
 
+    // A small API for the modules that own a settings panel of their own (ai.js).
+    window.FgsSettings = {
+        get: () => currentSettings,
+        update(patch) { currentSettings = { ...currentSettings, ...patch }; applySettings(currentSettings); saveSettings(currentSettings); },
+        open(section) { settingsButton.click(); showSettingsSection(section); }
+    };
+
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             showSettingsSection(item.dataset.settingsSection);
         });
-    });
-
-    document.getElementById('open-glass-playground')?.addEventListener('click', () => {
-        if (window.electron && window.electron.openGlassPlayground) window.electron.openGlassPlayground();
-        else window.open('liquid-glass/playground.html', '_blank');
     });
 
     settingsButton.addEventListener('click', () => {

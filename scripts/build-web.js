@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const source = path.join(root, 'src');
 const target = path.join(root, 'www');
 const skip = new Set(['icon.icns', 'MarkDownEditor.html']);
-const skipDirs = new Set(['liquid-glass']);          // the glass playground is a desktop tool
+const skipDirs = new Set(['liquid-glass']);          // Liquid Glass is a desktop-only effect
 const skipFiles = new Set(['liquid-glass/liquid-glass.css']);
 
 fs.rmSync(target, { recursive: true, force: true });

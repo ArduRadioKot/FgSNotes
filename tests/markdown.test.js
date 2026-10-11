@@ -30,3 +30,14 @@ test('tables preserve empty cells and inline formatting', () => {
     const html = parseMarkdown('| A | B |\n| --- | --- |\n| **yes** | |');
     assert.match(html, /<td><strong>yes<\/strong><\/td><td><\/td>/);
 });
+
+test('LaTeX: inline and block formulas keep their source, prices stay text', () => {
+    const inline = parseMarkdown('Area $a_1*b_2$ costs $5 or $10');
+    assert.match(inline, /<span class="math" data-tex="a_1\*b_2">/);
+    assert.match(inline, /costs \$5 or \$10/);
+    assert.match(parseMarkdown('$$\n\\int_0^1 x\\,dx\n$$'), /<div class="math-block" data-tex="\\int_0\^1 x\\,dx">/);
+    assert.match(parseMarkdown('$$E=mc^2$$'), /<div class="math-block" data-tex="E=mc\^2">/);
+});
+test('LaTeX: formulas inside code stay literal', () => {
+    assert.doesNotMatch(parseMarkdown('`$x$`'), /class="math"/);
+});
