@@ -150,3 +150,12 @@
         spy();
     }
 })();
+
+// Header: transparent at the top of the page, blurred once the page has been scrolled.
+(function () {
+    const nav = document.querySelector('.nav');
+    if (!nav) return;
+    const update = () => nav.classList.toggle('is-scrolled', scrollY > 12);
+    addEventListener('scroll', update, { passive: true });
+    update();
+})();
