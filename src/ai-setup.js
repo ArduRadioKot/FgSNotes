@@ -9,8 +9,8 @@
         { name: 'qwen3.5:0.8b', title: 'Qwen 3.5 · 0,8B', size: 1.2e9, note: 'Самая маленькая: для слабых компьютеров и быстрых правок' },
         { name: 'qwen3.5:2b', title: 'Qwen 3.5 · 2B', size: 2.7e9, note: 'Лёгкая и заметно умнее младшей' },
         { name: 'qwen3.5:4b', title: 'Qwen 3.5 · 4B', size: 3.4e9, note: 'Рекомендуем: лучший баланс скорости и качества' },
-        { name: 'gemma3:4b', title: 'Gemma 3 · 4B', size: 3.3e9, note: 'Аккуратно пишет по-русски' },
         { name: 'qwen3.5:9b', title: 'Qwen 3.5 · 9B', size: 6.6e9, note: 'Самая сильная из компактных, нужно от 12 ГБ памяти' },
+        { name: 'qwen3.8:27b', title: 'Qwen 3.8 · 27B', size: 18e9, note: 'Самая умная, но тяжёлая: нужно от 24 ГБ памяти и мощный Mac или видеокарта' },
         { name: 'MichelRosselli/bonsai-27b', title: 'Bonsai 27B · 1 бит', size: 4.4e9, note: 'Модель на 27 млрд параметров, сжатая до 1 бита. Нужна Ollama 0.32.5 и новее' }
     ];
     const STEPS = ['Установка', 'Запуск', 'Модель'];
@@ -120,7 +120,7 @@
                 <span class="ais-radio" aria-hidden="true"></span><span class="ais-model-text"><strong>${escapeHtml(name)}</strong></span>
             </button>`).join('');
         return {
-            head: head('Помощник готов', 'Выберите модель по умолчанию. Её можно сменить в настройках.'),
+            head: head('Чат готов', 'Выберите модель по умолчанию. Её можно сменить в настройках.'),
             main: `<div class="ais-models" role="radiogroup" aria-label="Скачанные модели">${cards}</div>`,
             actions: `<button type="button" class="button-primary" data-act="finish" data-primary>Готово</button><button type="button" class="button-secondary" data-act="more">Скачать другую модель</button>`
         };

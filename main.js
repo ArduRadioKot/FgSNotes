@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, nativeTheme, shell, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme, shell, safeStorage, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const ollama = require('./ollama');
@@ -49,12 +49,12 @@ ipcMain.handle('ai-key-status', () => keyStatus());
 ipcMain.handle('ai-key-set', (event, { provider, key }) => { keys().set(knownProvider(provider), key); return keyStatus(); });
 ipcMain.handle('ai-key-clear', (event, provider) => { keys().clear(knownProvider(provider)); return keyStatus(); });
 ipcMain.handle('ai-models', (event, { provider, url }) => providers.listModels({ provider, url, key: keys().get(provider) }));
-ipcMain.handle('ai-chat', async (event, { id, provider, url, model, messages, temperature }) => {
+ipcMain.handle('ai-chat', async (event, { id, provider, url, model, messages, temperature, think }) => {
   const controller = new AbortController();
   aiRequests.set(id, controller);
   const send = payload => { if (!event.sender.isDestroyed()) event.sender.send('ai-chunk', { id, ...payload }); };
-  const result = await providers.chat({ provider, url, key: keys().get(provider), model, messages, temperature },
-    delta => send({ delta }), controller.signal, () => send({ thinking: true }));
+  const result = await providers.chat({ provider, url, key: keys().get(provider), model, messages, temperature, think: !!think },
+    delta => send({ delta }), controller.signal, text => send({ thinking: text }));
   aiRequests.delete(id);
   return result;
 });
@@ -189,9 +189,26 @@ app.on('second-instance', () => {
   if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
 });
 
+// An Intel build on an Apple Silicon Mac runs under Rosetta: the same app starts 3-5 times slower and feels sluggish.
+// Tell the person once per version, with the way out.
+function warnAboutTranslation() {
+  if (!app.runningUnderARM64Translation) return;
+  const marker = path.join(app.getPath('userData'), `rosetta-warned-${app.getVersion()}`);
+  if (fs.existsSync(marker)) return;
+  try { fs.writeFileSync(marker, ''); } catch { /* the warning may repeat, which is harmless */ }
+  dialog.showMessageBox({
+    type: 'info',
+    message: 'FgSNotes работает через Rosetta',
+    detail: 'Установлена версия для процессоров Intel, поэтому приложение запускается и работает заметно медленнее. Скачайте версию для Apple Silicon (файл с «arm64» в названии) и замените ею это приложение.',
+    buttons: ['Открыть страницу загрузки', 'Позже'],
+    defaultId: 0, cancelId: 1
+  }).then(({ response }) => { if (response === 0) shell.openExternal(repositoryUrl + '/releases/latest'); });
+}
+
 app.whenReady().then(() => {
   if (!primaryInstance) return;
   createWindow();
+  warnAboutTranslation();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

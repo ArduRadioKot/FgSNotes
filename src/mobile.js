@@ -25,8 +25,11 @@
         const menuButton = el('button', 'm-icon', icon('menu'));
         menuButton.setAttribute('aria-label', 'Документы');
         const heading = el('div', 'm-heading', '<strong class="m-title"></strong><span class="m-sub"></span>');
-        const viewButton = el('button', 'm-icon');
-        header.append(menuButton, heading, viewButton);
+        const viewButton = el('button', 'm-icon');                       // reading toggle: lives in the dock
+        const moreButton = el('button', 'm-icon', icon('more'));
+        moreButton.setAttribute('aria-label', 'Действия');
+        moreButton.setAttribute('aria-haspopup', 'dialog');
+        header.append(menuButton, heading, moreButton);
         container.prepend(header);
 
         // --- drawer ----------------------------------------------------------------------------
@@ -34,15 +37,26 @@
         const drawer = el('aside', 'm-drawer');
         drawer.setAttribute('aria-label', 'Документы');
         drawer.innerHTML = `
-            <div class="m-drawer-head"><img src="logo.png" alt="" width="30" height="30"><strong>FgSNotes</strong><span class="m-count"></span></div>
+            <div class="m-drawer-head"><img src="logo.png" alt="" width="34" height="34"><strong>FgSNotes</strong><span class="m-count"></span></div>
             <ul class="m-docs"></ul>
-            <div class="m-drawer-actions">
-                <button data-act="new">${icon('plus')}<span>Новый</span></button>
-                <button data-act="open">${icon('folder')}<span>Открыть</span></button>
-                <button data-act="save">${icon('save')}<span>Сохранить</span></button>
-                <button data-act="theme" class="m-wide">${icon('palette')}<span>Тема оформления</span></button>
-                <button data-act="settings">${icon('settings')}<span>Настройки</span></button>
+            <div class="m-drawer-foot">
+                <button type="button" class="m-drawer-new" data-act="new">${icon('plus')}<span>Новая заметка</span></button>
+                <button type="button" class="m-drawer-round" data-act="settings" aria-label="Настройки">${icon('settings')}</button>
             </div>`;
+        // The actions sheet: what the "more" button opens. Grouped rows, as in a system menu.
+        const sheetBackdrop = el('div', 'm-sheet-backdrop');
+        const sheet = el('div', 'm-sheet');
+        sheet.setAttribute('role', 'dialog');
+        sheet.setAttribute('aria-label', 'Действия');
+        sheet.setAttribute('aria-hidden', 'true');
+        const row = (act, name, label) => `<button type="button" class="m-row" data-sheet="${act}">${icon(name)}<span>${label}</span><i class="m-check" aria-hidden="true">${icon('check')}</i></button>`;
+        sheet.innerHTML = `
+            <div class="m-grabber" aria-hidden="true"></div>
+            <button type="button" class="m-row m-row-close" data-sheet="close">${icon('close')}<span>Закрыть</span></button>
+            <div class="m-group">${row('view', 'eye', 'Режим чтения')}</div>
+            <div class="m-group">${row('new', 'plus', 'Новая заметка')}${row('open', 'folder', 'Открыть файл')}${row('save', 'save', 'Сохранить файл')}</div>
+            <div class="m-group m-group-ai">${row('ai', 'sparkles', 'Чат')}${row('theme', 'palette', 'Тема оформления')}${row('settings', 'settings', 'Настройки')}</div>`;
+        document.body.append(sheetBackdrop, sheet);
         document.body.append(backdrop, drawer);
 
         // --- bottom dock: one pill with four actions and a separate round button for a new note ---------------
@@ -51,27 +65,69 @@
         docsButton.setAttribute('aria-label', 'Документы');
         const newButton = $('#new-file-button');
         newButton.innerHTML = icon('plus');
-        newButton.setAttribute('aria-label', 'Новый документ');
-        newButton.classList.add('m-new');
+        newButton.setAttribute('aria-label', 'Новая заметка');
         const pill = el('div', 'm-pill');
-        pill.append(docsButton, $('#open-file-button'), $('#save-file-button'), $('#settings-button'));
-        bar.append(pill, newButton);
+        pill.append(docsButton, newButton);
+        // The assistant sits in the dock when the app has one.
+        const aiButton = $('#ai-button');
+        if (aiButton) pill.append(aiButton);
+        pill.append($('#settings-button'));
+        viewButton.classList.add('m-view');
+        bar.append(pill, viewButton);
+        // Open and Save stay in the page (their handlers live there) but are reached through the sheet.
+        [$('#open-file-button'), $('#save-file-button')].forEach(button => { button.classList.add('m-hidden-action'); document.body.append(button); });
 
         // --- behaviour -------------------------------------------------------------------------
         const setDrawer = open => {
             root.classList.toggle('m-drawer-open', open);
             drawer.setAttribute('aria-hidden', String(!open));
-            if (open) { renderDocs(); drawer.querySelector('.m-doc.active, .m-doc')?.focus({ preventScroll: true }); }
+            if (open) { renderDocs(); }
         };
         menuButton.addEventListener('click', () => setDrawer(true));
         docsButton.addEventListener('click', () => setDrawer(!root.classList.contains('m-drawer-open')));
         backdrop.addEventListener('click', () => setDrawer(false));
+
+        // actions sheet
+        const setSheet = open => {
+            root.classList.toggle('m-sheet-open', open);
+            sheet.setAttribute('aria-hidden', String(!open));
+            moreButton.setAttribute('aria-expanded', String(open));
+            if (open) { syncSheet(); }
+        };
+        const syncSheet = () => {
+            const reading = workspace.dataset.view === 'preview';
+            const viewRow = sheet.querySelector('[data-sheet="view"]');
+            viewRow.classList.toggle('is-on', reading);
+            viewRow.setAttribute('aria-pressed', String(reading));
+            sheet.querySelector('.m-group-ai').querySelector('[data-sheet="ai"]').hidden = root.dataset.aiAvailable !== 'on';
+        };
+        moreButton.addEventListener('click', () => setSheet(!root.classList.contains('m-sheet-open')));
+        sheetBackdrop.addEventListener('click', () => setSheet(false));
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') setSheet(false); });
+        sheet.addEventListener('click', event => {
+            const act = event.target.closest('[data-sheet]')?.dataset.sheet;
+            if (!act) return;
+            if (act === 'view') { viewButton.click(); syncSheet(); return; }
+            setSheet(false);
+            if (act === 'close') return;
+            const target = { new: '#new-file-button', open: '#open-file-button', save: '#save-file-button', settings: '#settings-button', theme: '#theme-button', ai: '#ai-button' }[act];
+            setTimeout(() => $(target).click(), 200);
+        });
+        // drag the grabber (or the sheet's top) down to dismiss
+        let sheetStart = null;
+        sheet.addEventListener('touchstart', event => { if (event.target.closest('.m-grabber, .m-row-close') || sheet.scrollTop <= 0) sheetStart = event.touches[0].clientY; }, { passive: true });
+        sheet.addEventListener('touchmove', event => {
+            if (sheetStart === null) return;
+            const dy = event.touches[0].clientY - sheetStart;
+            if (dy > 70) { sheetStart = null; setSheet(false); }
+        }, { passive: true });
+        sheet.addEventListener('touchend', () => { sheetStart = null; }, { passive: true });
         document.addEventListener('keydown', event => { if (event.key === 'Escape') setDrawer(false); });
-        drawer.querySelector('.m-drawer-actions').addEventListener('click', event => {
+        drawer.querySelector('.m-drawer-foot').addEventListener('click', event => {
             const act = event.target.closest('button')?.dataset.act;
             if (!act) return;
             setDrawer(false);
-            const target = { new: '#new-file-button', open: '#open-file-button', save: '#save-file-button', settings: '#settings-button', theme: '#theme-button' }[act];
+            const target = { new: '#new-file-button', open: '#open-file-button', save: '#save-file-button', settings: '#settings-button', theme: '#theme-button', ai: '#ai-button' }[act];
             setTimeout(() => $(target).click(), 180);
         });
 
@@ -122,6 +178,7 @@
             const reading = workspace.dataset.view === 'preview';
             viewButton.innerHTML = icon(reading ? 'edit' : 'eye');
             viewButton.setAttribute('aria-label', reading ? 'Редактировать' : 'Режим чтения');
+            if (typeof syncSheet === 'function') syncSheet();
         };
         viewButton.addEventListener('click', () => {
             const next = workspace.dataset.view === 'preview' ? 'editor' : 'preview';

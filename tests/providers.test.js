@@ -114,3 +114,39 @@ test('keystore encrypts when it can, never returns keys through status, and surv
     assert.equal(plain.secure(), false);
     assert.equal(plain.get('groq'), 'g');
 });
+
+test('reasoning is streamed separately from the answer (OpenAI-compatible reasoning_content)', async () => {
+    const { instance, url } = await server(async (req, res) => {
+        await readBody(req);
+        const events = [{ choices: [{ delta: { reasoning_content: 'Надо ' } }] }, { choices: [{ delta: { reasoning_content: 'подумать' } }] }, { choices: [{ delta: { content: 'Ответ' } }] }];
+        res.end(events.map(event => 'data: ' + JSON.stringify(event) + '\n\n').join('') + 'data: [DONE]\n\n');
+    });
+    let text = '', thoughts = '';
+    const result = await providers.chat({ provider: 'custom', url, model: 'm', messages: [{ role: 'user', content: 'q' }], think: true }, delta => { text += delta; }, undefined, thought => { thoughts += thought; });
+    assert.equal(result.ok, true);
+    assert.equal(text, 'Ответ');
+    assert.equal(thoughts, 'Надо подумать');
+    instance.close();
+});
+
+test('Anthropic: no short answer cap, steps down when the model has a lower ceiling, thinking is retried without when rejected', async () => {
+    const bodies = [];
+    const { instance, url } = await server(async (req, res) => {
+        const body = await readBody(req);
+        bodies.push(body);
+        if (body.max_tokens > 8192) { res.statusCode = 400; return res.end(JSON.stringify({ error: { message: `max_tokens: ${body.max_tokens} > 8192, which is the maximum allowed number of output tokens for this model` } })); }
+        if (body.thinking) { res.statusCode = 400; return res.end(JSON.stringify({ error: { message: 'thinking is not supported for this model' } })); }
+        res.end('data: ' + JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: 'ok' } }) + '\n\n');
+    });
+    const original = providers.PRESETS.anthropic.base;
+    providers.PRESETS.anthropic.base = url + '/v1';
+    const { result, text } = await collect({ provider: 'anthropic', key: 'k', model: 'claude-sonnet-4-5', messages: [{ role: 'user', content: 'Hi' }], think: true });
+    providers.PRESETS.anthropic.base = original;
+    assert.equal(result.ok, true);
+    assert.equal(text, 'ok');
+    assert.equal(bodies[0].max_tokens, 64000);
+    assert.ok(bodies[0].thinking && bodies[0].thinking.budget_tokens < bodies[0].max_tokens);
+    assert.equal(bodies.at(-1).max_tokens, 8192);
+    assert.equal(bodies.at(-1).thinking, undefined);
+    instance.close();
+});
