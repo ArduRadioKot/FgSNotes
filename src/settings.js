@@ -17,6 +17,8 @@ const defaultSettings = {
     'code-highlight': 'on',
     'external-theme': '',
     'ai-enabled': 'on',
+    'shortcuts': '',
+    'ai-thinking': 'on',
     'ai-provider': 'ollama',
     'ai-url': 'http://localhost:11434',
     'ai-model': '',
@@ -154,7 +156,7 @@ function applySettings(settings) {
     preview.className = 'preview-content ' + (previewThemes[settings['preview-theme']] || '');
 
     // The assistant needs the desktop app (it talks to Ollama through the main process).
-    const aiAvailable = !!(window.electron && window.electron.aiChat);
+    const aiAvailable = !!(window.electron && window.electron.aiChat) || !!window.FgsAiWeb;
     document.documentElement.dataset.aiAvailable = aiAvailable ? 'on' : 'off';
     document.documentElement.dataset.ai = aiAvailable && settings['ai-enabled'] === 'on' ? 'on' : 'off';
     window.dispatchEvent(new CustomEvent('fgs-settings', { detail: settings }));

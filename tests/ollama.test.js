@@ -97,3 +97,24 @@ test('chat explains a model that is not installed', async () => {
     assert.match(result.error, /не скачана/);
     instance.close();
 });
+
+test('chat asks for reasoning only on request, streams it apart from the answer and sets no length limit', async () => {
+    const bodies = [];
+    const { instance, url } = await server((req, res) => {
+        let body = '';
+        req.on('data', part => { body += part; });
+        req.on('end', () => {
+            bodies.push(JSON.parse(body));
+            res.write(JSON.stringify({ message: { thinking: 'хмм' } }) + '\n');
+            res.end(JSON.stringify({ message: { content: 'да' } }) + '\n');
+        });
+    });
+    let text = '', thoughts = '';
+    await chat({ url, model: 'm', messages: [], think: true }, d => { text += d; }, undefined, t => { thoughts += t; });
+    assert.equal(bodies[0].think, true);
+    assert.equal(bodies[0].options.num_predict, -1);
+    assert.deepEqual([text, thoughts], ['да', 'хмм']);
+    await chat({ url, model: 'm', messages: [] }, () => {});
+    assert.equal(bodies[1].think, false);
+    instance.close();
+});

@@ -64,3 +64,6 @@ coverage/
 # Tool state
 .kilo/
 .claude/
+
+# ONNX Runtime files for on-device models: copied from node_modules by scripts/build-device.js (about 40 MB)
+src/vendor/ort/

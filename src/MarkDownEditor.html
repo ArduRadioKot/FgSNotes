@@ -42,8 +42,8 @@
           <button
             class="sidebar-button icon-button ai-only"
             id="ai-button"
-            title="Помощник ИИ (Ctrl / ⌘ J)"
-            aria-label="Помощник ИИ"
+            title="Чат (Ctrl / ⌘ J)"
+            aria-label="Чат"
             aria-expanded="false"
             data-icon="sparkles"
           ></button>
@@ -312,6 +312,15 @@
               data-settings-section="plugins"
             >
               Плагины
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item desktop-only"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="shortcuts"
+            >
+              Горячие клавиши
             </button>
             <button
               type="button"
@@ -604,15 +613,29 @@
               </div>
             </section>
 
+            <section class="settings-panel" data-settings-panel="shortcuts" role="tabpanel" hidden></section>
+
             <section class="settings-panel" data-settings-panel="ai" role="tabpanel" hidden>
               <div class="setting-item">
                 <div class="setting-info">
-                  <label class="setting-name" for="ai-enabled">Помощник ИИ</label>
-                  <div class="setting-desc">Чат в боковой панели и сочетание Ctrl / ⌘ J. Модель выбираете вы: на своём компьютере или в облаке</div>
+                  <label class="setting-name" for="ai-enabled">Чат с ИИ</label>
+                  <div class="setting-desc">Чат рядом с заметкой (на компьютере — Ctrl / ⌘ J, на телефоне — кнопка в нижней панели). Модель выбираете вы: на своём компьютере или в облаке</div>
                 </div>
                 <div class="setting-control">
                   <label class="setting-toggle">
                     <input type="checkbox" id="ai-enabled" checked />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="ai-thinking">Показывать мысли модели</label>
+                  <div class="setting-desc">Если модель умеет рассуждать, ход её мыслей виден над ответом. Выключите, чтобы модель отвечала сразу и быстрее</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="ai-thinking" checked />
                     <span class="setting-toggle-track" aria-hidden="true"></span>
                   </label>
                 </div>
@@ -624,6 +647,9 @@
                 </div>
                 <div class="setting-control">
                   <select id="ai-provider">
+                    <optgroup label="На телефоне" data-device>
+                      <option value="device">Модель на телефоне</option>
+                    </optgroup>
                     <optgroup label="На вашем компьютере">
                       <option value="ollama">Ollama</option>
                       <option value="lmstudio">LM Studio</option>
@@ -661,7 +687,14 @@
                   <button class="button-secondary" id="ai-key-clear" type="button" hidden>Удалить</button>
                 </div>
               </div>
-              <div class="setting-item">
+              <div class="setting-item" id="ai-row-device" hidden>
+                <div class="setting-info">
+                  <span class="setting-name">Модель на телефоне</span>
+                  <div class="setting-desc" id="ai-device-hint"></div>
+                </div>
+                <div class="setting-control" id="ai-device-list"></div>
+              </div>
+              <div class="setting-item" id="ai-row-model">
                 <div class="setting-info">
                   <label class="setting-name" for="ai-model-field">Модель</label>
                   <div class="setting-desc" id="ai-status" role="status"></div>
@@ -713,9 +746,14 @@
     <script src="liquid-glass/liquid-glass.js"></script>
     <script src="settings.js"></script>
     <script src="mobile.js"></script>
+    <script src="ai/ollama-api.js"></script>
+    <script src="ai/providers.js"></script>
+    <script src="ai/web-backend.js"></script>
     <script src="ai-setup.js"></script>
+    <script src="ai-device.js"></script>
     <script src="ai.js"></script>
     <script src="about.js"></script>
+    <script src="shortcuts.js"></script>
     <script src="live.js"></script>
   </body>
 </html>

@@ -41,7 +41,9 @@ window.insertMarkdown = function(start, end, placeholder = '', block = false) {
     editor.focus();
     const replacement = prefix + start + selected + end + suffix;
     // Chromium's editing command keeps toolbar actions in the native undo history.
-    if (!document.execCommand('insertText', false, replacement)) {
+    const before = editor.value;
+    if (!document.execCommand('insertText', false, replacement) || editor.value === before) {
+        editor.setSelectionRange(selectionStart, selectionEnd);
         editor.setRangeText(replacement, selectionStart, selectionEnd, 'end');
     }
     editor.setSelectionRange(selectionStart + prefix.length + start.length, selectionStart + prefix.length + start.length + selected.length);
@@ -86,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     new MutationObserver(syncMirror).observe(editor, { attributes: true, attributeFilter: ['style'] });
     new MutationObserver(() => { renderHighlight(); updatePreview(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-code-highlight'] });
     editor.addEventListener('scroll', syncMirror);
+
     const tabBar = document.querySelector('.tab-bar');
     const newTabButton = document.querySelector('.new-tab-button');
     let documents = [];
@@ -289,15 +292,70 @@ document.addEventListener('DOMContentLoaded', () => {
         saveTimer = setTimeout(persistWorkspace, 300);
     });
     ['click', 'keyup', 'select'].forEach(event => editor.addEventListener(event, updateCursor));
-    document.addEventListener('keydown', event => {
-        if (document.querySelector('.modal.show')) return;
-        if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
-        const actions = { KeyS: saveFile, KeyO: openFile, KeyN: addNewTab };
-        if (workspace.dataset.view !== 'preview') {
-            actions.KeyB = () => window.insertMarkdown(...markdownFormats.bold);
-            actions.KeyI = () => window.insertMarkdown(...markdownFormats.italic);
+    // Everything a shortcut can trigger. shortcuts.js owns the key bindings and calls these.
+    window.FgsActions = {
+        newDocument: addNewTab,
+        open: openFile,
+        save: saveFile,
+        closeTab: () => closeTab(activeDocumentIndex),
+        nextTab: () => switchTab((activeDocumentIndex + 1) % documents.length),
+        previousTab: () => switchTab((activeDocumentIndex - 1 + documents.length) % documents.length),
+        view: setView,
+        canFormat: () => workspace.dataset.view !== 'preview',
+        format: name => { if (window.FgsActions.canFormat() && markdownFormats[name]) window.insertMarkdown(...markdownFormats[name]); }
+    };
+
+    // Tab writes an indent instead of moving the focus; Shift+Tab takes one away. On a list line, or with several lines selected,
+    // whole lines move. Esc then Tab still leaves the field, so the keyboard is never trapped. (The live editor has its own Tab.)
+    let tabLeaves = false;
+    function shiftLines(outdent) {
+        const text = editor.value;
+        const size = Math.max(1, Math.min(8, parseInt(getComputedStyle(editor).tabSize, 10) || 4));
+        const start = editor.selectionStart, end = editor.selectionEnd;
+        const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+        const stop = end > start && text[end - 1] === '\n' ? end - 1 : end;
+        let blockEnd = text.indexOf('\n', stop);
+        if (blockEnd < 0) blockEnd = text.length;
+        const onList = /^\s*(?:[-+*]|\d+[.)])\s/.test(text.slice(lineStart, blockEnd));
+        const several = text.slice(start, end).includes('\n');
+        const replace = (from, to, value) => {
+            editor.focus();
+            editor.setSelectionRange(from, to);
+            const before = editor.value;
+            // The editing command keeps the browser's undo history; if it reports success but changes nothing (no focus), write directly.
+            if (!document.execCommand('insertText', false, value) || editor.value === before) { editor.setSelectionRange(from, to); editor.setRangeText(value, from, to, 'end'); }
+        };
+        if (!outdent && start === end && !onList) {
+            // Up to the next tab stop, as a code editor does.
+            const column = start - lineStart;
+            replace(start, end, ' '.repeat(size - (column % size)));
+        } else if (!(onList || several) && start === end) {
+            // Shift+Tab on a plain line: remove the spaces before the caret, if any.
+            const before = text.slice(lineStart, start);
+            const spaces = Math.min(size, (before.match(/ +$/) || [''])[0].length || (before.endsWith('\t') ? 1 : 0));
+            if (spaces) replace(start - spaces, start, '');
+        } else {
+            const lines = text.slice(lineStart, blockEnd).split('\n');
+            let first = 0, total = 0;
+            const changed = lines.map((line, index) => {
+                let delta;
+                if (!outdent) { delta = line.trim() ? size : 0; line = ' '.repeat(delta) + line; }
+                else { const removed = line.startsWith('\t') ? 1 : Math.min(size, (line.match(/^ */) || [''])[0].length); line = line.slice(removed); delta = -removed; }
+                if (index === 0) first = delta;
+                total += delta;
+                return line;
+            });
+            replace(lineStart, blockEnd, changed.join('\n'));
+            editor.setSelectionRange(Math.max(lineStart, start + first), Math.max(lineStart, end + total));
         }
-        if (actions[event.code]) { event.preventDefault(); actions[event.code](); }
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    editor.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { tabLeaves = true; return; }
+        if (event.key !== 'Tab' || event.metaKey || event.ctrlKey || event.altKey) { if (!['Shift', 'Tab'].includes(event.key)) tabLeaves = false; return; }
+        if (tabLeaves) { tabLeaves = false; return; }
+        event.preventDefault();
+        shiftLines(event.shiftKey);
     });
     window.addEventListener('beforeunload', () => { saveCurrentDocument(); persistWorkspace(); });
     newTabButton.addEventListener('click', addNewTab);
@@ -367,15 +425,15 @@ document.addEventListener('DOMContentLoaded', () => {
             '\\int_0^1 x^2\\,dx = \\frac{1}{3}',
             '$$',
             '',
-            '## Помощник',
+            '## Чат с ИИ',
             '',
-            'Выделите абзац и нажмите **Ctrl / ⌘ J**: помощник исправит ошибки, сократит, переведёт или продолжит текст. Он работает на вашем компьютере через Ollama, заметки никуда не уходят. Попробуйте на этой строке: *этот тект написан с ашибками*.',
+            'Выделите абзац и нажмите **Ctrl / ⌘ J**: чат исправит ошибки, сократит, переведёт или продолжит текст. Он работает на вашем компьютере через Ollama, заметки никуда не уходят. Попробуйте на этой строке: *этот тект написан с ашибками*.',
             '',
             '## Сочетания клавиш',
             '',
             '**Ctrl / ⌘ N** — новая вкладка  ',
             '**Ctrl / ⌘ S** — сохранить файл  ',
-            '**Ctrl / ⌘ J** — помощник',
+            '**Ctrl / ⌘ J** — чат с ИИ',
             '',
             'Черновики открытых вкладок сохраняются на этом устройстве автоматически.'
         ].join('\n');

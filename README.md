@@ -17,7 +17,7 @@ FgSNotes is a desktop Markdown editor built with Electron. The application combi
 - switch the interface and preview themes;
 - resize the editor and preview panels;
 - write formulas in LaTeX (`$E=mc^2$` inline, `$$ ... $$` as a block), typeset locally by KaTeX;
-- rewrite, fix, translate or continue text with an AI chat: a local model (Ollama, LM Studio) or your own key for OpenAI, Claude, Gemini, OpenRouter, Groq or a custom server (desktop).
+- rewrite, fix, translate or continue text with an AI chat: a local model (Ollama, LM Studio; desktop only) or your own key for OpenAI, Claude, Gemini, OpenRouter, Groq or a custom server.
 
 ## AI assistant
 
@@ -38,7 +38,12 @@ API keys are stored in the main process only, encrypted with the system keychain
 shown or sent back to the page. All requests go through the main process (`providers.js`, `ollama.js`), because a `file://` page cannot call these APIs (CORS).
 
 Ollama has a guided installer (download link, one-click start, model download with progress, a field for any model name).
-The assistant is desktop-only for now: a phone cannot reach `localhost`.
+**On a phone** (the Capacitor app) the assistant is a full-screen sheet opened from the sparkles button in the bottom bar (`src/ai/web-backend.js`). It works two ways:
+- **On the device**: small models run inside the app with transformers.js and ONNX Runtime Web (WebGPU when the phone has it, WebAssembly otherwise): Qwen 3.5 0.8B and 2B, Mistral Ministral 3 3B, Phi-3.5 mini. A model is downloaded once (0.5-2.7 GB), then works offline and the text never leaves the phone.
+  The engine (`device-engine/`, built by `npm run device:build`, which `npm run web:build` runs for you) is loaded only when a model is used. Not verified on real phones yet; the larger models need 6-8 GB of RAM.
+- **In the cloud**: OpenAI, Claude, Gemini, OpenRouter, Groq or an `https` server, with your own key (kept in the app's storage, without system encryption).
+
+Ollama and LM Studio are desktop-only: the phone does not connect to a computer over the network.
 
 ## Running from Source
 
@@ -78,16 +83,27 @@ npm run build:all       # all supported platforms
 
 The build commands use Electron Builder. Output is written to the `dist/` directory.
 
+macOS installers are named by architecture (`FgSNotes-<version>-arm64.dmg`, `FgSNotes-<version>-x64.dmg`). **On an Apple Silicon Mac (M1 and newer) install the `arm64` one.**
+The `x64` build runs there under Rosetta and starts several times slower; the app notices this and shows a one-time hint.
+
 ## Keyboard Shortcuts
 
-| Action       | macOS     | Windows/Linux |
-| ------------ | --------- | ------------- |
-| New document | `Cmd + N` | `Ctrl + N`    |
-| Open file    | `Cmd + O` | `Ctrl + O`    |
-| Save file    | `Cmd + S` | `Ctrl + S`    |
-| Bold text    | `Cmd + B` | `Ctrl + B`    |
-| Italic text  | `Cmd + I` | `Ctrl + I`    |
-| AI assistant | `Cmd + J` | `Ctrl + J`    |
+All shortcuts can be changed in Settings → Горячие клавиши: click a shortcut, press the new combination (Esc cancels, Backspace clears it).
+A shortcut taken by another action is moved to the new one, and the old action is left without one. Keys are matched by position, so shortcuts also work on a Russian layout.
+(On Windows and Linux `Cmd` below is `Ctrl`.)
+
+| Action | Default |
+| ------ | ------- |
+| New document / Open / Save | `Cmd N` / `Cmd O` / `Cmd S` |
+| Close tab / next / previous | `Cmd Alt W` / `Ctrl Tab` / `Ctrl Shift Tab` |
+| Bold / italic / underline / strikethrough | `Cmd B` / `Cmd I` / `Cmd U` / `Cmd Shift X` |
+| Heading / list / task list / quote | `Cmd Shift H` / `Cmd Shift L` / `Cmd Shift T` / `Cmd Shift .` |
+| Link / code block | `Cmd K` / `Cmd Shift E` |
+| Editor / Live / Side by side / Preview | `Cmd 1` / `Cmd 2` / `Cmd 3` / `Cmd 4` |
+| Settings / light-dark theme | `Cmd ,` / `Cmd Shift D` |
+| AI assistant | `Cmd J` |
+
+`Tab` and `Shift Tab` in the editor indent and outdent (the current line on a list, every selected line otherwise); `Esc`, then `Tab` leaves the field.
 
 ## Project Structure
 
@@ -106,6 +122,7 @@ src/resize.js           Panel resizing
 src/highlight.js        Syntax highlighting
 src/math.js             LaTeX formulas (KaTeX, src/vendor/katex)
 src/ai.js               AI assistant panel and its settings
+src/shortcuts.js        Keyboard shortcuts: actions, defaults, the settings editor
 src/about.js            About page, external links
 src/styles.css          Application styles
 tests/                  Automated tests

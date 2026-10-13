@@ -1,17 +1,18 @@
 /* FgSNotes site — the page is a desktop, sections are islands (same idea as the app). */
 :root {
-    --wall: #1e1e1e; --island: #292929; --island-2: #323232; --raised: #3d3d3d;
-    --text: #ececec; --muted: #a3a8ad; --line: #3d3d3d; --inset: #212121;
-    --accent: #21aabe; --accent-hi: #4cc5d7; --deep: #18628c; --mint: #91e48b; --on-accent: #08262e;
-    --radius: 12px; --radius-sm: 8px; --gap: 8px; --sx: clamp(20px, 4.5vw, 64px); --sy: clamp(36px, 5vw, 72px); --measure: 1200px;
-    --ui: 'Onest', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+    /* palette from alex-fgdev.ru and S.I.T Education: a deep green-black wall, darker cards, one teal accent */
+    --wall: #090c0a; --island: #111713; --island-2: #161d18; --raised: #1d2620;
+    --text: #f1f5ef; --muted: #98a398; --line: rgba(240, 255, 238, .13); --inset: #0c110e;
+    --accent: #21aabe; --accent-hi: #62c7d4; --deep: #18628c; --mint: #91e48b; --on-accent: #061316;
+    --radius: 14px; --radius-sm: 8px; --gap: 8px; --sx: clamp(20px, 4.5vw, 64px); --sy: clamp(36px, 5vw, 72px); --measure: 1200px;
+    --ui: 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --syn-keyword: #cf8e6d; --syn-string: #6aab73; --syn-number: #2aacb8; --syn-comment: #7a7e85; --syn-function: #56a8f5; --syn-type: #e0bb73; --syn-field: #c77dbb;
     color-scheme: dark;
 }
 :root[data-theme="light"] {
-    --wall: #e8ecf0; --island: #ffffff; --island-2: #f1f4f7; --raised: #e3e8ed; --inset: #f1f4f7;
-    --text: #161d23; --muted: #55616b; --line: #dde3e8; --mint: #2e8a3c; --accent: #157d8f; --accent-hi: #1b95a9; --on-accent: #ffffff;
+    --wall: #eef2e9; --island: #f8faf4; --island-2: #e8eee2; --raised: #dde5d6; --inset: #e4eade;
+    --text: #121713; --muted: #5e695f; --line: rgba(18, 23, 19, .13); --mint: #2e8a3c; --accent: #147889; --accent-hi: #147889; --on-accent: #ffffff;
     --syn-keyword: #0033b3; --syn-string: #067d17; --syn-number: #1750eb; --syn-comment: #8c8c8c; --syn-function: #00627a; --syn-type: #7a5a00; --syn-field: #871094;
     color-scheme: light;
 }
@@ -83,7 +84,7 @@ h3 { font-size: 21px; line-height: 1.25; letter-spacing: -.015em; font-weight: 6
 .cell p { color: var(--muted); font-size: 16px; max-width: 52ch; }
 .c-glass { grid-column: 1 / 8; grid-row: 1 / 3; padding-bottom: 0; }
 .c-glass .shot { margin: 16px calc(var(--pad) * -1) 0; border-radius: 8px 8px 0 0; flex: 1; min-height: 220px; position: relative; box-shadow: none; }
-.c-glass .shot img { position: absolute; inset: 0; width: 100%; height: 100% !important; object-fit: cover; object-position: 50% 30%; }
+.c-glass .shot img { position: absolute; inset: 0; width: 100%; height: 100% !important; object-fit: cover; object-position: 12% 30%; }
 .c-syntax { grid-column: 8 / 13; }
 .c-stack, .c-files, .c-keys { grid-column: span 4; min-height: 280px; }
 .fan { position: relative; height: 150px; margin-top: auto; }
@@ -126,7 +127,7 @@ pre.code { margin: 8px 0 0; padding: 16px 18px; border-radius: 8px; background: 
 .marquee { overflow-x: auto; scrollbar-width: none; cursor: grab; margin: 0 calc(var(--sx) * -1); }
 .marquee::-webkit-scrollbar { display: none; }
 .marquee.dragging { cursor: grabbing; user-select: none; }
-.track { display: flex; width: max-content; padding-left: max(var(--sx), calc((100vw - var(--measure)) / 2 - var(--gap))); }
+.track { display: flex; width: max-content; padding-left: var(--sx); }
 .tile { flex: none; width: clamp(240px, 21vw, 330px); margin-right: var(--gap); text-decoration: none; display: grid; gap: 12px; -webkit-user-drag: none; }
 .tile img { width: 100%; aspect-ratio: 8 / 5; object-fit: cover; border-radius: 8px; pointer-events: none; transition: transform .35s cubic-bezier(.3, .9, .3, 1); }
 .tile:hover img { transform: translateY(-4px); }
@@ -381,3 +382,37 @@ dialog.viewer img { width: 100%; height: auto; }
 
 .flat > .note, .island > .note { margin-inline: 0; }
 .dl .btn { padding: 0 16px; font-size: 15px; white-space: nowrap; }
+
+/* the features block: a little narrower than the other sections */
+.bento { width: min(calc(100% - 2 * clamp(0px, 3vw, 40px)), 1200px); margin-inline: auto; }
+@media (max-width: 720px) { .bento { width: 100%; } }
+
+/* Header after S.I.T Education: a transparent bar with the logo, a pill-shaped navigation capsule and round buttons; it gets a blurred background on scroll */
+.nav { top: 14px; left: 50%; right: auto; width: min(1240px, calc(100vw - 32px)); transform: translateX(-50%); transition: top .3s; }
+.nav.is-scrolled { top: 8px; }
+.nav-bar { padding: 0 10px 0 16px; height: 68px; gap: 10px; background: transparent; border: 1px solid transparent; border-radius: var(--radius); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; transition: background .3s, border-color .3s; }
+.nav.is-scrolled .nav-bar { background: color-mix(in srgb, var(--wall) 82%, transparent); border-color: var(--line); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.brand { gap: 14px; font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
+.brand img { width: 38px; height: 38px; border-radius: 10px; }
+.brand-sep { width: 1px; height: 26px; background: color-mix(in srgb, var(--text) 28%, transparent); }
+.nav-links { gap: 2px; padding: 5px; border: 1px solid var(--line); border-radius: 999px; background: color-mix(in srgb, var(--island) 80%, transparent); }
+.nav-links a { padding: 9px 15px; border-radius: 999px; font-size: 14.5px; font-weight: 600; }
+.nav-links a:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--text); }
+.nav-links a[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
+.nav .icon-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: color-mix(in srgb, var(--island) 80%, transparent); color: var(--text); }
+.nav .icon-btn:hover { border-color: color-mix(in srgb, var(--text) 28%, transparent); background: var(--island-2); }
+.nav .btn.small { border-radius: 999px; min-height: 44px; padding: 0 20px; }
+@media (max-width: 720px) {
+    .nav { width: calc(100vw - 16px); top: 8px; }
+    .nav-bar { height: 60px; padding: 0 8px 0 12px; }
+    .brand-sep { display: none; }
+    .nav-bar { background: color-mix(in srgb, var(--wall) 82%, transparent); border-color: var(--line); }
+}
+
+/* One shell for the header, the hero, the sections and the cards: the same left and right edge everywhere, centred */
+:root { --shell: min(calc(100vw - 32px), 1240px); }
+.page > .hero, .page > .flat, .page > .island, .page > .bento, .page > .foot { width: var(--shell); margin-inline: auto; }
+.hero > *, .flat > *, .island > * { width: auto; margin-inline: 0; }
+.bento { width: var(--shell); }
+.hero > .shot, .hero > .split-copy { min-width: 0; }
+@media (max-width: 720px) { :root { --shell: calc(100vw - 16px); } .page > .hero, .page > .flat, .page > .island, .page > .bento, .page > .foot { width: var(--shell); } }

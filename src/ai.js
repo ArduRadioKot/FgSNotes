@@ -1,11 +1,13 @@
-// Assistant: a chat that drops down over the editor. It talks to a local Ollama model (through the main process, see ollama.js),
-// can attach the selection or the whole note to a message, keeps its history, and writes answers back into the note.
+// Assistant: a chat next to the editor (a full-screen sheet on a phone). On desktop it talks to the models through the main process
+// (ollama.js, providers.js); in the phone app it calls the same providers from the web view (ai/web-backend.js).
+// It can attach the selection or the whole note to a message, keeps its history, and writes answers back into the note.
 (function () {
-    const api = window.electron;
-    if (!api || !api.aiChat) return;
+    const desktop = !!(window.electron && window.electron.aiChat);
+    const api = desktop ? window.electron : window.FgsAiWeb;
+    if (!api) return;
 
     const DEFAULT_URL = 'http://localhost:11434';
-    const MAX_CONTEXT = 12000;
+    const MAX_CONTEXT = 200000;          // characters of the note attached to a message: effectively no limit
     const HISTORY_LIMIT = 24;            // messages sent to the model with each request
     const STORE = 'fgsnotes.chats.v1';
     const SYSTEM = 'Ты встроенный помощник Markdown-редактора FgSNotes. Отвечай по-русски, если пользователь не пишет на другом языке. Когда просят изменить, исправить, перевести или продолжить текст, верни только готовый результат в Markdown, без вступлений и пояснений. Когда задают вопрос, отвечай кратко и по делу. Текст заметки передаётся между тегами <текст>.';
@@ -31,18 +33,31 @@
         gemini: { name: 'Google Gemini', key: true, modelKey: 'ai-model-gemini', keyLink: 'https://aistudio.google.com/apikey' },
         openrouter: { name: 'OpenRouter', key: true, modelKey: 'ai-model-openrouter', keyLink: 'https://openrouter.ai/keys' },
         groq: { name: 'Groq', key: true, modelKey: 'ai-model-groq', keyLink: 'https://console.groq.com/keys' },
+        device: { name: 'На телефоне', local: true, device: true, modelKey: 'ai-model-device' },
         custom: { name: 'Свой сервер', url: true, urlKey: 'ai-url-custom', urlDefault: '', modelKey: 'ai-model-custom', keyOptional: true, key: true }
     };
-    const providerId = () => (PROVIDERS[settings()['ai-provider']] ? settings()['ai-provider'] : 'ollama');
+    // A phone has no local models: they live on a computer, and the app does not reach into it. A saved Ollama/LM Studio choice
+    // (the same settings file can come from a computer) falls back to OpenAI there.
+    const providerId = () => {
+        const id = settings()['ai-provider'];
+        if (!PROVIDERS[id]) return desktop ? 'ollama' : 'openai';
+        if (desktop && PROVIDERS[id].device) return 'ollama';                       // on-device models exist only in the phone app
+        if (!desktop && PROVIDERS[id].local && !PROVIDERS[id].device) return 'openai';
+        return id;
+    };
     const cfg = () => PROVIDERS[providerId()];
     const serverUrl = () => cfg().url ? ((settings()[cfg().urlKey] || cfg().urlDefault || '').trim()) : '';
     const modelOf = () => (settings()[cfg().modelKey] || '').trim();
+    // The on-device models have short ids; the chat shows their names.
+    const modelLabel = () => { const id = modelOf(); const found = cfg().device && api.device && api.device.catalog.find(entry => entry.id === id); return found ? found.title : id; };
     const setModel = model => window.FgsSettings.update({ [cfg().modelKey]: model });
     let keyStatus = { keys: {}, secure: true };
     const refreshKeys = () => api.aiKeyStatus().then(status => { keyStatus = status; return status; }).catch(() => keyStatus);
     const hasKey = () => !!keyStatus.keys[providerId()];
-    const privacy = () => cfg().local ? `Текст остаётся на этом компьютере: работает ${cfg().name}.` : `Текст заметки отправляется в ${cfg().name}. Не прикрепляйте то, что не хотите отдавать провайдеру.`;
+    const privacy = () => cfg().device ? 'Текст не покидает телефон: модель работает прямо на устройстве, интернет не нужен.' : cfg().local ? `Текст остаётся на этом компьютере: работает ${cfg().name}.` : `Текст заметки отправляется в ${cfg().name}. Не прикрепляйте то, что не хотите отдавать провайдеру.`;
     const format = number => number.toLocaleString('ru-RU');
+    // Some models put their reasoning inline as <think>…</think>: split it from the answer.
+    const splitInline = raw => { let thinking = ''; const answer = raw.replace(/<think>([\s\S]*?)(?:<\/think>|$)\s*/g, (all, thought) => { thinking += thought; return ''; }).replace(/^\s+/, ''); return { thinking, answer }; };
     const stripThinking = text => text.replace(/<think>[\s\S]*?<\/think>\s*/g, '').replace(/<think>[\s\S]*$/, '').replace(/^\s+/, '');
     // Answers are rendered from model output: images are dropped so a prompt-injected reply cannot make the app load remote URLs.
 const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g, '$1');
@@ -50,6 +65,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     const snippetOf = (text, length = 120) => { const flat = text.replace(/\s+/g, ' ').trim(); return flat.length > length ? flat.slice(0, length) + '…' : flat; };
 
     let panel, editor, chats, chat, running = null, unsubscribe = null;
+    let editing = -1;                   // index of the message being edited
     let ctxMode = 'auto';               // auto: the selection if there is one; note: the whole note; none: nothing
 
     // --- history ----------------------------------------------------------------------------------
@@ -156,13 +172,13 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         panel.className = 'ai-panel';
         panel.id = 'ai-panel';
         panel.setAttribute('role', 'dialog');
-        panel.setAttribute('aria-label', 'Чат с помощником');
+        panel.setAttribute('aria-label', 'Чат');
         panel.hidden = true;
         panel.innerHTML = `
             <header class="ai-head">
                 <span class="ai-avatar" aria-hidden="true">${icon('sparkles')}</span>
                 <div class="ai-heading">
-                    <strong class="ai-title">Помощник</strong>
+                    <strong class="ai-title">Чат</strong>
                     <button type="button" class="ai-model" title="Сменить модель"><span class="ai-model-name"></span></button>
                 </div>
                 <button type="button" class="icon-button" data-head="history" aria-label="История чатов" title="История чатов">${icon('history')}</button>
@@ -180,7 +196,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             <div class="ai-composer">
                 <div class="ai-attach"></div>
                 <form class="ai-form">
-                    <textarea rows="1" placeholder="Спросите о тексте или попросите его изменить" aria-label="Сообщение помощнику" spellcheck="true"></textarea>
+                    <textarea rows="1" placeholder="Спросите о тексте или попросите его изменить" aria-label="Сообщение в чат" spellcheck="true"></textarea>
                     <button type="submit" class="ai-send icon-button" aria-label="Отправить">${icon('send')}</button>
                 </form>
             </div>`;
@@ -224,6 +240,17 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             const link = event.target.closest('[data-setup-link]');
             if (link) setup();
         });
+        // Remember whether the person opened or folded the model's thoughts (only their own clicks count, not the automatic fold).
+        $('.ai-scroll', panel).addEventListener('click', event => {
+            const summary = event.target.closest('.ai-think summary');
+            const message = summary && chat.messages[Number(summary.parentElement.dataset.index)];
+            if (message) message.thinkOpen = !summary.parentElement.open;       // the click is about to flip it
+        });
+        $('.ai-scroll', panel).addEventListener('keydown', event => {
+            if (!event.target.matches('.ai-edit textarea')) return;
+            if (event.key === 'Escape') { event.stopPropagation(); messageAction(editing, 'edit-cancel'); }
+            else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); messageAction(editing, 'edit-save'); }
+        });
         $('.ai-history', panel).addEventListener('click', event => {
             const remove = event.target.closest('[data-delete]');
             if (remove) { chats = chats.filter(item => item.id !== remove.dataset.delete); if (chat.id === remove.dataset.delete) newChat(); saveChats(); renderHistory(); render(); return; }
@@ -231,6 +258,11 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             if (open && !running) { chat = chats.find(item => item.id === open.dataset.open) || chat; ctxMode = 'none'; showHistory(false); render(); }
         });
         $('.ai-attach', panel).addEventListener('click', event => {
+            if (event.target.closest('[data-think]')) {
+                window.FgsSettings.update({ 'ai-thinking': settings()['ai-thinking'] === 'off' ? 'on' : 'off' });
+                renderAttach();
+                return;
+            }
             const button = event.target.closest('[data-attach]');
             if (!button) return;
             ctxMode = button.dataset.attach;
@@ -260,15 +292,23 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     function renderAttach() {
         const holder = $('.ai-attach', panel);
         const context = pendingContext();
-        if (context) holder.innerHTML = `<span class="ai-chip-ctx"><span class="ai-chip-text"><b>${context.label}</b> ${escapeHtml(snippetOf(context.text, 70))}</span><button type="button" data-attach="none" aria-label="Не прикреплять" title="Не прикреплять">${icon('close')}</button></span>`;
-        else holder.innerHTML = `<button type="button" class="ai-add" data-attach="note">${icon('plus')}<span>Вся заметка</span></button>`;
+        const thinking = settings()['ai-thinking'] !== 'off';
+        const toggle = `<button type="button" class="ai-think-toggle${thinking ? ' is-on' : ''}" data-think aria-pressed="${thinking}" title="${thinking ? 'Модель рассуждает перед ответом: ход мыслей виден. Нажмите, чтобы отключить' : 'Рассуждения выключены: модель отвечает сразу. Нажмите, чтобы включить'}">${icon('bulb')}<span>Мысли${thinking ? '' : ': выкл'}</span></button>`;
+        if (context) holder.innerHTML = `<span class="ai-chip-ctx"><span class="ai-chip-text"><b>${context.label}</b> ${escapeHtml(snippetOf(context.text, 70))}</span><button type="button" data-attach="none" aria-label="Не прикреплять" title="Не прикреплять">${icon('close')}</button></span>${toggle}`;
+        else holder.innerHTML = `<button type="button" class="ai-add" data-attach="note">${icon('plus')}<span>Вся заметка</span></button>${toggle}`;
     }
     const escapeHtml = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+    // "Думает…" with three dots that light up one after another, side by side.
+    const WAITING = 'Думает<span class="ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
     function messageHtml(message, index) {
         if (message.role === 'user') {
+            if (editing === index) {
+                return `<div class="ai-msg is-user"><div class="ai-edit"><textarea rows="3" aria-label="Изменить сообщение">${escapeHtml(message.content)}</textarea><div class="ai-edit-actions"><button type="button" class="button-secondary" data-msg="edit-cancel" data-index="${index}">Отмена</button><button type="button" class="button-primary" data-msg="edit-save" data-index="${index}">Отправить заново</button></div></div></div>`;
+            }
             const ctx = message.ctx ? `<div class="ai-ctx-card"><b>${message.ctx.label}</b><span>${escapeHtml(snippetOf(message.ctx.text, 160))}</span></div>` : '';
-            return `<div class="ai-msg is-user">${ctx}<div class="ai-bubble">${escapeHtml(message.label || message.content)}</div></div>`;
+            const edit = running ? '' : `<button type="button" class="ai-edit-button" data-msg="edit" data-index="${index}" aria-label="Изменить сообщение" title="Изменить и отправить заново">${icon('edit')}</button>`;
+            return `<div class="ai-msg is-user">${ctx}<div class="ai-bubble-row">${edit}<div class="ai-bubble">${escapeHtml(message.label || message.content)}</div></div></div>`;
         }
         const last = index === chat.messages.length - 1;
         const done = !(running && last);
@@ -281,21 +321,26 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             <button type="button" data-msg="insert" data-index="${index}">Вставить</button>
             <button type="button" data-msg="copy" data-index="${index}">Копировать</button>
             ${last ? `<button type="button" data-msg="retry" data-index="${index}">Ещё раз</button>` : ''}</div>` : '';
-        const waiting = !done && !message.content ? ' is-waiting' : '';
-        return `<div class="ai-msg is-ai"><div class="ai-bubble md${waiting}">${body}</div>${error}${actions}</div>`;
+        const waiting = !done && !message.content && !message.thinking ? ' is-waiting' : '';
+        // Reasoning: open while the model is still thinking, folded once the answer starts (unless the person toggled it).
+        const thinkingNow = !done && !message.content;
+        const open = message.thinkOpen !== undefined ? message.thinkOpen : thinkingNow;
+        const thoughts = message.thinking ? `<details class="ai-think" data-index="${index}"${open ? ' open' : ''}><summary>${thinkingNow ? WAITING : 'Мысли модели'}</summary><div class="ai-think-body">${escapeHtml(message.thinking.trim())}</div></details>` : '';
+        const bubble = body || waiting || !message.thinking ? `<div class="ai-bubble md${waiting}">${waiting ? WAITING : body}</div>` : '';
+        return `<div class="ai-msg is-ai">${thoughts}${bubble}${error}${actions}</div>`;
     }
     function render() {
         const scroll = $('.ai-scroll', panel);
-        $('.ai-title', panel).textContent = chat.messages.length ? chat.title : 'Помощник';
+        $('.ai-title', panel).textContent = chat.messages.length ? chat.title : 'Чат';
         if (!chat.messages.length) {
-            scroll.innerHTML = `<div class="ai-empty"><h3>Чем помочь?</h3><p>Выделите текст и нажмите ${isMac() ? '⌘' : 'Ctrl'} J — он прикрепится к сообщению. Или выберите действие.</p><div class="ai-chips">${ACTIONS.map(action => `<button type="button" class="ai-chip" data-action="${action.id}">${action.label}</button>`).join('')}</div><p class="ai-privacy${cfg().local ? '' : ' is-cloud'}">${escapeHtml(privacy())}</p></div>`;
+            scroll.innerHTML = `<div class="ai-empty"><h3>Чем помочь?</h3><p>${desktop ? `Выделите текст и нажмите ${isMac() ? '⌘' : 'Ctrl'} J` : 'Выделите текст в заметке'} — он прикрепится к сообщению. Или выберите действие.</p><div class="ai-chips">${ACTIONS.map(action => `<button type="button" class="ai-chip" data-action="${action.id}">${action.label}</button>`).join('')}</div><p class="ai-privacy${cfg().local ? '' : ' is-cloud'}">${escapeHtml(privacy())}</p></div>`;
         } else {
             scroll.innerHTML = chat.messages.map(messageHtml).join('');
             if (window.renderMath) window.renderMath(scroll);
             scroll.scrollTop = scroll.scrollHeight;
         }
         renderAttach();
-        $('.ai-model-name', panel).textContent = (cfg().local && providerId() === 'ollama' ? '' : cfg().name + ' · ') + (modelOf() || 'модель не выбрана');
+        $('.ai-model-name', panel).textContent = (providerId() === 'ollama' ? '' : cfg().name + ' · ') + (modelLabel() || 'модель не выбрана');
     }
     const isMac = () => /Mac/i.test(navigator.platform);
 
@@ -332,9 +377,14 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             const [found, install] = await Promise.all([api.aiModels({ provider: 'ollama', url: serverUrl() }), api.aiDetect()]);
             ready = found.ok && found.models.length > 0;
             [title, text] = !install.installed && !found.ok ? ['Ollama не установлена', 'Нужна бесплатная программа Ollama: она запускает модели на вашем компьютере. Установка займёт пару минут.']
-                : !found.ok ? ['Ollama не запущена', 'Ollama установлена, но не работает. Запустите её, и помощник заработает.']
+                : !found.ok ? ['Ollama не запущена', 'Ollama установлена, но не работает. Запустите её, и чат заработает.']
                 : ['Нет ни одной модели', 'Ollama работает, но модель ещё не скачана. Выберите её в настройке.'];
             button = 'Настроить Ollama';
+        } else if (cfg().device) {
+            const have = api.device ? api.device.ready() : {};
+            ready = !!have[modelOf()] || Object.keys(have).length > 0;
+            [title, text] = ['Модель не скачана', 'Скачайте небольшую модель: она будет работать прямо на телефоне, без интернета и без отправки текста.'];
+            button = 'Открыть настройки';
         } else {
             const needKey = cfg().key && !cfg().keyOptional;
             ready = (!needKey || hasKey()) && (!cfg().url || !!serverUrl());
@@ -354,8 +404,10 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     }
     // Ollama has a guided installer; the other providers are configured in the settings.
     function setup() {
-        if (providerId() !== 'ollama') { if (window.FgsSettings) window.FgsSettings.open('ai'); return; }
-        if (!window.FgsAiSetup) return;
+        if (providerId() !== 'ollama') { if (!desktop) close(); if (window.FgsSettings) window.FgsSettings.open('ai'); return; }
+        // The guided installer is for the computer; on a phone Ollama is reached over the network, so the settings are the place.
+        // On a phone the chat is a full-screen sheet over the app: close it first, or the settings would open underneath.
+        if (!window.FgsAiSetup || !desktop) { if (!desktop) close(); if (window.FgsSettings) window.FgsSettings.open('ai'); return; }
         window.FgsAiSetup.open({ onDone: () => { checkConnection().then(() => { render(); if (!panel.hidden) input().focus(); }); } });
     }
     // Ollama: the saved model may have been removed, so fall back to an installed one. Others: the saved model, or the first of a local server.
@@ -366,6 +418,13 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             if (!found.models.length) throw new Error('В Ollama нет моделей.');
             let model = modelOf();
             if (!model || !found.models.includes(model)) { model = found.models[0]; setModel(model); }
+            return model;
+        }
+        if (cfg().device) {
+            const have = api.device.ready();
+            let model = modelOf();
+            if (!have[model]) { model = Object.keys(have)[0]; if (model) setModel(model); }
+            if (!model) throw new Error('Модель не скачана. Откройте Настройки → ИИ и скачайте её.');
             return model;
         }
         let model = modelOf();
@@ -400,35 +459,41 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     }
     async function run() {
         const id = uid();
-        chat.messages.push({ role: 'assistant', content: '' });
+        chat.messages.push({ role: 'assistant', content: '', thinking: '' });
         const message = chat.messages.at(-1);
         const request = modelMessages();
         chat.updated = Date.now();
         setRunning(id);
         render();
-        let raw = '';
+        let raw = '', channel = '';
         let frame = 0;
-        const bubble = () => $('.ai-msg:last-child .ai-bubble', panel);
         const draw = () => {
             frame = 0;
-            const node = bubble();
-            if (!node) return;
-            node.classList.remove('is-waiting');
-            node.innerHTML = md(message.content);
-            if (window.renderMath) window.renderMath(node);
             const scroll = $('.ai-scroll', panel);
-            scroll.scrollTop = scroll.scrollHeight;
+            const node = scroll.lastElementChild;
+            if (!node || !node.classList.contains('is-ai')) return;
+            const stick = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 80;
+            node.outerHTML = messageHtml(message, chat.messages.length - 1);
+            if (window.renderMath) window.renderMath(scroll.lastElementChild);
+            if (stick) scroll.scrollTop = scroll.scrollHeight;
+        };
+        const update = () => {
+            const split = splitInline(raw);
+            // Small models sometimes echo the <текст> wrapper the request used: it is not part of the answer.
+            message.content = split.answer.replace(/^\s*<текст>\s*/, '').replace(/\s*<\/текст>\s*$/, '');
+            message.thinking = channel + split.thinking;
+            if (!frame) frame = requestAnimationFrame(draw);
         };
         unsubscribe && unsubscribe();
         unsubscribe = api.onAiChunk(chunk => {
-            if (chunk.id !== id || !chunk.delta) return;
-            raw += chunk.delta;
-            message.content = stripThinking(raw);
-            if (message.content && !frame) frame = requestAnimationFrame(draw);
+            if (chunk.id !== id) return;
+            if (typeof chunk.thinking === 'string') channel += chunk.thinking;
+            if (chunk.delta) raw += chunk.delta;
+            if (chunk.thinking || chunk.delta) update();
         });
         try {
             const model = await ensureModel();
-            const result = await api.aiChat({ id, provider: providerId(), url: serverUrl(), model, messages: request });
+            const result = await api.aiChat({ id, provider: providerId(), url: serverUrl(), model, messages: request, think: settings()['ai-thinking'] !== 'off' });
             if (!result.ok && !result.aborted) throw new Error(result.error);
         } catch (error) {
             message.error = error.message;
@@ -436,7 +501,8 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             unsubscribe && unsubscribe();
             unsubscribe = null;
             if (frame) cancelAnimationFrame(frame);
-            if (!message.content && !message.error) chat.messages.pop();      // stopped before the first word
+            if (!message.content && !message.thinking && !message.error) chat.messages.pop();      // stopped before the first word
+            if (!message.thinking) delete message.thinking;
             setRunning(null);
             chat.updated = Date.now();
             saveChats();
@@ -446,6 +512,27 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     function stop() { if (running) api.aiAbort(running); }
 
     function messageAction(index, kind) {
+        if (kind === 'edit') {
+            if (running) return;
+            editing = index;
+            render();
+            const field = $('.ai-edit textarea', panel);
+            if (field) { field.focus(); field.setSelectionRange(field.value.length, field.value.length); field.style.height = field.scrollHeight + 'px'; }
+            return;
+        }
+        if (kind === 'edit-cancel') { editing = -1; render(); return; }
+        if (kind === 'edit-save') {
+            const field = $('.ai-edit textarea', panel);
+            const text = field && field.value.trim();
+            if (!text || running || !chat.messages[index]) return;
+            // Everything after the edited message belonged to the old wording: drop it and ask again.
+            chat.messages.length = index + 1;
+            Object.assign(chat.messages[index], { content: text, label: '' });
+            editing = -1;
+            chat.updated = Date.now();
+            run();
+            return;
+        }
         const message = chat.messages[index];
         if (!message || !message.content) return;
         if (kind === 'retry') {
@@ -523,17 +610,22 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         $('#ai-privacy').textContent = privacy();
         $('#ai-privacy').classList.toggle('is-cloud', !info.local);
         $('#ai-row-url').hidden = !info.url;
-        $('#ai-url-hint').textContent = id === 'ollama' ? 'По умолчанию сервер слушает http://localhost:11434' : id === 'lmstudio' ? 'Включите локальный сервер в LM Studio (по умолчанию http://localhost:1234/v1)' : 'Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI';
+        $('#ai-url-hint').textContent = id === 'ollama' ? 'По умолчанию сервер слушает http://localhost:11434' : id === 'lmstudio' ? 'Включите локальный сервер в LM Studio (по умолчанию http://localhost:1234/v1)' : (desktop ? 'Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI' : 'Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI. Работает только https');
         $('#ai-url-field').placeholder = info.urlDefault || 'https://example.com/v1';
         $('#ai-url-field').value = settings()[info.urlKey] || (id === 'custom' ? '' : info.urlDefault);
+        $('#ai-provider').value = id;
+        const onDevice = !!info.device;
+        $('#ai-row-device').hidden = !onDevice;
+        $('#ai-row-model').hidden = onDevice;
+        if (onDevice && window.FgsDeviceUI) window.FgsDeviceUI.mount($('#ai-device-list'), $('#ai-device-hint'));
         $('#ai-row-key').hidden = !info.key;
         $('#ai-row-wizard').hidden = !info.wizard;
         $('#ai-model-field').value = modelOf();
         const has = hasKey();
-        $('#ai-key-status').textContent = has ? (keyStatus.secure ? 'Ключ сохранён и зашифрован системой. Показать его нельзя.' : 'Ключ сохранён на этом компьютере в обычном файле: системного шифрования здесь нет.') : (info.keyOptional ? 'Необязательно: нужен, только если сервер просит ключ.' : 'Ключ хранится только на этом компьютере.');
+        $('#ai-key-status').textContent = has ? (keyStatus.secure ? 'Ключ сохранён и зашифрован системой. Показать его нельзя.' : desktop ? 'Ключ сохранён на этом компьютере в обычном файле: системного шифрования здесь нет.' : 'Ключ сохранён внутри приложения, другие программы его не видят. Системного шифрования на телефоне здесь нет.') : (info.keyOptional ? 'Необязательно: нужен, только если сервер просит ключ.' : 'Ключ хранится только на этом компьютере.');
         $('#ai-key-clear').hidden = !has;
         $('#ai-key-field').placeholder = has ? 'Ключ сохранён — вставьте новый, чтобы заменить' : 'Вставьте ключ';
-        $('#ai-note').innerHTML = info.keyLink ? `Ключ можно получить на <a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>. Оплату запросов ведёт сам провайдер.` : id === 'ollama' ? 'Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.' : '';
+        $('#ai-note').innerHTML = onDevice ? 'Модели работают на процессоре или графическом ускорителе телефона. Маленькие модели хороши для коротких правок и ошибаются в сложных задачах. Не закрывайте приложение, пока идёт скачивание.' : info.keyLink ? `Ключ можно получить на <a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>. Оплату запросов ведёт сам провайдер.` : id === 'ollama' ? 'Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.' : '';
     }
     async function refreshModels() {
         const status = $('#ai-status'), list = $('#ai-model-list');
@@ -541,6 +633,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         const mine = ++loadId, id = providerId();
         await refreshKeys();
         syncProviderUI();
+        if (cfg().device) { status.textContent = ''; list.replaceChildren(); return; }
         status.className = 'setting-desc';
         list.replaceChildren();
         if (cfg().key && !cfg().keyOptional && !hasKey()) { status.textContent = 'Сначала сохраните ключ API.'; return; }
@@ -561,9 +654,11 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     document.addEventListener('DOMContentLoaded', () => {
         editor = $('#markdown-editor');
         $('#ai-button').addEventListener('click', () => { if (!panel || panel.hidden) open(); else close(); });
-        document.addEventListener('keydown', event => {
-            if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'j') { event.preventDefault(); hotkey(); }
-        });
+        // The shortcut that opens the chat is set in shortcuts.js; it calls this.
+        window.FgsAssistant = { toggle: hotkey };
+        // Each platform shows only what it can run: models on the phone, or the programs on the computer.
+        const group = document.querySelector(desktop ? '#ai-provider optgroup[data-device]' : '#ai-provider optgroup[label^="На вашем"]');
+        if (group) group.remove();
         $('#ai-url-field').addEventListener('change', () => {
             const value = $('#ai-url-field').value.trim();
             window.FgsSettings.update({ [cfg().urlKey]: value || cfg().urlDefault || '' });
@@ -588,14 +683,18 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         }, 0));
         $('.settings-nav-item[data-settings-section="ai"]').addEventListener('click', refreshModels);
         window.addEventListener('fgs-settings', () => {
+            if (panel) renderAttach();
             if (document.documentElement.dataset.ai !== 'on') close();
-            // A different provider was picked: show its fields and look at its models.
-            if (shownProvider !== null && shownProvider !== providerId()) {
-                shownProvider = providerId();
-                refreshModels();
+            // A different provider was picked: show its fields and look at its models (the first event, at start-up, only records it).
+            const now = providerId();
+            if (shownProvider !== now) {
+                const left = shownProvider;
+                shownProvider = now;
+                if (left === 'device' && api.device) api.device.unload();
+                const settingsOpen = document.getElementById('settings-modal').classList.contains('show');
+                if (settingsOpen) refreshModels();
                 if (panel && !panel.hidden) checkConnection().then(() => render());
             }
-            shownProvider = providerId();
         });
         syncProviderUI();
     });
