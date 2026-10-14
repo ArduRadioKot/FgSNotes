@@ -29,7 +29,7 @@
             } else if (downloaded) {
                 side = `<span class="dev-badge">Скачана</span><button type="button" class="dev-button is-quiet" data-act="remove" data-id="${model.id}">${state.armed === model.id ? 'Точно удалить?' : 'Удалить'}</button>`;
             } else if (!choice) {
-                side = '<span class="dev-badge is-muted">Нужен WebGPU</span>';
+                side = `<span class="dev-badge is-muted">${caps.native ? 'Мало памяти' : 'Нужен WebGPU'}</span>`;
             } else {
                 side = `<button type="button" class="dev-button" data-act="download" data-id="${model.id}" ${state.busy ? 'disabled' : ''}>Скачать · ${size(bytes)}</button>`;
             }
@@ -43,7 +43,7 @@
         host.innerHTML = `<div class="dev-models" role="radiogroup" aria-label="Модели на телефоне">${cards.join('')}</div>`;
         if (hint) {
             const free = storage ? ` Свободно на устройстве: ${size(storage.free)}.` : '';
-            hint.textContent = (caps.backend === 'webgpu' ? 'Телефон считает на графическом процессоре (WebGPU): ответы быстрые.' : 'Графического ускорения нет: модель считает на процессоре, ответы будут медленнее.')
+            hint.textContent = (caps.backend === 'webgpu' || caps.backend === 'metal' ? 'Телефон считает на графическом процессоре: ответы быстрые.' : 'Графического ускорения нет: модель считает на процессоре, ответы будут медленнее.')
                 + ' Модель скачивается один раз, потом работает без интернета.' + free;
         }
     }

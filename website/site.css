@@ -98,6 +98,16 @@ h3 { font-size: 21px; line-height: 1.25; letter-spacing: -.015em; font-weight: 6
 .files span { font: 500 13px var(--mono); padding: 8px 12px; border-radius: 8px; background: var(--inset); color: var(--muted); }
 kbd { font: 500 13px var(--mono); padding: 3px 8px; border-radius: 6px; background: var(--inset); color: var(--text); }
 .c-tabs { grid-column: 8 / 13; }
+.c-cells { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(20px, 3vw, 40px); align-items: center; }
+.c-cells p + p { margin-top: 10px; }
+.c-cells code:not(pre code) { padding: 1px 6px; border-radius: 4px; background: var(--inset); font: 400 .9em var(--mono); }
+.nbm { display: grid; gap: 0; min-width: 0; }
+.nbm > div { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: start; gap: 4px; background: var(--inset); }
+.nbm pre.code { margin: 0; padding: 14px 16px 14px 0; background: transparent; }
+.nbm-in { border-radius: 8px 8px 0 0; }
+.nbm-out { border-radius: 0 0 8px 8px; border-top: 1px solid var(--island); }
+.nbm-n { padding: 14px 0 0 10px; color: var(--muted); font: 400 12px var(--mono); }
+.nbm-val { color: var(--accent); }
 pre.code { margin: 8px 0 0; padding: 16px 18px; border-radius: 8px; background: var(--inset); font: 400 13.5px/1.65 var(--mono); overflow: auto; color: var(--text); }
 .tk { color: var(--syn-keyword); } .ts { color: var(--syn-string); } .tn { color: var(--syn-number); } .tc { color: var(--syn-comment); font-style: italic; } .tf { color: var(--syn-function); } .tt { color: var(--syn-type); }
 .minidoc { position: relative; min-height: 150px; margin-top: 4px; border-radius: 8px; background: var(--inset); overflow: hidden; }
@@ -206,6 +216,7 @@ dialog.viewer img { width: 100%; height: auto; }
 
 @media (max-width: 960px) {
     .c-glass, .c-syntax, .c-tabs, .c-stack, .c-files, .c-keys { grid-column: 1 / -1; grid-row: auto; }
+    .c-cells { grid-template-columns: minmax(0, 1fr); }
     .dl-grid { grid-template-columns: minmax(0, 1fr); }
     .docs { grid-template-columns: minmax(0, 1fr); padding-top: 16px; }
     .toc { position: static; grid-auto-flow: column; overflow-x: auto; scrollbar-width: none; }

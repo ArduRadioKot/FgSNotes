@@ -1,0 +1,14 @@
+{
+  "name": "fgs-llama",
+  "version": "1.0.0",
+  "description": "On-device language models for FgSNotes: llama.cpp (GGUF) with Metal on iPhone",
+  "private": true,
+  "files": ["ios/Sources", "Package.swift"],
+  "keywords": ["capacitor", "plugin", "native"],
+  "capacitor": {
+    "ios": { "src": "ios" }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

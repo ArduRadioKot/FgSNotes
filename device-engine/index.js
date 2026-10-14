@@ -13,6 +13,8 @@ const gpu = typeof navigator !== 'undefined' && !!navigator.gpu;
 const flavour = gpu ? '.asyncify' : '';
 env.backends.onnx.wasm.wasmPaths = { mjs: `vendor/ort/ort-wasm-simd-threaded${flavour}.mjs`, wasm: `vendor/ort/ort-wasm-simd-threaded${flavour}.wasm` };
 
+env.backends.onnx.wasm.numThreads = 1;                 // threads need SharedArrayBuffer, which a web view does not give; one thread avoids a second heap
+
 let current = null;                                   // { key, tokenizer, model }
 
 async function adapter() {
@@ -123,6 +125,29 @@ async function prefetch({ repo, dtype }, onProgress) {
     }
 }
 
+// The small files of a model (config, tokenizer, the graph next to the weights) go into the cache the ordinary way.
+const WANTED = /^(config|generation_config|tokenizer|tokenizer_config|special_tokens_map|added_tokens|vocab|chat_template|preprocessor_config|processor_config)\.(json|jinja)$|^(merges\.txt|tokenizer\.model|vocab\.txt)$/;
+async function prefetchSmall({ repo, dtype }, cache) {
+    const base = `https://huggingface.co/${repo}/resolve/main/`;
+    const suffix = SUFFIX[dtype] ?? '';
+    const list = async path => { const r = await fetch(`https://huggingface.co/api/models/${repo}/tree/main${path}`); return r.ok ? r.json() : []; };
+    const top = (await list('')).filter(item => item.type === 'file' && item.size < BIG_FILE && WANTED.test(item.path));
+    const graph = (await list('/onnx')).filter(item => item.type === 'file' && item.size < BIG_FILE && new RegExp(`/(?:[\\w.]+)${suffix}\\.onnx$`).test(item.path));
+    for (const item of [...top, ...graph]) {
+        if (await cache.match(base + item.path)) continue;
+        const response = await fetch(base + item.path);
+        if (response.ok) await cache.put(base + item.path, response);
+    }
+}
+// Downloads everything a model needs into the cache without starting it: starting is what needs the memory, and a phone
+// that cannot hold the weights twice would be killed in the middle of the download.
+async function download({ repo, dtype }, onProgress) {
+    const cache = await useCache();
+    if (!cache) throw new Error('Хранилище браузера недоступно');
+    await prefetch({ repo, dtype }, ({ loaded, total }) => onProgress({ loaded, total }));
+    await prefetchSmall({ repo, dtype }, cache);
+}
+
 // repo: Hugging Face repository; returns when the weights are downloaded and the model is ready to answer.
 async function load({ repo, dtype, backend, family = 'causal' }, onProgress) {
     const key = `${repo}|${dtype}|${backend}`;
@@ -140,7 +165,9 @@ async function load({ repo, dtype, backend, family = 'causal' }, onProgress) {
         }
     };
     const tokenizer = await AutoTokenizer.from_pretrained(repo, { progress_callback: progress });
-    const model = await FAMILIES[family].from_pretrained(repo, { dtype, device: backend, progress_callback: progress });
+    // On the CPU build every extra copy of the weights counts: no arena, no memory patterns, only the cheap graph optimisations.
+    const lean = backend === 'wasm' ? { session_options: { enableCpuMemArena: false, enableMemPattern: false, graphOptimizationLevel: 'basic' } } : {};
+    const model = await FAMILIES[family].from_pretrained(repo, { dtype, device: backend, progress_callback: progress, ...lean });
     current = { key, tokenizer, model };
     return current;
 }
@@ -169,4 +196,4 @@ async function purge(repo) {
     for (const request of await cache.keys()) if (request.url.includes('/' + repo + '/')) await cache.delete(request);
 }
 
-window.FgsDeviceEngine = { capabilities, load, unload, generate, purge };
+window.FgsDeviceEngine = { capabilities, load, unload, generate, purge, download, loaded: () => !!current };

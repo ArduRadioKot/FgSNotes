@@ -58,6 +58,21 @@
     <div class="pane"><b># Идеи</b><span>Тема «Закат» для вечернего письма</span><span>Экспорт в PDF одной кнопкой</span><span>Режим фокуса без панелей</span></div>
    </div>
   </article>
+  <article class="island cell c-cells">
+   <div class="cells-copy">
+    <h3>Запускаемый JavaScript прямо в заметке</h3>
+    <p>Блок <code>js-cell</code> работает как ячейка в Jupyter: запустите его, и результат появится в таком же блоке сразу под кодом. Ничего подключать не нужно: код выполняется на JavaScript в отдельном потоке, а переменные живут между ячейками одной заметки.</p>
+    <p>Обычный блок кода остаётся просто примером. Запуск: <kbd>Shift Enter</kbd>, вставка ячейки: <kbd>Ctrl / ⌘ Shift R</kbd>. Работает и на телефоне.</p>
+   </div>
+   <div class="nbm" aria-label="Пример ячейки с результатом под ней">
+    <div class="nbm-in"><span class="nbm-n">[1]</span><pre class="code"><code><span class="tk">const</span> prices = [<span class="tn">120</span>, <span class="tn">340</span>, <span class="tn">95</span>];
+<span class="tk">const</span> total = prices.<span class="tf">reduce</span>((a, b) =&gt; a + b);
+console.<span class="tf">log</span>(<span class="ts">`Итого: ${total}`</span>);
+total / prices.length</code></pre></div>
+    <div class="nbm-out"><span class="nbm-n">[1]</span><pre class="code"><code>Итого: 555
+<span class="nbm-val">185</span></code></pre></div>
+   </div>
+  </article>
   <article class="island cell c-stack">
    <h3>22 готовых тем</h3>
    <p>Dracula, Nord, GitHub, Solarized и другие. Своя тема — один файл.</p>
@@ -122,7 +137,8 @@
  <ul class="ticks cols">
   <li><b>Тот же Markdown.</b> Заголовки, списки, таблицы, код и формулы LaTeX выглядят так же, как на компьютере.</li>
   <li><b>Свой акцент и темы.</b> Выберите цвет, переключайте тёмную и светлую тему, добавляйте свои CSS-темы.</li>
-  <li><b>Помощник в кармане.</b> Тот же чат с ИИ: подключите OpenAI, Claude, Gemini, OpenRouter или Groq по своему ключу. Главное: <b>модели работают прямо на телефоне</b>, без интернета и без отправки текста.</li>
+  <li><b>Помощник в кармане.</b> Тот же чат с ИИ: подключите OpenAI, Claude, Gemini, OpenRouter или Groq по своему ключу. Главное: <b>модели работают прямо на телефоне</b>, без интернета и без отправки текста. Для начала хватит SmolLM2 на 360 млн параметров (365 МБ) или Qwen 2.5 на 0,5 млрд; Qwen 3.5, Ministral и Phi доступны на телефонах с WebGPU. Модель скачивается один раз и выгружается из памяти, когда приложение уходит в фон.</li>
+  <li><b>Код, который запускается.</b> JavaScript-ячейки из заметок работают и на телефоне: запустите блок, результат появится под ним.</li>
   <li><b>Файлы остаются файлами.</b> Сохраняйте .md через меню «Поделиться» и открывайте их из «Файлов».</li>
  </ul>
 </section>
