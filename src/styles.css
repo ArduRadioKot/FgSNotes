@@ -1079,3 +1079,31 @@ html[data-native] .native-only { display: block; }
     .m-drawer-head strong { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
     .m-count { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: var(--hover-color); color: var(--text-muted); font-size: 12px; font-weight: 500; letter-spacing: 0; }
 }
+
+/* Notebook cells (```js-cell): an input block with the output block stuck right under it, as in Jupyter */
+.preview-content .nb-cell { margin: 1em 0; }
+.preview-content .nb-cell :is(pre, textarea) { margin: 0; padding: 0; border-radius: 0; background: transparent; font: inherit; font-family: var(--mono-font); font-size: .87em; line-height: 1.6; }
+.nb-in, .nb-out { position: relative; display: flex; align-items: flex-start; gap: 4px; background: var(--code-bg); }
+.nb-in { padding: 10px 12px 10px 6px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.nb-out { padding: 8px 12px 10px 6px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); border-top: 1px solid var(--border-color, rgba(128, 128, 128, .22)); }
+.nb-cell:not(:has(.nb-out:not([hidden]))) .nb-in { border-radius: var(--radius-lg); }
+.nb-gutter { flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text-muted, #8a8d94); font: .75em var(--mono-font); }
+.nb-gutter-out { padding-top: 2px; }
+.nb-run { width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--accent-color); cursor: pointer; }
+.nb-run:hover { background: color-mix(in srgb, var(--accent-color) 16%, transparent); }
+.nb-run .icon { width: 15px; height: 15px; fill: currentColor; }
+.nb-cell.is-running .nb-run { color: var(--text-color); }
+.nb-body { position: relative; flex: 1; min-width: 0; }
+.preview-content .nb-mirror { position: relative; white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: none; overflow: visible; min-height: 1.6em; }
+.preview-content .nb-editor { position: absolute; inset: 0; width: 100%; height: 100%; resize: none; border: 0; outline: 0; overflow: hidden; color: transparent; caret-color: var(--text-color); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.nb-tools { flex: none; display: flex; gap: 2px; opacity: 0; transition: opacity .12s; }
+.nb-cell:hover .nb-tools, .nb-cell:focus-within .nb-tools { opacity: 1; }
+.nb-tool { padding: 2px 8px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-muted, #8a8d94); font: inherit; font-size: .75em; cursor: pointer; white-space: nowrap; }
+.nb-tool:hover { background: color-mix(in srgb, var(--text-color) 10%, transparent); color: var(--text-color); }
+.nb-result { flex: 1; min-width: 0; }
+.preview-content .nb-line { white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.preview-content .nb-line.is-warn { color: #d9a33c; }
+.preview-content .nb-line.is-error { color: #e5645d; }
+.preview-content .nb-line.is-value { color: var(--accent-color); }
+.preview-content .nb-line.is-empty { color: var(--text-muted, #8a8d94); font-style: italic; }
+@media (max-width: 720px) { .nb-tools { opacity: 1; flex-direction: column; } .nb-gutter { width: 36px; } }

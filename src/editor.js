@@ -29,7 +29,7 @@ const markdownFormats = {
     task: ['- [ ] ', '', 'Новая задача', true], quote: ['> ', '', 'Цитата', true],
     link: ['[', '](https://example.com)', 'текст ссылки'],
     image: ['![', '](https://example.com/image.png)', 'Описание изображения'],
-    code: ['```\n', '\n```', 'код', true], sup: ['<sup>', '</sup>', 'текст'], sub: ['<sub>', '</sub>', 'текст']
+    code: ['```\n', '\n```', 'код', true], cell: ['```js-cell\n', '\n```', 'console.log("Привет!");', true], sup: ['<sup>', '</sup>', 'текст'], sub: ['<sub>', '</sub>', 'текст']
 };
 window.insertMarkdown = function(start, end, placeholder = '', block = false) {
     const editor = document.getElementById('markdown-editor');
@@ -106,13 +106,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return forms[mod100 > 10 && mod100 < 20 ? 2 : mod10 === 1 ? 0 : mod10 >= 2 && mod10 <= 4 ? 1 : 2];
     }
     function updatePreview() {
-        preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>Здесь оживут ваши идеи</h2><p>Начните писать в редакторе — результат появится здесь.</p></div>`;
-        if (document.documentElement.dataset.codeHighlight !== 'off') {
-            preview.querySelectorAll('pre code').forEach(block => {
-                block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
-            });
+        // Typing inside a notebook cell already updated the note; rebuilding would throw away the cell being edited.
+        const keepCells = window.FgsNotebook && window.FgsNotebook.takeSkip();
+        if (!keepCells) {
+            preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>Здесь оживут ваши идеи</h2><p>Начните писать в редакторе — результат появится здесь.</p></div>`;
+            if (document.documentElement.dataset.codeHighlight !== 'off') {
+                preview.querySelectorAll('pre code').forEach(block => {
+                    block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
+                });
+            }
+            if (window.renderMath) window.renderMath(preview);
+            if (window.FgsNotebook && documents[activeDocumentIndex]) window.FgsNotebook.render(preview, documents[activeDocumentIndex].id);
         }
-        if (window.renderMath) window.renderMath(preview);
         renderHighlight();
         const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
         const characters = Array.from(editor.value).length;
@@ -170,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeTab(index) {
         if (documents.length === 1) return;
         saveCurrentDocument();
+        if (window.FgsNotebook) window.FgsNotebook.forget(documents[index].id);
         documents.splice(index, 1);
         if (index < activeDocumentIndex) activeDocumentIndex--;
         activeDocumentIndex = Math.min(activeDocumentIndex, documents.length - 1);

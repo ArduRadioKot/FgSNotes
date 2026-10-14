@@ -26,6 +26,7 @@
         { id: 'code', group: 'Форматирование', label: 'Блок кода', combo: 'Mod+Shift+KeyE', ...format('code'), button: '[data-format="code"]' },
         { id: 'image', group: 'Форматирование', label: 'Изображение', combo: '', ...format('image'), button: '[data-format="image"]' },
         { id: 'sup', group: 'Форматирование', label: 'Надстрочный текст', combo: '', ...format('sup'), button: '[data-format="sup"]' },
+        { id: 'cell', group: 'Форматирование', label: 'Ячейка JavaScript', combo: 'Mod+Shift+KeyR', ...format('cell'), button: '[data-format="cell"]' },
         { id: 'sub', group: 'Форматирование', label: 'Подстрочный текст', combo: '', ...format('sub'), button: '[data-format="sub"]' },
         { id: 'viewEditor', group: 'Вид', label: 'Режим «Редактор»', combo: 'Mod+Digit1', run: () => A().view && A().view('editor') },
         { id: 'viewLive', group: 'Вид', label: 'Режим «Живой»', combo: 'Mod+Digit2', run: () => A().view && A().view('live') },

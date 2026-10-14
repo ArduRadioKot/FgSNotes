@@ -37,7 +37,10 @@ function parseMarkdown(source) {
                 i++;
                 while (i < input.length && !/^```/.test(input[i])) code.push(input[i++]);
                 if (i < input.length) i++;
-                result.push(`<pre><code${language ? ` class="language-${language}"` : ''}>${escapeMarkdownHTML(code.join('\n'))}</code></pre>`);
+                // ```js-cell is a runnable notebook cell (see notebook.js), not an ordinary code sample.
+                const escaped = escapeMarkdownHTML(code.join('\n'));
+                if (language === 'js-cell') result.push(`<div class="nb-cell" data-code="${escaped}"><pre><code class="language-js">${escaped}</code></pre></div>`);
+                else result.push(`<pre><code${language ? ` class="language-${language}"` : ''}>${escaped}</code></pre>`);
                 continue;
             }
             if (/^\s*\$\$/.test(line)) {

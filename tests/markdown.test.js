@@ -41,3 +41,11 @@ test('LaTeX: inline and block formulas keep their source, prices stay text', () 
 test('LaTeX: formulas inside code stay literal', () => {
     assert.doesNotMatch(parseMarkdown('`$x$`'), /class="math"/);
 });
+
+test('js-cell fences become runnable notebook cells, plain js stays a code sample', () => {
+    const cell = parseMarkdown('```js-cell\nconsole.log(1 < 2)\n```');
+    assert.match(cell, /<div class="nb-cell" data-code="console\.log\(1 &lt; 2\)">/);
+    const plain = parseMarkdown('```js\nlet a = 1\n```');
+    assert.doesNotMatch(plain, /nb-cell/);
+    assert.match(plain, /<pre><code class="language-js">/);
+});

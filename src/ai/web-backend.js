@@ -89,7 +89,8 @@
             const engineApi = await engine();
             const run = async chosen => {
                 const options = { repo: model.repo, dtype: chosen.dtype, backend: chosen.backend, family: model.family };
-                await engineApi.load(options, info => onProgress && onProgress({ loaded: Math.min(info.loaded, chosen.bytes), total: Math.max(info.total, chosen.bytes) }));
+                let shown = 0;                       // the streamed download and the loader count separately: never let the bar go back
+                await engineApi.load(options, info => { shown = Math.max(shown, Math.min(info.loaded, chosen.bytes)); if (onProgress) onProgress({ loaded: shown, total: Math.max(info.total, chosen.bytes) }); });
                 const entry = { ...options, file: model.file, bytes: chosen.bytes, at: Date.now() };
                 if (!(await cachedModel(entry))) throw new Error('Не удалось сохранить модель на устройстве: хранилище приложения отказалось принять такой большой файл. Выберите модель поменьше.');
                 markReady(id, entry);
