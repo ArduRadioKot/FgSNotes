@@ -1,48 +1,101 @@
 # Dependencies
 node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-package-lock.json
+.npm/
+.pnp.*
+
+# Lockfiles other than npm. package-lock.json is tracked.
 yarn.lock
+pnpm-lock.yaml
+bun.lock
 
-# IDE and editor files
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-
-# Build and distribution
-dist/
-build/
-*.min.js
-*.min.css
-
-# Environment variables
+# Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# Logs
+# Logs and caches
 logs/
 *.log
-
-# Cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log
 .cache/
 .temp/
 .tmp/
 
-# Testing
+# Tests
 coverage/
 .nyc_output/
 
-# Misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local 
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
+# OS
 .DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Local agent worktrees
+.kilo/
+.kilocode/
+
+# Build output (Gradle, Xcode, Electron)
+build/
+dist/
+out/
+release/
+*.dmg
+*.dmg.blockmap
+*.AppImage
+*.exe
+*.msi
+*.deb
+*.rpm
+*.snap
+
+# Android / Gradle
+.gradle/
+local.properties
+*.iml
+.externalNativeBuild/
+.cxx/
+captures/
+*.apk
+*.ap_
+*.aab
+*.hprof
+output-metadata.json
+
+# Signing material
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+
+# iOS / Xcode
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+ios/App/Pods/
+ios/Pods/
+ios/App/build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# On-device model weights
+*.gguf
+*.ggml
+models/
