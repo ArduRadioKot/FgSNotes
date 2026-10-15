@@ -1,6 +1,7 @@
-// Runnable JavaScript cells in the preview, like a Jupyter notebook.
-// A cell is a ```js-cell fence in the note; markdown.js renders it as <div class="nb-cell" data-code="…">.
+// Runnable JavaScript cells, like a Jupyter notebook. A cell is a ```js-cell fence in the note (```js-cell auto runs it while you type).
 // Code runs in a per-note Web Worker (a "kernel"), so variables live between cells and the page itself stays untouched.
+// The same cells work in the preview (markdown.js renders <div class="nb-cell">) and in the live editor (live-editor/index.js
+// draws a run bar and the output block); both share the state kept here.
 (function () {
     // Runs inside the worker. Kept as a function so it is stringified into the Blob instead of living in a second file.
     function workerMain() {
@@ -64,11 +65,26 @@
         post({ type: 'ready' });
     }
 
-    const fence = /^```js-cell[^\n]*\n([\s\S]*?)^```[ \t]*$/gm;
-    const kernels = new Map();   // docId -> { worker, count, running: Map(id -> finish) }
-    const outputs = new Map();   // `${docId}:${index}` -> { code, n, lines, value, error }
+    const fence = /^```js-cell([^\n]*)\n([\s\S]*?)^```[ \t]*$/gm;
+    const kernels = new Map();   // docId -> { worker, count, listeners: Map(id -> fn) }
+    const cellStates = new Map();   // `${docId}:${index}` -> { code, ranCode, n, lines, value, error, ran, running, subs }
+    const timers = new Map();
     let skipNext = false;
     let sequence = 0;
+    const AUTO_LIMIT = 5000;     // ms: a cell that runs while you type must not hang the kernel
+
+    // Every js-cell fence of a note: where it is and what it holds.
+    function cells(text) {
+        const found = [];
+        let match;
+        fence.lastIndex = 0;
+        while ((match = fence.exec(text))) {
+            const infoFrom = match.index + '```js-cell'.length;
+            const bodyFrom = infoFrom + match[1].length + 1;
+            found.push({ index: found.length, from: match.index, to: match.index + match[0].length, infoFrom, infoTo: infoFrom + match[1].length, bodyFrom, bodyTo: bodyFrom + match[2].length, code: match[2].replace(/\n$/, ''), auto: /\bauto\b/.test(match[1]) });
+        }
+        return found;
+    }
 
     function kernelFor(docId) {
         let kernel = kernels.get(docId);
@@ -76,16 +92,14 @@
         const url = URL.createObjectURL(new Blob([`(${workerMain.toString()})()`], { type: 'text/javascript' }));
         const worker = new Worker(url);
         URL.revokeObjectURL(url);
-        kernel = { worker, count: 0, running: new Map(), listeners: new Map() };
+        kernel = { worker, count: 0, listeners: new Map() };
         worker.onmessage = event => {
-            const message = event.data;
-            const listener = kernel.listeners.get(message.id);
-            if (listener) listener(message);
+            const listener = kernel.listeners.get(event.data.id);
+            if (listener) listener(event.data);
         };
         kernels.set(docId, kernel);
         return kernel;
     }
-
     function stopKernel(docId, reason) {
         const kernel = kernels.get(docId);
         if (!kernel) return;
@@ -94,49 +108,115 @@
         kernel.listeners.forEach(listener => listener({ type: 'done', error: reason, stopped: true }));
     }
 
+    function stateFor(docId, index) {
+        const key = `${docId}:${index}`;
+        let state = cellStates.get(key);
+        if (!state) { state = { n: 0, lines: [], value: null, error: null, ran: false, running: false, ranCode: null, subs: new Set() }; cellStates.set(key, state); }
+        return state;
+    }
+    const notify = state => state.subs.forEach(fn => fn(state));
+    function watch(docId, index, fn) {
+        const state = stateFor(docId, index);
+        state.subs.add(fn);
+        fn(state);
+        return () => state.subs.delete(fn);
+    }
+
+    function run(docId, index, source, options = {}) {
+        const state = stateFor(docId, index);
+        if (state.running) { stopKernel(docId, 'Выполнение остановлено'); return; }
+        if (!String(source).trim()) return;
+        const kernel = kernelFor(docId);
+        const id = ++sequence;
+        Object.assign(state, { n: ++kernel.count, lines: [], value: null, error: null, ran: true, running: true, ranCode: source });
+        notify(state);
+        let watchdog = null;
+        if (options.auto) watchdog = setTimeout(() => stopKernel(docId, `Ячейка работала дольше ${AUTO_LIMIT / 1000} с, пока вы печатали, и была прервана. Запустите её вручную, если так и задумано.`), AUTO_LIMIT);
+        kernel.listeners.set(id, message => {
+            if (message.type === 'out') state.lines.push({ kind: message.kind, text: message.text });
+            else if (message.type === 'clear') state.lines = [];
+            else if (message.type === 'done') {
+                clearTimeout(watchdog);
+                kernel.listeners.delete(id);
+                if (message.error) state.error = message.error;
+                else if (message.hasValue) state.value = message.value;
+                state.running = false;
+            }
+            notify(state);
+        });
+        kernel.worker.postMessage({ id, code: source });
+    }
+    // Typing in an "auto" cell runs it again shortly after the last keystroke.
+    function autoRun(docId, index, source, delay = 600) {
+        const key = `${docId}:${index}`;
+        clearTimeout(timers.get(key));
+        timers.set(key, setTimeout(() => { timers.delete(key); const state = stateFor(docId, index); if (!state.running) run(docId, index, source, { auto: true }); }, delay));
+    }
+    function clearOutput(docId, index) {
+        const state = stateFor(docId, index);
+        Object.assign(state, { lines: [], value: null, error: null, ran: false });
+        notify(state);
+    }
+    function resetKernel(docId) {
+        stopKernel(docId, 'Среда перезапущена');
+        cellStates.forEach((state, key) => { if (key.startsWith(docId + ':')) { state.n = 0; notify(state); } });
+    }
+
     function el(tag, className, text) {
         const node = document.createElement(tag);
         if (className) node.className = className;
         if (text !== undefined) node.textContent = text;
         return node;
     }
-
-    // Replaces the code of the index-th ```js-cell fence in the note; returns false if the fence can't be found.
-    function writeBack(index, code) {
-        const editor = document.getElementById('markdown-editor');
-        let found = -1;
-        const next = editor.value.replace(fence, (whole, body) => {
-            found++;
-            if (found !== index) return whole;
-            return whole.slice(0, whole.indexOf('\n') + 1) + code.replace(/\n?$/, '\n') + '```';
+    // Draws the output block of a cell into `host` and keeps it up to date; returns the function that stops following it.
+    function mountOutput(host, docId, index, currentCode) {
+        host.classList.add('nb-out');
+        return watch(docId, index, state => {
+            host.textContent = '';
+            host.hidden = !state.ran;
+            host.classList.toggle('is-stale', !!state.ran && !state.running && currentCode && currentCode() !== state.ranCode);
+            if (!state.ran) return;
+            const gutter = el('div', 'nb-gutter nb-gutter-out', state.running ? '[*]' : state.n ? `[${state.n}]` : '');
+            const content = el('div', 'nb-result');
+            state.lines.forEach(line => content.append(el('pre', `nb-line is-${line.kind}`, line.text)));
+            if (state.error) content.append(el('pre', 'nb-line is-error', state.error));
+            else if (state.value !== null) content.append(el('pre', 'nb-line is-value', state.value));
+            else if (!state.lines.length && !state.running) content.append(el('pre', 'nb-line is-empty', 'Готово, без вывода'));
+            host.append(gutter, content);
         });
-        if (found < index || next === editor.value) return false;
+    }
+
+    // Replaces the code of the index-th fence in the note (or its info line, for the auto flag); false if the fence can't be found.
+    function patchNote(index, change) {
+        const editor = document.getElementById('markdown-editor');
+        const cell = cells(editor.value)[index];
+        if (!cell) return false;
+        const next = change(editor.value, cell);
+        if (next === editor.value) return false;
         editor.value = next;
         skipNext = true;
         editor.dispatchEvent(new Event('input', { bubbles: true }));
         return true;
     }
+    const writeCode = (index, code) => patchNote(index, (text, cell) => text.slice(0, cell.bodyFrom) + code.replace(/\n?$/, '\n') + text.slice(cell.bodyTo));
+    const setAuto = (index, on) => patchNote(index, (text, cell) => text.slice(0, cell.infoFrom) + (on ? ' auto' : '') + text.slice(cell.infoTo));
 
     function highlight(code) {
         return window.highlightCode ? window.highlightCode(code, 'js') : code.replace(/&/g, '&amp;').replace(/</g, '&lt;');
     }
 
     function build(host, docId, index) {
-        const key = `${docId}:${index}`;
         const code = host.dataset.code;
         host.textContent = '';
-
-        const saved = outputs.get(key);
-        const state = saved && saved.code === code ? saved : { code, n: 0, lines: [], value: null, error: null, ran: false };
-        outputs.set(key, state);
-        let running = false;
+        const state = stateFor(docId, index);
+        let auto = host.dataset.auto === '1';
 
         const input = el('div', 'nb-in');
         const gutter = el('div', 'nb-gutter');
-        const label = el('span', 'nb-label', state.n ? `[${state.n}]` : '[ ]');
-        const run = el('button', 'nb-run');
-        run.type = 'button';
-        gutter.append(label, run);
+        const label = el('span', 'nb-label', '[ ]');
+        const runButton = el('button', 'nb-run');
+        runButton.type = 'button';
+        gutter.append(label, runButton);
 
         const body = el('div', 'nb-body');
         const mirror = el('pre', 'nb-mirror');
@@ -151,111 +231,78 @@
         body.append(mirror, area);
 
         const tools = el('div', 'nb-tools');
+        const autoButton = el('button', 'nb-tool');
+        autoButton.type = 'button';
+        autoButton.title = 'Выполнять ячейку по ходу набора';
         const restart = el('button', 'nb-tool', 'Сбросить');
         restart.type = 'button';
         restart.title = 'Перезапустить среду выполнения: переменные ячеек будут забыты';
         const clear = el('button', 'nb-tool', 'Очистить вывод');
         clear.type = 'button';
-        tools.append(restart, clear);
+        tools.append(autoButton, restart, clear);
         input.append(gutter, body, tools);
 
-        const output = el('div', 'nb-out');
-        output.hidden = !state.ran;
+        const output = el('div');
+        host.append(input, output);
+        host.dataset.ready = '1';
 
         function refresh() {
             mirrorCode.innerHTML = highlight(area.value) + '\n';
             area.style.height = '0px';
             area.style.height = area.scrollHeight + 'px';
         }
-        function setRunning(value) {
-            running = value;
-            host.classList.toggle('is-running', value);
-            run.title = value ? 'Остановить (выполнение прервётся)' : 'Запустить ячейку (Shift+Enter)';
-            run.setAttribute('aria-label', run.title);
-            run.innerHTML = window.icon ? window.icon(value ? 'stop' : 'play') : '';
-            label.textContent = value ? '[*]' : state.n ? `[${state.n}]` : '[ ]';
-        }
-        function paint() {
-            output.textContent = '';
-            output.hidden = !state.ran;
-            if (!state.ran) return;
-            const gutterOut = el('div', 'nb-gutter nb-gutter-out', state.n ? `[${state.n}]` : '');
-            const content = el('div', 'nb-result');
-            state.lines.forEach(line => content.append(el('pre', `nb-line is-${line.kind}`, line.text)));
-            if (state.error) content.append(el('pre', 'nb-line is-error', state.error));
-            else if (state.value !== null) content.append(el('pre', 'nb-line is-value', state.value));
-            else if (!state.lines.length) content.append(el('pre', 'nb-line is-empty', 'Готово, без вывода'));
-            output.append(gutterOut, content);
-        }
-
-        function execute() {
-            if (running) { stopKernel(docId, 'Выполнение остановлено'); return; }
-            const source = area.value;
-            if (!source.trim()) return;
-            const kernel = kernelFor(docId);
-            const id = ++sequence;
-            state.n = ++kernel.count;
-            state.lines = []; state.value = null; state.error = null; state.ran = true;
-            setRunning(true);
-            paint();
-            kernel.listeners.set(id, message => {
-                if (message.type === 'out') {
-                    state.lines.push({ kind: message.kind, text: message.text });
-                } else if (message.type === 'clear') {
-                    state.lines = [];
-                } else if (message.type === 'done') {
-                    kernel.listeners.delete(id);
-                    if (message.error) state.error = message.error;
-                    else if (message.hasValue) state.value = message.value;
-                    setRunning(false);
-                }
-                paint();
-            });
-            kernel.worker.postMessage({ id, code: source });
-        }
+        const paintAuto = () => { autoButton.textContent = auto ? 'Авто: вкл' : 'Авто'; autoButton.classList.toggle('is-on', auto); };
+        const unwatch = watch(docId, index, current => {
+            host.classList.toggle('is-running', current.running);
+            runButton.title = current.running ? 'Остановить (выполнение прервётся)' : 'Запустить ячейку (Shift+Enter)';
+            runButton.setAttribute('aria-label', runButton.title);
+            runButton.innerHTML = window.icon ? window.icon(current.running ? 'stop' : 'play') : '';
+            label.textContent = current.running ? '[*]' : current.n ? `[${current.n}]` : '[ ]';
+        });
+        const unmount = mountOutput(output, docId, index, () => area.value);
+        host.nbDispose = () => { unwatch(); unmount(); };
+        paintAuto();
+        refresh();
 
         area.addEventListener('input', () => {
-            state.code = area.value;
             refresh();
-            writeBack(index, area.value);
+            writeCode(index, area.value);
+            output.classList.toggle('is-stale', state.ran && state.ranCode !== area.value);
+            if (auto) autoRun(docId, index, area.value);
         });
         area.addEventListener('keydown', event => {
-            if (event.key === 'Enter' && (event.shiftKey || event.ctrlKey || event.metaKey)) {
-                event.preventDefault();
-                execute();
-            } else if (event.key === 'Tab' && !event.shiftKey) {
-                event.preventDefault();
-                document.execCommand('insertText', false, '    ');
-            }
+            if (event.key === 'Enter' && (event.shiftKey || event.ctrlKey || event.metaKey)) { event.preventDefault(); run(docId, index, area.value); }
+            else if (event.key === 'Tab' && !event.shiftKey) { event.preventDefault(); document.execCommand('insertText', false, '    '); }
         });
-        run.addEventListener('click', execute);
-        restart.addEventListener('click', () => {
-            stopKernel(docId, 'Среда перезапущена');
-            outputs.forEach((value, k) => { if (k.startsWith(docId + ':')) value.n = 0; });
-            host.dispatchEvent(new CustomEvent('nb-reset', { bubbles: true }));
+        runButton.addEventListener('click', () => run(docId, index, area.value));
+        autoButton.addEventListener('click', () => {
+            auto = !auto;
+            paintAuto();
+            setAuto(index, auto);
+            if (auto) autoRun(docId, index, area.value, 0);
         });
-        clear.addEventListener('click', () => {
-            state.lines = []; state.value = null; state.error = null; state.ran = false;
-            paint();
-        });
-        host.addEventListener('nb-reset', () => { if (!running) { label.textContent = '[ ]'; } });
-
-        host.append(input, output);
-        host.dataset.ready = '1';
-        setRunning(false);
-        refresh();
-        paint();
+        restart.addEventListener('click', () => resetKernel(docId));
+        clear.addEventListener('click', () => clearOutput(docId, index));
         host.nbRefresh = refresh;
     }
 
+    let currentDoc = () => 'doc';
     window.FgsNotebook = {
         render(container, docId) {
+            container.querySelectorAll('.nb-cell').forEach(host => { if (host.nbDispose) host.nbDispose(); });
             container.querySelectorAll('.nb-cell').forEach((host, index) => build(host, docId, index));
-            // Heights depend on layout, so measure again once the preview is in the page.
             requestAnimationFrame(() => container.querySelectorAll('.nb-cell').forEach(host => host.nbRefresh && host.nbRefresh()));
         },
         // editor.js asks this before rebuilding the preview: edits made inside a cell must not destroy the cell being typed in.
         takeSkip() { const value = skipNext; skipNext = false; return value; },
-        forget(docId) { stopKernel(docId, 'Документ закрыт'); outputs.forEach((v, k) => { if (k.startsWith(docId + ':')) outputs.delete(k); }); }
+        forget(docId) {
+            stopKernel(docId, 'Документ закрыт');
+            cellStates.forEach((state, key) => { if (key.startsWith(docId + ':')) cellStates.delete(key); });
+        },
+        // For the live editor.
+        setDocument(provider) { currentDoc = provider; },
+        docId: () => currentDoc(),
+        cells, run, autoRun, watch, mountOutput, clearOutput, resetKernel,
+        stopKernel: docId => stopKernel(docId, 'Выполнение остановлено')
     };
 })();

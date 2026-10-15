@@ -113,6 +113,61 @@ function loadAppConfig() {
   return { configContent, configFilePath, themesDirPath };
 }
 
+// --- plugins: .js and .css files in Documents/FgSNotes/plugins, found and installed like themes ------------------------------
+const pluginName = /^[^\\/:*?"<>|\0]{1,120}\.(?:js|css)$/i;
+function pluginsDir() {
+  const dir = path.join(app.getPath('documents'), 'FgSNotes', 'plugins');
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+function registerPluginHandlers() {
+  for (const channel of ['plugins-list', 'plugin-read', 'plugin-install', 'plugin-remove', 'plugins-open', 'plugins-path']) ipcMain.removeHandler(channel);
+  ipcMain.handle('plugins-path', () => pluginsDir());
+  ipcMain.handle('plugins-list', () => {
+    try {
+      return fs.readdirSync(pluginsDir()).filter(name => pluginName.test(name) && !name.startsWith('.'))
+        .map(name => ({ file: name, size: fs.statSync(path.join(pluginsDir(), name)).size }));
+    } catch (error) { console.error('Ошибка чтения папки плагинов:', error); return []; }
+  });
+  ipcMain.handle('plugin-read', (event, file) => {
+    if (!pluginName.test(String(file))) throw new Error('Неверное имя плагина');
+    const target = path.join(pluginsDir(), file);
+    if (fs.statSync(target).size > 2 * 1024 * 1024) throw new Error('Плагин больше 2 МБ');
+    return fs.readFileSync(target, 'utf-8');
+  });
+  // The install button: pick files, confirm (a plugin runs with access to every note), copy them into the plugins folder.
+  ipcMain.handle('plugin-install', async event => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const picked = await dialog.showOpenDialog(win, {
+      title: 'Установить плагин', properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Плагины FgSNotes (.js, .css)', extensions: ['js', 'css'] }]
+    });
+    if (picked.canceled || !picked.filePaths.length) return { canceled: true, installed: [] };
+    const files = picked.filePaths.filter(file => pluginName.test(path.basename(file)));
+    if (!files.length) return { canceled: false, installed: [], error: 'Нужны файлы .js или .css' };
+    const confirm = await dialog.showMessageBox(win, {
+      type: 'warning', buttons: ['Установить', 'Отмена'], defaultId: 1, cancelId: 1,
+      message: files.length === 1 ? `Установить плагин «${path.basename(files[0])}»?` : `Установить плагины (${files.length})?`,
+      detail: 'Плагин — это программа: он выполняется внутри FgSNotes и видит все ваши заметки. Устанавливайте только те плагины, которым доверяете.\n\nФайлы будут скопированы в папку Documents/FgSNotes/plugins.'
+    });
+    if (confirm.response !== 0) return { canceled: true, installed: [] };
+    const installed = [];
+    for (const file of files) {
+      const name = path.basename(file);
+      if (fs.statSync(file).size > 2 * 1024 * 1024) continue;
+      fs.copyFileSync(file, path.join(pluginsDir(), name));
+      installed.push(name);
+    }
+    return { canceled: false, installed };
+  });
+  ipcMain.handle('plugin-remove', (event, file) => {
+    if (!pluginName.test(String(file))) throw new Error('Неверное имя плагина');
+    fs.rmSync(path.join(pluginsDir(), file), { force: true });
+    return true;
+  });
+  ipcMain.handle('plugins-open', () => shell.openPath(pluginsDir()));
+}
+
 function createWindow() {
   const { configContent: initialConfig, configFilePath, themesDirPath } = loadAppConfig();
   let configContent = initialConfig;
@@ -143,6 +198,7 @@ function createWindow() {
   // createWindow runs again on macOS 'activate', so drop handlers from the previous window first.
   ['get-config', 'get-themes-path', 'get-themes-list'].forEach(channel => ipcMain.removeHandler(channel));
   ipcMain.removeAllListeners('save-config');
+  registerPluginHandlers();
 
   ipcMain.handle('get-config', () => {
     return configContent;

@@ -1,7 +1,7 @@
 // Live Markdown editor (CodeMirror 6). Formatting is applied as you type: headings, emphasis, links, lists, tasks and
 // code blocks render in place, and the Markdown marks are hidden everywhere except around the cursor.
 // `attach` makes it look like the original <textarea> to the rest of the app (value, selection, events).
-import { EditorState } from '@codemirror/state';
+import { EditorState, StateField } from '@codemirror/state';
 import { EditorView, Decoration, ViewPlugin, WidgetType, keymap, drawSelection } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { syntaxTree } from '@codemirror/language';
@@ -38,6 +38,94 @@ class TaskWidget extends WidgetType {
     }
     ignoreEvent() { return true; }
 }
+
+// --- runnable cells (```js-cell): a run bar after the opening fence and the output block under the closing one ---------------
+const notebook = () => window.FgsNotebook;
+const cellAt = (view, index) => notebook().cells(view.state.doc.toString())[index];
+const iconHtml = name => (window.icon ? window.icon(name) : '');
+class CellBar extends WidgetType {
+    constructor(docId, index, auto) { super(); this.docId = docId; this.index = index; this.auto = auto; }
+    eq(other) { return other.docId === this.docId && other.index === this.index && other.auto === this.auto; }
+    toDOM(view) {
+        const bar = document.createElement('span');
+        bar.className = 'cm-cellbar';
+        const run = document.createElement('button');
+        run.type = 'button'; run.className = 'cm-cellrun';
+        const auto = document.createElement('button');
+        auto.type = 'button'; auto.className = 'cm-cellauto' + (this.auto ? ' is-on' : '');
+        auto.textContent = this.auto ? 'Авто: вкл' : 'Авто';
+        auto.title = 'Выполнять ячейку по ходу набора';
+        for (const button of [run, auto]) button.addEventListener('mousedown', event => event.preventDefault());
+        run.addEventListener('click', () => { const cell = cellAt(view, this.index); if (cell) notebook().run(this.docId, this.index, cell.code); });
+        auto.addEventListener('click', () => {
+            const cell = cellAt(view, this.index);
+            if (!cell) return;
+            view.dispatch({ changes: { from: cell.infoFrom, to: cell.infoTo, insert: this.auto ? '' : ' auto' } });
+            if (!this.auto) notebook().autoRun(this.docId, this.index, cell.code, 0);
+        });
+        bar.append(run, auto);
+        this.off = notebook().watch(this.docId, this.index, state => {
+            run.innerHTML = iconHtml(state.running ? 'stop' : 'play');
+            const title = state.running ? 'Остановить (выполнение прервётся)' : 'Запустить ячейку (Shift+Enter)';
+            run.title = title; run.setAttribute('aria-label', title);
+            bar.classList.toggle('is-running', state.running);
+        });
+        return bar;
+    }
+    destroy() { if (this.off) this.off(); }
+    ignoreEvent() { return true; }
+}
+class CellOutput extends WidgetType {
+    constructor(docId, index) { super(); this.docId = docId; this.index = index; }
+    eq(other) { return other.docId === this.docId && other.index === this.index; }
+    toDOM(view) {
+        const box = document.createElement('div');
+        box.className = 'cm-celloutput';
+        this.off = notebook().mountOutput(box, this.docId, this.index, () => { const cell = cellAt(view, this.index); return cell ? cell.code : ''; });
+        return box;
+    }
+    destroy() { if (this.off) this.off(); }
+    ignoreEvent() { return true; }
+}
+function cellDecorations(state) {
+    if (!notebook()) return Decoration.none;
+    const docId = notebook().docId();
+    const ranges = [];
+    let index = 0;
+    syntaxTree(state).iterate({
+        enter(node) {
+            if (node.name !== 'FencedCode') return;
+            const info = node.node.getChild('CodeInfo');
+            if (!info) return false;
+            const words = state.doc.sliceString(info.from, info.to).trim().split(/\s+/);
+            if (words[0] !== 'js-cell') return false;
+            const first = state.doc.lineAt(node.from), last = state.doc.lineAt(node.to);
+            ranges.push(Decoration.widget({ widget: new CellBar(docId, index, words.includes('auto')), side: 1 }).range(first.to));
+            ranges.push(Decoration.widget({ widget: new CellOutput(docId, index), block: true, side: 1 }).range(last.to));
+            ranges.push(lineClass('cm-cellline-last').range(last.from));
+            index++;
+            return false;
+        }
+    });
+    return Decoration.set(ranges, true);
+}
+const cellField = StateField.define({
+    create: cellDecorations,
+    update: (value, tr) => (tr.docChanged || syntaxTree(tr.startState) !== syntaxTree(tr.state) ? cellDecorations(tr.state) : value),
+    provide: field => EditorView.decorations.from(field)
+});
+// The cell around the cursor: Shift+Enter runs it, typing in an "auto" cell runs it again.
+function cellAtCursor(state) {
+    if (!notebook()) return null;
+    const head = state.selection.main.head;
+    return notebook().cells(state.doc.toString()).find(cell => head >= cell.from && head <= cell.to) || null;
+}
+const runCell = view => {
+    const cell = cellAtCursor(view.state);
+    if (!cell) return false;
+    notebook().run(notebook().docId(), cell.index, cell.code);
+    return true;
+};
 
 function buildDecorations(view) {
     const { state } = view;
@@ -110,7 +198,7 @@ function buildDecorations(view) {
                         if (info) add(info.from, info.to, mark('tok-annotation'));
                         if (text && text.to - text.from < 60000 && window.tokenizeCode) {
                             const source = doc.sliceString(text.from, text.to);
-                            const language = info ? doc.sliceString(info.from, info.to).trim() : '';
+                            const language = info ? doc.sliceString(info.from, info.to).trim().split(/\s+/)[0].replace(/^js-cell$/, 'js') : '';
                             for (const token of window.tokenizeCode(source, language)) add(text.from + token.start, text.from + token.end, mark('tok-' + token.type));
                         }
                     }
@@ -141,12 +229,15 @@ function attach(textarea, host) {
         EditorView.lineWrapping,
         markdown({ base: markdownLanguage, extensions: [GFM] }),
         liveDecorations,
-        keymap.of([...keys, ...historyKeymap, indentWithTab]),
+        cellField,
+        keymap.of([{ key: 'Shift-Enter', run: runCell }, { key: 'Mod-Enter', run: runCell }, ...keys, ...historyKeymap, indentWithTab]),
         EditorView.contentAttributes.of({ spellcheck: 'false', autocapitalize: 'sentences', 'aria-label': 'Редактор Markdown', 'aria-multiline': 'true' }),
         EditorView.updateListener.of(update => {
             if (update.docChanged && !silent) {
                 nativeValue.set.call(textarea, update.state.doc.toString());
                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                const cell = cellAtCursor(update.state);
+                if (cell && cell.auto) notebook().autoRun(notebook().docId(), cell.index, cell.code);
             } else if (update.selectionSet) {
                 textarea.dispatchEvent(new Event('select'));
             }

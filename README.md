@@ -45,6 +45,31 @@ Ollama has a guided installer (download link, one-click start, model download wi
 
 Ollama and LM Studio are desktop-only: the phone does not connect to a computer over the network.
 
+## Runnable JavaScript cells
+
+A fenced block with the language `js-cell` is a notebook cell, not a code sample. Run it with the ▶ button or `Shift+Enter`
+(`Ctrl/⌘+Shift+R` inserts a new cell); the result appears in a block right under the cell. Cells of one note share variables.
+Write ```` ```js-cell auto ```` (or press **Авто** on the cell) to run it again while you type. Cells work in the preview and in the live editor.
+
+## Plugins
+
+Plugins are `.js` or `.css` files in `Documents/FgSNotes/plugins`, found like themes. **Settings → Плагины → Установить плагин** picks a file
+and copies it into that folder; a file put there by hand starts switched off. A plugin runs with access to all notes, so install only
+what you trust. A `.js` plugin is a function body that receives `fgs`:
+
+```js
+// ==FgsPlugin==
+// @name        Insert date
+// @version     1.0
+// @description Adds a button that inserts today's date
+// ==/FgsPlugin==
+fgs.addButton({ title: 'Insert date', icon: 'history', run: editor => editor.insert(new Date().toLocaleDateString()) });
+```
+
+`fgs.addStyle(css)`, `fgs.addButton({ title, icon, run })` (a button on the left edge; extra ones fall into a "…" menu), `fgs.onPreview(el => …)`, `fgs.onChange(text => …)`, `fgs.editor` (`get`, `set`,
+`insert`, `selection`), `fgs.storage` (`get`, `set`), `fgs.notify(text)`, `fgs.onUnload(fn)`. Examples are in `plugins-examples/` (including `exildraw.js`, a sketch board that inserts drawings as SVG).
+On a phone, plugins are kept in the app's storage instead of a folder.
+
 ## Running from Source
 
 Node.js and npm are required.

@@ -5,10 +5,12 @@ function markdownInline(source) {
     const fragments = [];
     const keep = html => `\u0000${fragments.push(html) - 1}\u0000`;
     const safeURL = url => /^(?:https?:\/\/|mailto:|#|\.\.?\/)/i.test(url) || !/^[\w\s]*:|^\/\//.test(url);
+    // Pictures may be embedded (plugins draw them into the note); links and anything else with a scheme stay refused.
+    const safeImage = url => safeURL(url) || /^data:image\/(?:png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/i.test(url);
     let text = source.replace(/`([^`]+)`/g, (_, code) => keep(`<code>${escapeMarkdownHTML(code)}</code>`));
     // $formula$: no space inside the dollars and no digit right after the closing one, so "$5 and $10" stays text.
     text = text.replace(/(?<![\\$])\$(?![\s$])((?:\\.|[^$\\\n])+?)(?<!\s)\$(?![\d$])/g, (_, tex) => keep(`<span class="math" data-tex="${escapeMarkdownHTML(tex)}">${escapeMarkdownHTML(tex)}</span>`));
-    text = text.replace(/!\[([^\]]*)\]\(([^\s)]+)\)/g, (_, alt, url) => safeURL(url) ? keep(`<img src="${escapeMarkdownHTML(url)}" alt="${escapeMarkdownHTML(alt)}" loading="lazy">`) : escapeMarkdownHTML(alt));
+    text = text.replace(/!\[([^\]]*)\]\(([^\s)]+)\)/g, (_, alt, url) => safeImage(url) ? keep(`<img src="${escapeMarkdownHTML(url)}" alt="${escapeMarkdownHTML(alt)}" loading="lazy">`) : escapeMarkdownHTML(alt));
     text = text.replace(/\[([^\]]+)\]\(([^\s)]+)\)/g, (_, label, url) => safeURL(url) ? keep(`<a href="${escapeMarkdownHTML(url)}">${escapeMarkdownHTML(label)}</a>`) : escapeMarkdownHTML(label));
     text = escapeMarkdownHTML(text)
         .replace(/&lt;(\/?(?:u|sup|sub))&gt;/g, '<$1>')
@@ -32,14 +34,15 @@ function parseMarkdown(source) {
             const line = input[i];
             if (!line.trim()) { i++; continue; }
             if (/^```/.test(line)) {
-                const language = line.slice(3).trim().replace(/[^\w-]/g, '');
+                const words = line.slice(3).trim().split(/\s+/);
+                const language = (words[0] || '').replace(/[^\w-]/g, '');
                 const code = [];
                 i++;
                 while (i < input.length && !/^```/.test(input[i])) code.push(input[i++]);
                 if (i < input.length) i++;
                 // ```js-cell is a runnable notebook cell (see notebook.js), not an ordinary code sample.
                 const escaped = escapeMarkdownHTML(code.join('\n'));
-                if (language === 'js-cell') result.push(`<div class="nb-cell" data-code="${escaped}"><pre><code class="language-js">${escaped}</code></pre></div>`);
+                if (language === 'js-cell') result.push(`<div class="nb-cell"${words.slice(1).includes('auto') ? ' data-auto="1"' : ''} data-code="${escaped}"><pre><code class="language-js">${escaped}</code></pre></div>`);
                 else result.push(`<pre><code${language ? ` class="language-${language}"` : ''}>${escaped}</code></pre>`);
                 continue;
             }

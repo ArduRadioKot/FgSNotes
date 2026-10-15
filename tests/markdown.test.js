@@ -49,3 +49,14 @@ test('js-cell fences become runnable notebook cells, plain js stays a code sampl
     assert.doesNotMatch(plain, /nb-cell/);
     assert.match(plain, /<pre><code class="language-js">/);
 });
+
+test('js-cell info string may carry the auto flag', () => {
+    assert.match(parseMarkdown('```js-cell auto\n1+1\n```'), /<div class="nb-cell" data-auto="1" data-code="1\+1">/);
+    assert.doesNotMatch(parseMarkdown('```js-cell\n1+1\n```'), /data-auto/);
+});
+
+test('embedded base64 pictures are allowed, other data URLs are not', () => {
+    assert.match(parseMarkdown('![x](data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=)'), /<img src="data:image\/svg\+xml;base64,PHN2Zz48L3N2Zz4="/);
+    assert.doesNotMatch(parseMarkdown('![x](data:text/html;base64,PGI+)'), /<img/);
+    assert.doesNotMatch(parseMarkdown('[x](data:image/png;base64,AAAA)'), /<a /);
+});

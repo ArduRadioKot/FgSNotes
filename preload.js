@@ -22,6 +22,11 @@ contextBridge.exposeInMainWorld(
     saveConfig: (config) => ipcRenderer.send('save-config', config),
     getThemesPath: () => ipcRenderer.invoke('get-themes-path'),
     getThemesList: () => ipcRenderer.invoke('get-themes-list'),
+    getPlugins: () => ipcRenderer.invoke('plugins-list'),
+    readPlugin: (file) => ipcRenderer.invoke('plugin-read', file),
+    installPlugins: () => ipcRenderer.invoke('plugin-install'),
+    removePlugin: (file) => ipcRenderer.invoke('plugin-remove', file),
+    openPluginsFolder: () => ipcRenderer.invoke('plugins-open'),
     setNativeTheme: (theme) => ipcRenderer.send('set-native-theme', theme),
     // Whether the system blurs what is behind the window (macOS, Windows 11 22H2+).
     nativeBlur: process.argv.includes('--fgs-native-blur=1'),

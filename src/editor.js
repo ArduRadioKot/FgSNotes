@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.renderMath) window.renderMath(preview);
             if (window.FgsNotebook && documents[activeDocumentIndex]) window.FgsNotebook.render(preview, documents[activeDocumentIndex].id);
         }
+        if (window.FgsPlugins) { window.FgsPlugins.emit('preview', preview); window.FgsPlugins.emit('change', editor.value); }
         renderHighlight();
         const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
         const characters = Array.from(editor.value).length;
@@ -299,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     ['click', 'keyup', 'select'].forEach(event => editor.addEventListener(event, updateCursor));
     // Everything a shortcut can trigger. shortcuts.js owns the key bindings and calls these.
+    if (window.FgsNotebook) window.FgsNotebook.setDocument(() => documents[activeDocumentIndex] && documents[activeDocumentIndex].id);
     window.FgsActions = {
         newDocument: addNewTab,
         open: openFile,
