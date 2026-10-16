@@ -13,10 +13,10 @@
       "id": "calendar",
       "file": "calendar.js",
       "name": "Календарь",
-      "version": "1.0",
-      "description": "Месяц с датами из заметки (2026-10-20, в том числе в задачах) и событиями из файлов .ics. Вставка даты по клику, экспорт задач с датами в .ics.",
+      "version": "2.0",
+      "description": "Календарь в стиле Apple Calendar на отдельной вкладке: день, неделя и месяц, свои события, даты и задачи из заметки, импорт и экспорт .ics.",
       "author": "FgSNotes",
-      "size": 7787,
+      "size": 36071,
       "category": "plan",
       "obsidian": "Full Calendar",
       "icon": "<rect x=\"2\" y=\"3.5\" width=\"12\" height=\"10.5\" rx=\"1.5\"/><path d=\"M2 7h12M5.5 2v3M10.5 2v3\"/>"
@@ -28,7 +28,7 @@
       "version": "1.0",
       "description": "Доска для набросков в духе Excalidraw: перо, линии, стрелки, фигуры, текст. Рисунок вставляется в заметку как SVG и открывается для правки по клику.",
       "author": "FgSNotes",
-      "size": 17636,
+      "size": 18692,
       "category": "show",
       "obsidian": "Excalidraw, Canvas",
       "icon": "<path d=\"M3 13l.7-3L10.5 3.2a1.4 1.4 0 0 1 2 0l.3.3a1.4 1.4 0 0 1 0 2L6 12.3zM9 4.8l2.2 2.2\"/>"
@@ -80,18 +80,6 @@
       "category": "edit",
       "obsidian": "Advanced Tables",
       "icon": "<rect x=\"2\" y=\"3\" width=\"12\" height=\"10\" rx=\"1\"/><path d=\"M2 6.5h12M2 10h12M6 3v10\"/>"
-    },
-    {
-      "id": "note-graph",
-      "file": "note-graph.js",
-      "name": "Граф связей",
-      "version": "1.0",
-      "description": "Показывает связи между открытыми заметками ([[ссылки]] и ссылки на .md) и структуру заголовков текущей заметки. Клик по узлу открывает заметку.",
-      "author": "FgSNotes",
-      "size": 7222,
-      "category": "navigate",
-      "obsidian": "Graph",
-      "icon": "<circle cx=\"3.5\" cy=\"8\" r=\"1.8\"/><circle cx=\"12.5\" cy=\"3.5\" r=\"1.8\"/><circle cx=\"12.5\" cy=\"12.5\" r=\"1.8\"/><path d=\"M5.2 7.2l5.6-2.9M5.2 8.8l5.6 2.9\"/>"
     },
     {
       "id": "note-transfer",

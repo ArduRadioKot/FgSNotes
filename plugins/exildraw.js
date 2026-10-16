@@ -35,6 +35,10 @@ fgs.addStyle(`
 .exd-stage { position: relative; overflow: hidden; border-radius: 10px; background: #fff; touch-action: none; min-height: 0; }
 .exd-stage canvas { display: block; width: 100%; height: auto; aspect-ratio: ${W} / ${H}; cursor: crosshair; touch-action: none; }
 .exd-text { position: absolute; min-width: 60px; padding: 0; border: 0; outline: 1px dashed #888; background: transparent; font: 24px ${FONT}; }
+.exd-back.exd-inline { position: static; display: flex; flex: 1; padding: 12px; background: transparent; place-items: initial; }
+.exd-inline .exd-box { width: 100%; max-height: none; background: transparent; padding: 0; }
+.exd-inline .exd-stage { flex: 1; display: grid; place-items: start center; background: #f5f5f4; }
+.exd-inline .exd-stage canvas { max-width: 100%; max-height: calc(100vh - 190px); width: auto; height: auto; aspect-ratio: ${W} / ${H}; background: #fff; }
 @media (max-width: 720px) { .exd-bar button { height: 36px; } }
 `);
 
@@ -122,13 +126,20 @@ function drawings(text) {
 
 // --- the board -----------------------------------------------------------------------------------------------------------------
 function openBoard(existing) {
+    const key = existing ? `edit:${existing.data.length}:${existing.data.slice(-24)}` : `new:${Date.now()}`;
+    let cleanup = () => {};
+    fgs.openTab({ key, title: existing ? 'Рисунок (правка)' : 'Новый рисунок', icon: 'edit', onClose: () => cleanup(), render: (element, tab) => { cleanup = mountBoard(element, tab, existing); } });
+}
+
+// Draws the board into `host` (a tab); returns what to run when the tab closes.
+function mountBoard(host, tab, existing) {
     let scene = existing ? fromSvg(fromBase64(existing.data)) : [];
     let redo = [];
     let tool = 'pen', color = COLORS[0], width = WIDTHS[1];
     let draft = null, typing = null;
 
     const back = document.createElement('div');
-    back.className = 'exd-back';
+    back.className = 'exd-back exd-inline';
     back.innerHTML = `<div class="exd-box" role="dialog" aria-label="Рисунок"><div class="exd-bar"></div><div class="exd-stage"><canvas width="${W * 2}" height="${H * 2}"></canvas></div></div>`;
     const bar = back.querySelector('.exd-bar'), stage = back.querySelector('.exd-stage'), canvas = back.querySelector('canvas');
     const ctx = canvas.getContext('2d');
@@ -231,27 +242,28 @@ function openBoard(existing) {
         commitText();
         if (!scene.length) { close(); return; }
         const markdown = `![${MARK}](data:image/svg+xml;base64,${toBase64(toSvg(scene))})`;
+        tab.backToNote();            // the picture goes into the note the tab was opened from
         if (existing) {
             // the note may have changed while the board was open: look the picture up again
             const now = drawings(fgs.editor.get()).find(item => item.data === existing.data);
             if (now) fgs.editor.replace(now.from, now.to, markdown); else fgs.editor.insert(markdown);
         } else fgs.editor.insert(markdown);
         fgs.notify('Рисунок сохранён в заметке');
-        close();
+        tab.close();
     }
-    function close() { document.removeEventListener('keydown', onKey, true); back.remove(); }
+    function close() { tab.close(); }
+    function dispose() { document.removeEventListener('keydown', onKey, true); }
     function onKey(event) {
-        if (!back.isConnected) return;
+        if (!back.isConnected || !back.offsetParent) return;      // the tab is behind another one
         if (event.key === 'Escape' && !typing) { event.stopPropagation(); close(); }
         else if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !typing) { event.preventDefault(); event.stopPropagation(); undoButton.click(); }
         else if ((event.ctrlKey || event.metaKey) && (event.key.toLowerCase() === 'y' || (event.shiftKey && event.key.toLowerCase() === 'z')) && !typing) { event.preventDefault(); event.stopPropagation(); redoButton.click(); }
     }
     document.addEventListener('keydown', onKey, true);
-    back.addEventListener('mousedown', event => { if (event.target === back) close(); });
-    document.body.append(back);
-    fgs.onUnload(close);
+    host.append(back);
     sync();
     draw();
+    return dispose;
 }
 
 // The button edits the picture under the cursor, or starts a new one.
