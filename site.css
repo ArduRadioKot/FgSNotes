@@ -427,3 +427,41 @@ dialog.viewer img { width: 100%; height: auto; }
 .bento { width: var(--shell); }
 .hero > .shot, .hero > .split-copy { min-width: 0; }
 @media (max-width: 720px) { :root { --shell: calc(100vw - 16px); } .page > .hero, .page > .flat, .page > .island, .page > .bento, .page > .foot { width: var(--shell); } }
+
+/* Plugin store */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); counter-reset: step; }
+.steps li { counter-increment: step; display: grid; gap: 6px; align-content: start; padding: 18px 20px; border-radius: 12px; background: var(--island); color: var(--muted); font-size: 15px; line-height: 1.45; }
+.steps li b { color: var(--text); font-size: 17px; font-weight: 650; }
+.steps li b::before { content: counter(step); display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: 10px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font: 600 13px var(--mono); }
+.steps code { font: 500 .88em var(--mono); color: var(--text); }
+.plugin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--gap); }
+.pcard { min-width: 0; display: grid; gap: 14px; align-content: start; padding: 20px; border-radius: 12px; background: var(--island); }
+.phead { display: flex; align-items: center; gap: 14px; }
+.ptile { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--island-2); color: var(--accent-hi); }
+.ptile svg { width: 22px; height: 22px; }
+.pcard h3 { font-size: 18px; line-height: 1.25; }
+.pmeta { display: block; margin-top: 2px; color: var(--muted); font: 400 12.5px var(--mono); }
+.pcard p { color: var(--muted); font-size: 15px; line-height: 1.5; }
+.ptags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ptags:empty { display: none; }
+.pcard .actions { display: flex; gap: 8px; }
+.trust { max-width: 70ch; color: var(--muted); font-size: 14px; line-height: 1.5; }
+@media (max-width: 720px) {
+    .steps { grid-template-columns: 1fr; }
+    .plugin-grid { grid-template-columns: 1fr; }
+    .pcard .actions .btn { flex: 1; }
+}
+
+/* Docs: switch between theme and plugin documentation */
+.toc-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; margin-bottom: 6px; border-radius: 9px; background: var(--island-2); }
+.toc .toc-switch a { text-align: center; padding: 7px 8px; border-radius: 7px; font-size: 14px; }
+.toc .toc-switch a[aria-current="page"] { background: var(--raised); color: var(--text); }
+
+/* Plugins on the home page */
+.plugin-lead { max-width: 70ch; color: var(--muted); font-size: 17px; line-height: 1.55; margin-bottom: 8px; }
+.plugin-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.pmini { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; background: var(--island); text-decoration: none; transition: background-color .15s; }
+.pmini:hover { background: var(--island-2); }
+.pmini b { display: block; font-size: 16px; font-weight: 600; }
+.pmini small { color: var(--muted); font-size: 13px; }
+@media (max-width: 720px) { .plugin-strip { grid-template-columns: 1fr 1fr; } .pmini { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; } }
