@@ -449,6 +449,7 @@ dialog.viewer img { width: 100%; height: auto; }
 .ptags:empty { display: none; }
 .pcard .actions { display: flex; gap: 8px; }
 .trust { max-width: 70ch; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.page > .trust { width: min(var(--shell), 70ch); max-width: none; margin-left: max(0px, calc((100% - var(--shell)) / 2)); margin-right: auto; }
 @media (max-width: 720px) {
     .steps { grid-template-columns: 1fr; }
     .plugin-grid { grid-template-columns: 1fr; }
@@ -468,3 +469,7 @@ dialog.viewer img { width: 100%; height: auto; }
 .pmini b { display: block; font-size: 16px; font-weight: 600; }
 .pmini small { color: var(--muted); font-size: 13px; }
 @media (max-width: 720px) { .plugin-strip { grid-template-columns: 1fr 1fr; } .pmini { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; } }
+
+/* Store pages: the grid sits close under the filters, in the same shell as everything else */
+.store-top.flat { padding-bottom: 0; }
+.store-top + .flat { padding-top: 24px; }

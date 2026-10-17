@@ -1,11 +1,10 @@
-// Plugin store: the catalog is embedded in plugins.html (written by scripts/build-plugins-site.js), the code is read from plugins/<file>.
+// Plugin store: the catalog is embedded in plugins.html (written by scripts/build-plugins-site.js); files are downloaded from plugins/<file>.
 (function () {
     const data = JSON.parse(document.getElementById('plugins-data').textContent);
     const grid = document.getElementById('pluginGrid');
     const search = document.getElementById('pluginSearch');
     const filters = document.getElementById('pluginFilters');
     const counter = document.getElementById('pluginCount');
-    const viewer = document.getElementById('pluginViewer');
     let filter = 'all', query = '';
 
     const text = value => String(value).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -29,28 +28,10 @@
                 <div class="ptags">${p.obsidian ? `<span class="chip">Как в Obsidian: ${text(p.obsidian)}</span>` : ''}${p.online ? '<span class="chip">Нужен интернет</span>' : ''}</div>
                 <div class="actions">
                     <a class="btn primary small" href="plugins/${p.file}" download="${p.file}"><svg class="icon"><use href="#i-download"/></svg>Скачать .js</a>
-                    <button class="btn small" data-code="${p.id}">Код</button>
                 </div>
             </article>`).join('');
     }
 
-    grid.addEventListener('click', async event => {
-        const trigger = event.target.closest('[data-code]');
-        if (!trigger) return;
-        const plugin = data.plugins.find(p => p.id === trigger.dataset.code);
-        viewer.querySelector('h3').textContent = plugin.name;
-        const link = viewer.querySelector('.viewer-foot a.btn');
-        link.href = `plugins/${plugin.file}`; link.setAttribute('download', plugin.file);
-        const code = viewer.querySelector('code');
-        code.textContent = 'Загружаю…';
-        viewer.showModal();
-        try { code.textContent = await (await fetch(`plugins/${plugin.file}`)).text(); }
-        catch { code.textContent = 'Не удалось показать код здесь (страница открыта как файл). Скачайте плагин и откройте его в любом редакторе.'; }
-    });
-    viewer.addEventListener('click', event => {
-        if (event.target === viewer || event.target.closest('[data-close]')) viewer.close();
-        else if (event.target.closest('[data-copy]')) { navigator.clipboard && navigator.clipboard.writeText(viewer.querySelector('code').textContent); event.target.closest('[data-copy]').textContent = 'Скопировано'; setTimeout(() => { const b = viewer.querySelector('[data-copy]'); if (b) b.textContent = 'Скопировать'; }, 1500); }
-    });
     search.addEventListener('input', () => { query = search.value.trim().toLowerCase(); render(); });
     filters.addEventListener('click', event => {
         const button = event.target.closest('button');
