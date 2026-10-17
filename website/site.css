@@ -222,9 +222,12 @@ dialog.viewer img { width: 100%; height: auto; }
     .toc { position: static; grid-auto-flow: column; overflow-x: auto; scrollbar-width: none; }
     .toc a { white-space: nowrap; }
 }
-@media (max-width: 720px) {
+/* Six links no longer fit beside the logo below this width: the full-screen menu takes over earlier than the phone layout */
+@media (max-width: 1040px) {
     .nav-links { display: none; }
     .menu-btn { display: grid; }
+}
+@media (max-width: 720px) {
     .nav .btn.small { display: none; }
     body { font-size: 16px; }
 }
@@ -235,12 +238,12 @@ dialog.viewer img { width: 100%; height: auto; }
 
 /* Mobile menu: a full-screen panel revealed from the right (clip-path, so nothing sits outside the screen) */
 .menu { display: none; }
-@media (max-width: 720px) {
+@media (max-width: 1040px) {
     .menu { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 60; background: var(--wall); padding: max(12px, env(safe-area-inset-top)) max(var(--gap), env(safe-area-inset-right)) max(var(--gap), env(safe-area-inset-bottom)) max(var(--gap), env(safe-area-inset-left));
         clip-path: inset(0 0 0 100%); visibility: hidden; transition: clip-path .45s cubic-bezier(.3, .9, .3, 1), visibility 0s linear .45s; }
     .menu-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 16px; }
     .menu-links { display: grid; align-content: center; flex: 1; gap: 4px; padding: 0 16px; }
-    .menu-links a { text-decoration: none; font-size: clamp(34px, 11vw, 52px); font-weight: 700; letter-spacing: -.03em; line-height: 1.2; padding: 10px 0; color: var(--muted); transition: color .15s, transform .35s cubic-bezier(.3, .9, .3, 1); }
+    .menu-links a { text-decoration: none; font-size: clamp(28px, min(11vw, 6.4vh), 52px); font-weight: 700; letter-spacing: -.03em; line-height: 1.2; padding: 10px 0; color: var(--muted); transition: color .15s, transform .35s cubic-bezier(.3, .9, .3, 1); }
     .menu-links a:hover, .menu-links a[aria-current="page"] { color: var(--text); }
     .menu-links a:active { transform: translateX(6px); }
     .menu-foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); padding: 0 var(--gap) 16px; }
@@ -446,6 +449,7 @@ dialog.viewer img { width: 100%; height: auto; }
 .ptags:empty { display: none; }
 .pcard .actions { display: flex; gap: 8px; }
 .trust { max-width: 70ch; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.page > .trust { width: min(var(--shell), 70ch); max-width: none; margin-left: max(0px, calc((100% - var(--shell)) / 2)); margin-right: auto; }
 @media (max-width: 720px) {
     .steps { grid-template-columns: 1fr; }
     .plugin-grid { grid-template-columns: 1fr; }
@@ -465,3 +469,14 @@ dialog.viewer img { width: 100%; height: auto; }
 .pmini b { display: block; font-size: 16px; font-weight: 600; }
 .pmini small { color: var(--muted); font-size: 13px; }
 @media (max-width: 720px) { .plugin-strip { grid-template-columns: 1fr 1fr; } .pmini { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; } }
+
+/* Store pages: the grid sits close under the filters, in the same shell as everything else */
+.store-top.flat { padding-bottom: 0; }
+.store-top + .flat { padding-top: 24px; }
+
+/* Store tools: search and filters share one row */
+@media (min-width: 721px) {
+    .store-tools { flex-wrap: nowrap; justify-content: flex-start; }
+    .store-tools .search { flex: 0 1 300px; min-width: 200px; }
+    .store-tools .seg { flex: 0 1 auto; min-width: 0; }
+}

@@ -4,7 +4,7 @@
 // @description Вставьте ссылку на arXiv или DOI статьи: плагин создаст заметку с названием, авторами, аннотацией и записью BibTeX. Данные берутся из открытой базы OpenAlex, нужен интернет.
 // @author      FgSNotes
 // ==/FgsPlugin==
-// Аналог Scholar из Obsidian. Подходит ссылка вида arxiv.org/abs/1706.03762, номер 1706.03762 или DOI (10.1038/nature14539).
+// Подходит ссылка вида arxiv.org/abs/1706.03762, номер 1706.03762 или DOI (10.1038/nature14539).
 
 const parse = text => {
     const t = text.trim().replace(/\.pdf$/i, '');

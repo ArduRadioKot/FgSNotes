@@ -107,7 +107,7 @@ fgs.notify('Плагин запущен ' + count + '-й раз');</code></pre><
     title: 'Сохранить как .txt',
     icon: 'download',
     run: editor =&gt; fgs.download('заметка.txt', editor.get())
-});</code></pre><p>Готовые большие примеры (экспорт в Word, календарь, презентации, рисование, распознавание текста) — в <a href="plugins.html" style="text-decoration:underline;text-underline-offset:3px">магазине</a>: у каждого плагина есть кнопка «Код».</p></section>
+});</code></pre><p>Готовые большие примеры (экспорт в Word, календарь, презентации, рисование, распознавание текста) — в <a href="plugins.html" style="text-decoration:underline;text-underline-offset:3px">магазине</a>: скачайте файл и откройте его в любом редакторе.</p></section>
 
 <section id="rules"><h2>Ограничения</h2>
 <ul style="display:grid;gap:8px;padding-left:22px;margin:0">
@@ -120,7 +120,7 @@ fgs.notify('Плагин запущен ' + count + '-й раз');</code></pre><
 
 <section id="publish"><h2>Публикация</h2>
 <p>Хотите, чтобы плагин появился в магазине? Откройте запрос на слияние в <a href="https://github.com/ArduRadioKot/FgSNotes" style="text-decoration:underline;text-underline-offset:3px" target="_blank" rel="noopener">репозитории</a>:</p>
-<ol><li>Положите файл в папку <code>plugins-examples</code> с заполненным заголовком.</li><li>Добавьте запись о нём в <code>plugins-examples/catalog.json</code>: категория, значок (содержимое SVG на сетке 16×16), аналог в Obsidian, если есть, и пометка «нужен интернет».</li><li>Выполните <code>node scripts/build-plugins-site.js</code>: скрипт скопирует файл на сайт и обновит каталог.</li></ol>
+<ol><li>Положите файл в папку <code>plugins-examples</code> с заполненным заголовком.</li><li>Добавьте запись о нём в <code>plugins-examples/catalog.json</code>: категория, имя значка из набора приложения и пометка «нужен интернет».</li><li>Выполните <code>node scripts/build-plugins-site.js</code>: скрипт скопирует файл на сайт и обновит каталог.</li></ol>
 <div class="callout">Перед отправкой проверьте плагин на пустой и на большой заметке, включите и выключите его несколько раз подряд и убедитесь, что кнопки и слушатели исчезают.</div></section>
 </article>
 </div>

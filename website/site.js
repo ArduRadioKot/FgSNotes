@@ -29,7 +29,7 @@
     menu?.addEventListener('click', () => setMenu(!root.classList.contains('menu-open')));
     panel?.addEventListener('click', event => { if (event.target.closest('#menuClose, .menu-links a, .menu-foot a')) setMenu(false); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && root.classList.contains('menu-open')) setMenu(false); });
-    matchMedia('(min-width: 721px)').addEventListener('change', event => { if (event.matches) setMenu(false); });
+    matchMedia('(min-width: 1041px)').addEventListener('change', event => { if (event.matches) setMenu(false); });
 
     // A lens behind the active button. On a switch it stretches over both buttons and settles on the new one.
     window.createLens = function (container, activeSelector) {

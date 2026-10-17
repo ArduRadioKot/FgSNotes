@@ -4,7 +4,7 @@
 // @description Превращает HTML-страницу или экспорт из Notion, OneNote и Evernote в Markdown-заметку: заголовки, списки, таблицы, ссылки, код.
 // @author      FgSNotes
 // ==/FgsPlugin==
-// Аналог Importer из Obsidian. Выберите файл .html, .htm, .md или .txt: результат откроется в новой заметке.
+// Выберите файл .html, .htm, .md или .txt: результат откроется в новой заметке.
 
 const clean = text => text.replace(/[ \t]+/g, ' ');
 function inline(node) {

@@ -70,7 +70,7 @@ fgs.addButton({ title: 'Insert date', icon: 'history', run: editor => editor.ins
 `fgs.editor` (`get`, `set`, `insert`, `selection`, `cursor`, `replace`), `fgs.documents()` / `openDocument(id)` / `createDocument(title, text)`, `fgs.markdown(text)`,
 `fgs.download(name, data)`, `fgs.pickFile({ accept, as })`, `fgs.modal({ title, width })`, `fgs.openTab({ title, icon, render })`, `fgs.storage` (`get`, `set`), `fgs.notify(text)`, `fgs.onUnload(fn)`.
 The full reference is in `website/docs-plugins.html`. Ready-made plugins live in `plugins-examples/` (Exildraw sketch board, Word/HTML/PDF export, calendar,
-search across notes, slides, OCR, importers and more); `node scripts/build-plugins-site.js` publishes them to the plugin store on the website.
+search across notes, OCR, importers and more); `node scripts/build-plugins-site.js` publishes them to the plugin store on the website.
 On a phone, plugins are kept in the app's storage instead of a folder.
 
 ## Running from Source
