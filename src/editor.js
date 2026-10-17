@@ -93,6 +93,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const newTabButton = document.querySelector('.new-tab-button');
     let documents = [];
     let activeDocumentIndex = 0;
+    let lastNoteId = null;                    // the note the text editor currently holds (a plugin tab may be in front)
+    // Plugin tabs ("views") hold an element a plugin drew instead of text. They stay at the end of the list and are never saved.
+    const isView = doc => !!(doc && doc.view);
+    const viewHost = document.createElement('section');
+    viewHost.className = 'plugin-view';
+    viewHost.hidden = true;
+    document.querySelector('.editor-wrapper').after(viewHost);
+    const notesOnly = () => documents.filter(doc => !isView(doc));
+    function insertNote(doc) {
+        const firstView = documents.findIndex(isView);
+        const at = firstView < 0 ? documents.length : firstView;
+        documents.splice(at, 0, doc);
+        return at;
+    }
     let nextDocumentId = 1;
     let saveTimer;
     const storageKey = 'fgsnotes.workspace.v1';
@@ -129,7 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function persistWorkspace() {
         clearTimeout(saveTimer);
         try {
-            localStorage.setItem(storageKey, JSON.stringify({ documents, activeDocumentIndex, nextDocumentId }));
+            const notes = notesOnly();
+            const activeNote = isView(documents[activeDocumentIndex]) ? notes.findIndex(doc => doc.id === lastNoteId) : activeDocumentIndex;
+            localStorage.setItem(storageKey, JSON.stringify({ documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId }));
             document.getElementById('save-status').textContent = 'Черновик сохранён';
         } catch (error) {
             document.getElementById('save-status').textContent = 'Не удалось сохранить черновик';
@@ -138,9 +154,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function saveCurrentDocument() {
         const doc = documents[activeDocumentIndex];
-        if (doc) doc.content = editor.value;
+        if (doc && !isView(doc)) doc.content = editor.value;
     }
     function loadDocument(index) {
+        const shown = documents[index];
+        // A plugin tab replaces both panes with its own element.
+        for (const child of viewHost.children) child.hidden = !(isView(shown) && child === shown.element);
+        if (isView(shown)) {
+            workspace.dataset.pluginView = '';
+            viewHost.hidden = false;
+            shown.element.dispatchEvent(new CustomEvent('plugin-view-show'));
+            document.title = `${shown.title} — FgSNotes`;
+            return;
+        }
+        delete workspace.dataset.pluginView;
+        viewHost.hidden = true;
+        lastNoteId = shown.id;
         editor.value = documents[index].content;
         editor.setSelectionRange(0, 0);
         editor.scrollTop = 0;
@@ -151,8 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addNewTab() {
         saveCurrentDocument();
         const id = nextDocumentId++;
-        documents.push({ id, title: `Документ ${id}`, content: '' });
-        activeDocumentIndex = documents.length - 1;
+        activeDocumentIndex = insertNote({ id, title: `Документ ${id}`, content: '' });
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
@@ -176,7 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeTab(index) {
         if (documents.length === 1) return;
         saveCurrentDocument();
-        if (window.FgsNotebook) window.FgsNotebook.forget(documents[index].id);
+        const closing = documents[index];
+        if (isView(closing)) { closing.element.remove(); if (closing.onClose) try { closing.onClose(); } catch (error) { console.error(error); } }
+        else if (window.FgsNotebook) window.FgsNotebook.forget(closing.id);
         documents.splice(index, 1);
         if (index < activeDocumentIndex) activeDocumentIndex--;
         activeDocumentIndex = Math.min(activeDocumentIndex, documents.length - 1);
@@ -192,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tab.className = `tab-item${index === activeDocumentIndex ? ' active' : ''}`;
             const select = document.createElement('button');
             select.className = 'tab-select';
-            select.innerHTML = icon('markdown');
+            select.innerHTML = icon(doc.icon || 'markdown');
             select.setAttribute('aria-pressed', index === activeDocumentIndex);
             select.title = doc.title;
             const title = document.createElement('span');
@@ -235,8 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reader = new FileReader();
             reader.onload = () => {
                 saveCurrentDocument();
-                documents.push({ id: nextDocumentId++, title: file.name, content: reader.result });
-                activeDocumentIndex = documents.length - 1;
+                activeDocumentIndex = insertNote({ id: nextDocumentId++, title: file.name, content: reader.result });
                 renderTabs();
                 loadDocument(activeDocumentIndex);
                 persistWorkspace();
@@ -247,6 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.click();
     }
     function saveFile() {
+        if (isView(documents[activeDocumentIndex])) return;
         saveCurrentDocument();
         persistWorkspace();
         const doc = documents[activeDocumentIndex];
@@ -309,6 +339,35 @@ document.addEventListener('DOMContentLoaded', () => {
         nextTab: () => switchTab((activeDocumentIndex + 1) % documents.length),
         previousTab: () => switchTab((activeDocumentIndex - 1 + documents.length) % documents.length),
         view: setView,
+        // For plugins: the open notes.
+        documents: () => { saveCurrentDocument(); return notesOnly().map(doc => ({ id: doc.id, title: doc.title, content: doc.content, active: doc.id === lastNoteId })); },
+        openDocument: id => { const index = documents.findIndex(doc => doc.id === id && !isView(doc)); if (index >= 0) switchTab(index); },
+        // A tab whose content is an element drawn by a plugin. Opening the same key again just brings the tab forward.
+        openViewTab: ({ key, title, icon: iconName = 'file', element, onClose }) => {
+            const existing = documents.findIndex(doc => isView(doc) && doc.viewKey === key);
+            const handle = id => ({
+                id,
+                close: () => { const i = documents.findIndex(doc => doc.id === id); if (i >= 0) closeTab(i); },
+                backToNote: () => { const i = documents.findIndex(doc => doc.id === lastNoteId); if (i >= 0) switchTab(i); },
+                setTitle: text => { const doc = documents.find(item => item.id === id); if (doc) { doc.title = String(text); renderTabs(); } }
+            });
+            if (existing >= 0) { switchTab(existing); return { ...handle(documents[existing].id), created: false, element: documents[existing].element }; }
+            saveCurrentDocument();
+            const id = nextDocumentId++;
+            documents.push({ id, title: String(title), content: '', view: true, viewKey: key, icon: iconName, element, onClose });
+            viewHost.append(element);
+            activeDocumentIndex = documents.length - 1;
+            renderTabs();
+            loadDocument(activeDocumentIndex);
+            return { ...handle(id), created: true, element };
+        },
+        createDocument: (title, content) => {
+            addNewTab();
+            documents[activeDocumentIndex].title = String(title || documents[activeDocumentIndex].title);
+            renderTabs();
+            editor.value = String(content || '');
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+        },
         canFormat: () => workspace.dataset.view !== 'preview',
         format: name => { if (window.FgsActions.canFormat() && markdownFormats[name]) window.insertMarkdown(...markdownFormats[name]); }
     };
@@ -448,6 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         documents.push({ id: nextDocumentId++, title: 'Начните здесь.md', content: intro });
     }
     renderTabs();
+    lastNoteId = documents[activeDocumentIndex].id;
     editor.value = documents[activeDocumentIndex].content;
     editor.setSelectionRange(0, 0);
     editor.scrollTop = 0;

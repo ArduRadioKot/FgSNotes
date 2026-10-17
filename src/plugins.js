@@ -45,7 +45,15 @@
     const buttons = [];                 // { file, title, icon, run } in the order plugins registered them
     const phone = matchMedia('(max-width: 720px)');
     let rail = null, menu = null, layoutFrame = 0, resizeWatcher = null;
-    const iconMarkup = icon => (/^\s*</.test(icon) ? icon : (window.icon ? window.icon(icon) : ''));
+    // Every plugin icon ends up the same size: a custom SVG loses its own width/height, gets the app's icon class and a 16x16 grid if it has none.
+    const iconMarkup = icon => {
+        if (!/^\s*</.test(icon)) return window.icon ? window.icon(icon) : '';
+        return String(icon).trim().replace(/<svg\b([^>]*)>/i, (match, attrs) => {
+            attrs = attrs.replace(/\s(?:width|height|class|style)=("[^"]*"|'[^']*')/gi, '');
+            if (!/\sviewBox=/i.test(attrs)) attrs += ' viewBox="0 0 16 16"';
+            return `<svg class="icon"${attrs} aria-hidden="true" focusable="false">`;
+        });
+    };
 
     function railButton(entry, className) {
         const button = document.createElement('button');
@@ -130,7 +138,7 @@
             rail.appendChild(more);
         }
     }
-    function layout() { if (!layoutFrame) layoutFrame = requestAnimationFrame(doLayout); }
+    function layout() { if (!layoutFrame) layoutFrame = setTimeout(doLayout, 16); }
     phone.addEventListener('change', layout);
 
     // --- API handed to a plugin ----------------------------------------------------------------------------------------------
@@ -168,6 +176,67 @@
                 selection: () => { const area = editor(); return area.value.slice(area.selectionStart, area.selectionEnd); },
                 cursor: () => { const area = editor(); return { from: area.selectionStart, to: area.selectionEnd }; },
                 replace(from, to, text) { const area = editor(); area.focus(); area.setRangeText(String(text), from, to, 'end'); area.dispatchEvent(new Event('input', { bubbles: true })); }
+            },
+            // A tab next to the notes whose content the plugin draws itself. render(element, tab) runs once; opening the same key
+            // again brings the tab forward. tab: { close(), backToNote(), setTitle(text), created }.
+            openTab({ key = file, title, icon = 'file', render, onClose } = {}) {
+                if (!window.FgsActions || !window.FgsActions.openViewTab) return null;
+                const element = document.createElement('div');
+                element.className = 'plugin-view-body';
+                const tab = window.FgsActions.openViewTab({ key: `${file}:${key}`, title: title || api.file, icon, element, onClose });
+                if (tab.created) {
+                    if (render) { try { render(tab.element, tab); } catch (error) { console.error(`[${file}]`, error); } }
+                    track(() => tab.close());
+                }
+                return tab;
+            },
+            // The open notes: [{ id, title, content, active }]; openDocument(id) switches to one, createDocument(title, text) adds one.
+            documents: () => (window.FgsActions ? window.FgsActions.documents() : []),
+            openDocument: id => window.FgsActions && window.FgsActions.openDocument(id),
+            createDocument: (title, content) => window.FgsActions && window.FgsActions.createDocument(title, content),
+            // Markdown to HTML with the app's own renderer.
+            markdown: text => (window.parseMarkdown ? window.parseMarkdown(String(text)) : ''),
+            // Offers `data` (text or Blob) as a file download.
+            download(name, data, type = 'text/plain;charset=utf-8') {
+                const blob = data instanceof Blob ? data : new Blob([data], { type });
+                const url = URL.createObjectURL(blob);
+                const link = Object.assign(document.createElement('a'), { href: url, download: name });
+                document.body.append(link); link.click(); link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            },
+            // File picker: resolves { name, type, size, data } or null. as: 'text' (default), 'dataUrl' or 'arrayBuffer'.
+            pickFile({ accept = '', as = 'text' } = {}) {
+                return new Promise(resolve => {
+                    const input = Object.assign(document.createElement('input'), { type: 'file', accept, hidden: true });
+                    document.body.append(input);
+                    input.addEventListener('cancel', () => { input.remove(); resolve(null); }, { once: true });
+                    input.onchange = async () => {
+                        const file = input.files[0];
+                        input.remove();
+                        if (!file) return resolve(null);
+                        const read = as === 'arrayBuffer' ? file.arrayBuffer() : as === 'dataUrl' ? new Promise(done => { const reader = new FileReader(); reader.onload = () => done(reader.result); reader.readAsDataURL(file); }) : file.text();
+                        resolve({ name: file.name, type: file.type, size: file.size, data: await read });
+                    };
+                    input.click();
+                });
+            },
+            // A dialog: returns { body, close }. width in px. Closes on Esc and on a click outside; onClose is called then.
+            modal({ title = '', width = 720, onClose } = {}) {
+                const back = document.createElement('div');
+                back.className = 'plugin-modal-back';
+                back.innerHTML = '<div class="plugin-modal" role="dialog" aria-modal="true"><div class="plugin-modal-head"><strong></strong><button type="button" class="icon-button" aria-label="Закрыть"></button></div><div class="plugin-modal-body"></div></div>';
+                const box = back.firstChild;
+                box.style.width = `min(${width}px, 100%)`;
+                back.querySelector('strong').textContent = title;
+                back.querySelector('button').innerHTML = window.icon ? window.icon('close') : '×';
+                const close = () => { document.removeEventListener('keydown', onKey, true); back.remove(); if (onClose) onClose(); };
+                const onKey = event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } };
+                document.addEventListener('keydown', onKey, true);
+                back.addEventListener('mousedown', event => { if (event.target === back) close(); });
+                back.querySelector('button').addEventListener('click', close);
+                document.body.append(back);
+                track(close);
+                return { body: back.querySelector('.plugin-modal-body'), close, element: box };
             },
             // Small private storage for the plugin.
             storage: {

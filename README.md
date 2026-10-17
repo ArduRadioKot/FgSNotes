@@ -66,8 +66,11 @@ what you trust. A `.js` plugin is a function body that receives `fgs`:
 fgs.addButton({ title: 'Insert date', icon: 'history', run: editor => editor.insert(new Date().toLocaleDateString()) });
 ```
 
-`fgs.addStyle(css)`, `fgs.addButton({ title, icon, run })` (a button on the left edge; extra ones fall into a "…" menu), `fgs.onPreview(el => …)`, `fgs.onChange(text => …)`, `fgs.editor` (`get`, `set`,
-`insert`, `selection`), `fgs.storage` (`get`, `set`), `fgs.notify(text)`, `fgs.onUnload(fn)`. Examples are in `plugins-examples/` (including `exildraw.js`, a sketch board that inserts drawings as SVG).
+`fgs.addStyle(css)`, `fgs.addButton({ title, icon, run })` (a button on the left edge; extra ones fall into a "…" menu), `fgs.onPreview(el => …)`, `fgs.onChange(text => …)`,
+`fgs.editor` (`get`, `set`, `insert`, `selection`, `cursor`, `replace`), `fgs.documents()` / `openDocument(id)` / `createDocument(title, text)`, `fgs.markdown(text)`,
+`fgs.download(name, data)`, `fgs.pickFile({ accept, as })`, `fgs.modal({ title, width })`, `fgs.openTab({ title, icon, render })`, `fgs.storage` (`get`, `set`), `fgs.notify(text)`, `fgs.onUnload(fn)`.
+The full reference is in `website/docs-plugins.html`. Ready-made plugins live in `plugins-examples/` (Exildraw sketch board, Word/HTML/PDF export, calendar,
+search across notes, slides, OCR, importers and more); `node scripts/build-plugins-site.js` publishes them to the plugin store on the website.
 On a phone, plugins are kept in the app's storage instead of a folder.
 
 ## Running from Source

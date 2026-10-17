@@ -35,6 +35,7 @@ const iconPaths = {
     'bulb': '<path d="M6 11.500h4M6.500 13.500h3M8 2a4 4 0 0 0-2.200 7.300c.5.400.7.900.7 1.500v.700h3v-.700c0-.6.200-1.100.7-1.500A4 4 0 0 0 8 2z"/>',
     'play': '<path d="M5 3.25v9.5L12.5 8z"/>',
     'stop': '<rect x="4" y="4" width="8" height="8" rx="1"/>',
+    'calendar': '<rect x="2" y="3.5" width="12" height="10.5" rx="1.5"/><path d="M2 7h12M5.5 2v3M10.5 2v3"/>',
     'more': '<circle cx="3.5" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="12.5" cy="8" r=".9" fill="currentColor" stroke="none"/>',
     'chevron': '<path d="M6 3.5 10.5 8 6 12.5"/>',
     'sparkles': '<path d="M6.500 2.500c.4 2.600 1.400 3.600 4 4-2.600.4-3.600 1.400-4 4-.4-2.600-1.400-3.600-4-4 2.600-.4 3.600-1.400 4-4zM12 9.500c.2 1.300.7 1.800 2 2-1.300.2-1.800.7-2 2-.2-1.300-.7-1.800-2-2 1.300-.2 1.800-.7 2-2z"/>',

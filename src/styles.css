@@ -1145,3 +1145,27 @@ html[data-native] .native-only { display: block; }
 .plugin-menu .check { color: var(--text-muted); }
 .plugin-menu .check .icon { width: 16px; height: 16px; }
 @media (max-width: 720px) { .sidebar-plugin-buttons { display: none; } }
+
+/* fgs.modal(): the dialog plugins use */
+.plugin-modal-back { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .5); }
+.plugin-modal { display: flex; flex-direction: column; max-height: 100%; border-radius: 14px; background: var(--card-bg); color: var(--text-color); box-shadow: 0 24px 64px var(--shadow-color); overflow: hidden; }
+.plugin-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 12px 8px 18px; }
+.plugin-modal-body { padding: 4px 18px 18px; overflow: auto; min-height: 0; }
+.plugin-modal-body :is(input[type="text"], input[type="search"], input[type="date"], textarea, select) { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--code-bg); color: inherit; font: inherit; }
+.plugin-modal-body button.pm-btn { height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-md); background: var(--active-bg); color: inherit; font: inherit; cursor: pointer; }
+.plugin-modal-body button.pm-btn:hover { background: var(--hover-color); }
+.plugin-modal-body button.pm-btn.primary { background: var(--accent-color); color: var(--accent-text); }
+.plugin-modal-body .pm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.plugin-modal-body .pm-muted { color: var(--text-muted); font-size: 13px; }
+
+/* Plugin tabs: one element drawn by a plugin instead of the two text panes */
+.plugin-view { flex: 1; min-height: 0; min-width: 0; overflow: auto; border-radius: var(--radius-lg); background: var(--card-bg); }
+.plugin-view[hidden] { display: none; }
+.plugin-view-body { min-height: 100%; display: flex; flex-direction: column; }
+.workspace[data-plugin-view] .editor-wrapper, .workspace[data-plugin-view] .tools-dock, .workspace[data-plugin-view] .view-switch { display: none; }
+
+/* Plugin icons are one size wherever they appear, whatever the SVG says */
+.plugin-tool svg.icon { flex: none; width: 16px !important; height: 16px !important; }
+.sidebar-plugin-buttons .plugin-tool svg.icon { width: 20px !important; height: 20px !important; }
+.plugin-menu .check { flex: none; width: 20px; display: grid; place-items: center; }
+.plugin-menu .check svg.icon { width: 16px !important; height: 16px !important; }

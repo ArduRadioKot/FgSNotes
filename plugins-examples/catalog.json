@@ -1,0 +1,69 @@
+{
+  "html-import": {
+    "category": "sources",
+    "obsidian": "Importer",
+    "icon": "<path d=\"M8 2.5v7M5 7l3 3 3-3M3 12.5h10\"/>"
+  },
+  "scholar": {
+    "category": "sources",
+    "obsidian": "Scholar",
+    "online": true,
+    "icon": "<path d=\"M4 2.5h5.5L12 5v8.5H4zM9.5 2.5V5H12M6 8h4M6 10.5h4\"/>"
+  },
+  "ocr": {
+    "category": "sources",
+    "obsidian": "Text Extractor",
+    "online": true,
+    "icon": "<path d=\"M2.5 5.5v-3h3M10.5 2.5h3v3M13.5 10.5v3h-3M5.5 13.5h-3v-3M5.5 6.5h5M8 6.5v4\"/>"
+  },
+  "omni-search": {
+    "category": "navigate",
+    "obsidian": "Omnisearch",
+    "icon": "<circle cx=\"7\" cy=\"7\" r=\"4.5\"/><path d=\"M10.5 10.5 14 14\"/>"
+  },
+  "exildraw": {
+    "category": "show",
+    "obsidian": "Excalidraw, Canvas",
+    "icon": "<path d=\"M3 13l.7-3L10.5 3.2a1.4 1.4 0 0 1 2 0l.3.3a1.4 1.4 0 0 1 0 2L6 12.3zM9 4.8l2.2 2.2\"/>"
+  },
+  "slides": {
+    "category": "show",
+    "obsidian": "Advanced Slides",
+    "icon": "<rect x=\"2\" y=\"3\" width=\"12\" height=\"8\" rx=\"1\"/><path d=\"M8 11v2.5M5.5 13.5h5\"/>"
+  },
+  "calendar": {
+    "category": "plan",
+    "obsidian": "Full Calendar",
+    "icon": "<rect x=\"2\" y=\"3.5\" width=\"12\" height=\"10.5\" rx=\"1.5\"/><path d=\"M2 7h12M5.5 2v3M10.5 2v3\"/>"
+  },
+  "templates": {
+    "category": "plan",
+    "obsidian": "Templates",
+    "icon": "<rect x=\"5\" y=\"2.5\" width=\"8\" height=\"10\" rx=\"1\"/><path d=\"M3 5v8.5h7\"/>"
+  },
+  "export-docx": {
+    "category": "export",
+    "obsidian": "Pandoc",
+    "icon": "<path d=\"M8 10V2.5M5 5l3-2.5L11 5M3 10.5v3h10v-3\"/>"
+  },
+  "note-transfer": {
+    "category": "export",
+    "obsidian": "Syncthing",
+    "icon": "<path d=\"M3 5.5h9M9.5 3 12 5.5 9.5 8M13 10.5H4M6.5 8 4 10.5 6.5 13\"/>"
+  },
+  "md-table": {
+    "category": "edit",
+    "obsidian": "Advanced Tables",
+    "icon": "<rect x=\"2\" y=\"3\" width=\"12\" height=\"10\" rx=\"1\"/><path d=\"M2 6.5h12M2 10h12M6 3v10\"/>"
+  },
+  "insert-date": {
+    "category": "edit",
+    "obsidian": "",
+    "icon": "<circle cx=\"8\" cy=\"8\" r=\"5.5\"/><path d=\"M8 5v3.2l2 1.3\"/>"
+  },
+  "reading-time": {
+    "category": "edit",
+    "obsidian": "Reading Time",
+    "icon": "<path d=\"M2.5 3.5h4A1.5 1.5 0 0 1 8 5v8a1.5 1.5 0 0 0-1.5-1.5h-4zM13.5 3.5h-4A1.5 1.5 0 0 0 8 5v8a1.5 1.5 0 0 1 1.5-1.5h4z\"/>"
+  }
+}
