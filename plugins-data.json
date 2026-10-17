@@ -1,11 +1,11 @@
 {
   "format": 1,
   "categories": {
-    "sources": "Импорт и источники",
-    "navigate": "Поиск и связи",
-    "show": "Рисунок и показ",
+    "sources": "Источники",
+    "navigate": "Поиск",
+    "show": "Рисование",
     "plan": "Планирование",
-    "export": "Экспорт и перенос",
+    "export": "Экспорт",
     "edit": "Редактирование"
   },
   "plugins": [
@@ -16,9 +16,8 @@
       "version": "2.0",
       "description": "Календарь в стиле Apple Calendar на отдельной вкладке: день, неделя и месяц, свои события, даты и задачи из заметки, импорт и экспорт .ics.",
       "author": "FgSNotes",
-      "size": 36071,
+      "size": 36029,
       "category": "plan",
-      "obsidian": "Full Calendar",
       "icon": "<path d=\"M2.5 3.5h11v10h-11zM2.5 6.5h11M5.5 1.5v3M10.5 1.5v3\"/>"
     },
     {
@@ -30,7 +29,6 @@
       "author": "FgSNotes",
       "size": 18692,
       "category": "show",
-      "obsidian": "Excalidraw, Canvas",
       "icon": "<path d=\"M10.5 2.5l3 3-8 8H2.5v-3z\"/><path d=\"M9 4l3 3\"/>"
     },
     {
@@ -40,9 +38,8 @@
       "version": "1.0",
       "description": "Сохраняет текущую заметку как Word (.docx), HTML, простой текст или PDF. Работает без Pandoc и без интернета.",
       "author": "FgSNotes",
-      "size": 12229,
+      "size": 12195,
       "category": "export",
-      "obsidian": "Pandoc",
       "icon": "<path d=\"M2.5 2.5h9l2 2v9h-11z\"/><path d=\"M5 2.5v3.5h5V2.5M5 13.5V9h6v4.5\"/>"
     },
     {
@@ -52,9 +49,8 @@
       "version": "1.0",
       "description": "Превращает HTML-страницу или экспорт из Notion, OneNote и Evernote в Markdown-заметку: заголовки, списки, таблицы, ссылки, код.",
       "author": "FgSNotes",
-      "size": 4757,
+      "size": 4720,
       "category": "sources",
-      "obsidian": "Importer",
       "icon": "<path d=\"M8 2v8M4.5 6.75 8 10.25l3.5-3.5M2.5 13.5h11\"/>"
     },
     {
@@ -66,7 +62,6 @@
       "author": "FgSNotes",
       "size": 536,
       "category": "edit",
-      "obsidian": "",
       "icon": "<circle cx=\"8\" cy=\"8\" r=\"6\"/><path d=\"M8 4.500V8l2.500 1.500\"/>"
     },
     {
@@ -78,20 +73,7 @@
       "author": "FgSNotes",
       "size": 3470,
       "category": "edit",
-      "obsidian": "Advanced Tables",
       "icon": "<rect x=\"1.5\" y=\"2.5\" width=\"13\" height=\"11\" rx=\"1\"/><path d=\"M8 2.5v11\"/>"
-    },
-    {
-      "id": "note-transfer",
-      "file": "note-transfer.js",
-      "name": "Перенос заметок",
-      "version": "1.0",
-      "description": "Сохраняет все открытые заметки одним файлом и загружает их на другом устройстве. Файл можно положить в папку Syncthing, iCloud, Dropbox или отправить себе.",
-      "author": "FgSNotes",
-      "size": 3558,
-      "category": "export",
-      "obsidian": "Syncthing",
-      "icon": "<path d=\"M13.500 8A5.500 5.500 0 1 1 11.900 4.100M13.500 2.500v3h-3\"/>"
     },
     {
       "id": "ocr",
@@ -100,9 +82,8 @@
       "version": "1.0",
       "description": "Распознаёт текст на скриншоте или фотографии (русский и английский) и вставляет его в заметку. При первом запуске скачивает модель распознавания, нужен интернет; дальше она хранится в браузере.",
       "author": "FgSNotes",
-      "size": 3899,
+      "size": 3856,
       "category": "sources",
-      "obsidian": "Text Extractor",
       "online": true,
       "icon": "<rect x=\"1.500\" y=\"2.500\" width=\"13\" height=\"11\" rx=\"1\"/><circle cx=\"5.200\" cy=\"6\" r=\"1.200\"/><path d=\"M2 12l3.500-3.500 2.500 2.500 2-2 4 3\"/>"
     },
@@ -113,9 +94,8 @@
       "version": "1.0",
       "description": "Быстрый поиск по всем открытым заметкам с подсветкой совпадений и переходом к нужному месту. Сочетание Ctrl/⌘+Shift+F.",
       "author": "FgSNotes",
-      "size": 4235,
+      "size": 4196,
       "category": "navigate",
-      "obsidian": "Omnisearch",
       "icon": "<path d=\"M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z\"/><circle cx=\"8\" cy=\"8\" r=\"2\"/>"
     },
     {
@@ -127,7 +107,6 @@
       "author": "FgSNotes",
       "size": 688,
       "category": "edit",
-      "obsidian": "Reading Time",
       "icon": "<rect x=\"1.5\" y=\"3.5\" width=\"13\" height=\"9\" rx=\"1.5\"/><path d=\"M4 10V6l1.75 2.25L7.5 6v4M11 6v4m-1.5-1.5L11 10l1.5-1.5\"/>"
     },
     {
@@ -137,23 +116,10 @@
       "version": "1.1",
       "description": "Вставьте ссылку на arXiv или DOI статьи: плагин создаст заметку с названием, авторами, аннотацией и записью BibTeX. Данные берутся из открытой базы OpenAlex, нужен интернет.",
       "author": "FgSNotes",
-      "size": 4533,
+      "size": 4497,
       "category": "sources",
-      "obsidian": "Scholar",
       "online": true,
       "icon": "<path d=\"M9 2.500h4.500V7M13.500 2.500 7.500 8.500M11.500 9v3.500a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1H7\"/>"
-    },
-    {
-      "id": "slides",
-      "file": "slides.js",
-      "name": "Презентация",
-      "version": "1.0",
-      "description": "Собирает слайды из заметки и показывает их на весь экран. Слайды разделяются строкой ---, а без неё — заголовками первого и второго уровня. Экспорт в PDF через печать.",
-      "author": "FgSNotes",
-      "size": 6578,
-      "category": "show",
-      "obsidian": "Advanced Slides",
-      "icon": "<path d=\"M9.500 2.500h4v4M6.500 13.500h-4v-4M13.500 2.500 9 7M2.500 13.500 7 9\"/>"
     },
     {
       "id": "templates",
@@ -164,7 +130,6 @@
       "author": "FgSNotes",
       "size": 4268,
       "category": "plan",
-      "obsidian": "Templates",
       "icon": "<path d=\"M3.5 1.5h6l3 3v10h-9z\"/><path d=\"M9.5 1.5v3h3M5.5 8.5h5M5.5 11h5\"/>"
     }
   ]

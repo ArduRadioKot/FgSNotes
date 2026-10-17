@@ -3,7 +3,6 @@
     const grid = document.getElementById('themeGrid');
     const search = document.getElementById('themeSearch');
     const filters = document.getElementById('themeFilters');
-    const counter = document.getElementById('themeCount');
     const viewer = document.getElementById('themeViewer');
     let themes = [], filter = 'all', query = '';
 
@@ -15,7 +14,6 @@
     function render() {
         const shown = themes.filter(theme => (filter === 'all' || theme.mode === filter || theme.category === filter)
             && (!query || (theme.name + ' ' + theme.description + ' ' + theme.tags.join(' ')).toLowerCase().includes(query)));
-        counter.textContent = `${shown.length} ${plural(shown.length, ['тема', 'темы', 'тем'])}`;
         if (!shown.length) { grid.innerHTML = '<p class="empty">Ничего не найдено. Попробуйте другое слово или сбросьте фильтр.</p>'; return; }
         grid.innerHTML = shown.map(theme => `
             <article class="tcard">

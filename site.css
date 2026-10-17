@@ -473,3 +473,10 @@ dialog.viewer img { width: 100%; height: auto; }
 /* Store pages: the grid sits close under the filters, in the same shell as everything else */
 .store-top.flat { padding-bottom: 0; }
 .store-top + .flat { padding-top: 24px; }
+
+/* Store tools: search and filters share one row */
+@media (min-width: 721px) {
+    .store-tools { flex-wrap: nowrap; justify-content: flex-start; }
+    .store-tools .search { flex: 0 1 300px; min-width: 200px; }
+    .store-tools .seg { flex: 0 1 auto; min-width: 0; }
+}
