@@ -1169,3 +1169,15 @@ html[data-native] .native-only { display: block; }
 .sidebar-plugin-buttons .plugin-tool svg.icon { width: 20px !important; height: 20px !important; }
 .plugin-menu .check { flex: none; width: 20px; display: grid; place-items: center; }
 .plugin-menu .check svg.icon { width: 16px !important; height: 16px !important; }
+
+/* Settings → ИИ → model: a field with the full list of the server's models under it */
+.model-combo { position: relative; }
+.model-menu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; width: max(100%, 300px); max-height: 264px; overflow-y: auto; padding: 4px; border-radius: var(--radius-lg); background: var(--card-bg); box-shadow: 0 12px 32px var(--shadow-color), inset 0 0 0 1px var(--border-color); }
+.model-menu[hidden] { display: none; }
+.model-option { display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px 0 4px; border-radius: var(--radius-md); font-size: 13px; cursor: pointer; }
+.model-option:hover, .model-option.is-active { background: var(--hover-color); }
+.model-check { flex: none; width: 18px; display: grid; place-items: center; color: var(--accent-color); }
+.model-check .icon { width: 14px; height: 14px; }
+.model-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-empty { padding: 8px 10px; color: var(--text-muted); font-size: 12.5px; }
+@media (max-width: 720px) { .model-combo { flex: 1 1 100%; } .model-menu { width: 100%; } .model-option { min-height: 40px; font-size: 15px; } }

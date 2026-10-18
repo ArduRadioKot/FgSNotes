@@ -627,28 +627,79 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         $('#ai-key-field').placeholder = has ? 'Ключ сохранён — вставьте новый, чтобы заменить' : 'Вставьте ключ';
         $('#ai-note').innerHTML = onDevice ? 'Модели работают на процессоре или графическом ускорителе телефона. Маленькие модели хороши для коротких правок и ошибаются в сложных задачах. Не закрывайте приложение, пока идёт скачивание.' : info.keyLink ? `Ключ можно получить на <a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>. Оплату запросов ведёт сам провайдер.` : id === 'ollama' ? 'Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.' : '';
     }
-    async function refreshModels() {
-        const status = $('#ai-status'), list = $('#ai-model-list');
+    async function refreshModels(event) {
+        const fromButton = !!(event && event.currentTarget && event.currentTarget.id === 'ai-refresh');
+        const status = $('#ai-status');
         if (!status) return;
         const mine = ++loadId, id = providerId();
         await refreshKeys();
         syncProviderUI();
-        if (cfg().device) { status.textContent = ''; list.replaceChildren(); return; }
+        if (cfg().device) { status.textContent = ''; setModelNames([]); return; }
         status.className = 'setting-desc';
-        list.replaceChildren();
+        setModelNames([]);
         if (cfg().key && !cfg().keyOptional && !hasKey()) { status.textContent = 'Сначала сохраните ключ API.'; return; }
         status.textContent = 'Проверяю подключение…';
         const result = await api.aiModels({ provider: id, url: serverUrl() });
         if (mine !== loadId) return;                       // the provider was switched while the request was running
         const names = result.ok ? result.models : [];
-        list.replaceChildren(...names.map(name => Object.assign(document.createElement('option'), { value: name })));
+        setModelNames(names);
         if (!result.ok) { status.classList.add('is-error'); status.textContent = result.error + (id === 'ollama' ? '' : ' Имя модели можно вписать вручную.'); }
         else if (!names.length) { status.classList.add('is-error'); status.textContent = id === 'ollama' ? 'Подключено, но моделей нет. Откройте мастер и скачайте модель.' : 'Подключено, но сервер не вернул моделей. Впишите имя вручную.'; }
         else {
             status.classList.add('is-ok');
             status.textContent = `Подключено · моделей: ${names.length}`;
             if (!modelOf() && (cfg().local || id === 'ollama')) { setModel(names[0]); $('#ai-model-field').value = names[0]; }
+            // Pressing «Обновить» shows what the server has right away, even when a model is already chosen.
+            if (fromButton) { $('#ai-model-field').focus(); openModelMenu(true); }
         }
+    }
+
+    // --- model picker: the whole list from the server, filtered only by what the person types -------------------------------------
+    // (A <datalist> filters by the field's current value, so with a model chosen it offered just that one model.)
+    let modelNames = [], menuActive = -1, menuFilter = false;
+    function setModelNames(names) { modelNames = names; if (!$('#ai-model-menu').hidden) drawModelMenu(); }
+    function drawModelMenu() {
+        const field = $('#ai-model-field'), menu = $('#ai-model-menu');
+        const query = field.value.trim().toLowerCase();
+        const shown = menuFilter && query ? modelNames.filter(name => name.toLowerCase().includes(query)) : modelNames;
+        menu.replaceChildren(...shown.map((name, index) => {
+            const option = document.createElement('div');
+            option.className = 'model-option' + (index === menuActive ? ' is-active' : '');
+            option.setAttribute('role', 'option');
+            option.id = `ai-model-option-${index}`;
+            option.setAttribute('aria-selected', String(name === modelOf()));
+            option.dataset.name = name;
+            option.innerHTML = `<span class="model-check">${name === modelOf() ? icon('check') : ''}</span><span class="model-name"></span>`;
+            option.querySelector('.model-name').textContent = name;
+            return option;
+        }));
+        if (!shown.length) menu.append(Object.assign(document.createElement('div'), { className: 'model-empty', textContent: modelNames.length ? 'Нет моделей с таким именем — можно вписать его вручную' : 'Список пуст. Нажмите «Обновить»' }));
+        field.setAttribute('aria-activedescendant', menuActive >= 0 ? `ai-model-option-${menuActive}` : '');
+        return shown;
+    }
+    function openModelMenu(all) {
+        const field = $('#ai-model-field'), menu = $('#ai-model-menu');
+        if (all) menuFilter = false;
+        menuActive = Math.max(0, modelNames.indexOf(field.value.trim()));
+        menu.hidden = false;
+        field.setAttribute('aria-expanded', 'true');
+        drawModelMenu();
+        const current = menu.querySelector('.is-active');
+        if (current) current.scrollIntoView({ block: 'nearest' });
+    }
+    function closeModelMenu() {
+        const field = $('#ai-model-field');
+        $('#ai-model-menu').hidden = true;
+        field.setAttribute('aria-expanded', 'false');
+        field.removeAttribute('aria-activedescendant');
+        menuActive = -1;
+    }
+    function pickModel(name) {
+        const field = $('#ai-model-field');
+        field.value = name;
+        closeModelMenu();
+        setModel(name);
+        if (panel && !panel.hidden) render();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -665,7 +716,36 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             if (providerId() === 'ollama') setModel('');
             refreshModels();
         });
-        $('#ai-model-field').addEventListener('change', () => { setModel($('#ai-model-field').value.trim()); if (panel && !panel.hidden) render(); });
+        const modelField = $('#ai-model-field'), modelMenu = $('#ai-model-menu');
+        modelField.addEventListener('change', () => { setModel(modelField.value.trim()); if (panel && !panel.hidden) render(); });
+        modelField.addEventListener('focus', () => openModelMenu(true));
+        modelField.addEventListener('click', () => { if (modelMenu.hidden) openModelMenu(true); });
+        modelField.addEventListener('input', () => { menuFilter = true; menuActive = 0; if (modelMenu.hidden) openModelMenu(false); else drawModelMenu(); });
+        modelField.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (modelMenu.hidden) return openModelMenu(true);
+                const count = modelMenu.querySelectorAll('.model-option').length;
+                if (!count) return;
+                menuActive = (menuActive + (event.key === 'ArrowDown' ? 1 : -1) + count) % count;
+                drawModelMenu();
+                modelMenu.querySelector('.is-active').scrollIntoView({ block: 'nearest' });
+            } else if (event.key === 'Enter' && !modelMenu.hidden) {
+                const active = modelMenu.querySelector('.model-option.is-active');
+                event.preventDefault();
+                if (active) pickModel(active.dataset.name); else { closeModelMenu(); modelField.dispatchEvent(new Event('change')); }
+            } else if (event.key === 'Escape' && !modelMenu.hidden) {
+                event.preventDefault(); event.stopPropagation(); closeModelMenu();
+            } else if (event.key === 'Tab') closeModelMenu();
+        });
+        // mousedown keeps the focus in the field, so the menu does not close before the click lands
+        modelMenu.addEventListener('mousedown', event => {
+            event.preventDefault();
+            const option = event.target.closest('.model-option');
+            if (option) pickModel(option.dataset.name);
+        });
+        modelField.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== modelField) closeModelMenu(); }, 120));
+        document.addEventListener('mousedown', event => { if (!modelMenu.hidden && !event.target.closest('.model-combo')) closeModelMenu(); });
         $('#ai-refresh').addEventListener('click', refreshModels);
         $('#ai-setup-open').addEventListener('click', () => window.FgsAiSetup && window.FgsAiSetup.open({ onDone: refreshModels }));
         const saveKey = async () => {

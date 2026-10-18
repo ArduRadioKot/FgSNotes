@@ -30,6 +30,7 @@
   "build": {
     "appId": "FrogeeSoft",
     "productName": "FgSNotes",
+    "afterPack": "scripts/adhoc-sign.js",
     "mac": {
       "icon": "src/icon.icns",
       "target": [

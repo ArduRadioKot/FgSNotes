@@ -708,8 +708,10 @@
                   <div class="setting-desc" id="ai-status" role="status"></div>
                 </div>
                 <div class="setting-control theme-control">
-                  <input type="text" id="ai-model-field" class="setting-text" list="ai-model-list" spellcheck="false" autocomplete="off" placeholder="Выберите или впишите имя" />
-                  <datalist id="ai-model-list"></datalist>
+                  <div class="model-combo">
+                    <input type="text" id="ai-model-field" class="setting-text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ai-model-menu" spellcheck="false" autocomplete="off" placeholder="Выберите или впишите имя" />
+                    <div class="model-menu" id="ai-model-menu" role="listbox" aria-label="Модели на сервере" hidden></div>
+                  </div>
                   <button class="button-secondary" id="ai-refresh" type="button">Обновить</button>
                 </div>
               </div>
