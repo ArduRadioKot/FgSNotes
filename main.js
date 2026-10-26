@@ -4,6 +4,7 @@ const fs = require('fs');
 const ollama = require('./ollama');
 const providers = require('./providers');
 const { createKeystore } = require('./keystore');
+const updater = require('./updater');
 
 // `npm start` and the installed app share the name, so they would share one profile, and the installed (single-instance)
 // copy keeps it locked: the dev copy then quits silently. Development gets a profile of its own.
@@ -263,6 +264,7 @@ function warnAboutTranslation() {
 
 app.whenReady().then(() => {
   if (!primaryInstance) return;
+  updater.register(ipcMain, { app, BrowserWindow, shell });
   createWindow();
   warnAboutTranslation();
 

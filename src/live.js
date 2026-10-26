@@ -44,6 +44,7 @@
         styleWatcher.observe(textarea, { attributes: true, attributeFilter: ['style'] });
         live = window.FgsLiveEditor.attach(textarea, host);
         root.dataset.live = '';
+        window.dispatchEvent(new CustomEvent('fgs-live-change'));
     }
     function disable() {
         styleWatcher.disconnect();
@@ -52,6 +53,7 @@
         live = host = null;
         delete root.dataset.live;
         textarea.dispatchEvent(new Event('input', { bubbles: true }));   // redraw the highlight overlay
+        window.dispatchEvent(new CustomEvent('fgs-live-change'));
     }
     function sync() {
         if (root.dataset.livePreview === 'off' && workspace.dataset.view === 'live') document.querySelector('.view-switch button[data-view="editor"]').click();
@@ -61,6 +63,10 @@
     new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ['data-live-preview'] });
     new MutationObserver(sync).observe(workspace, { attributes: true, attributeFilter: ['data-view'] });
     phone.addEventListener('change', sync);
+    window.FgsLive = {
+        active: () => !!live,
+        setFind(ranges) { if (live && live.setFind) live.setFind(ranges); }
+    };
     sync();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 0));

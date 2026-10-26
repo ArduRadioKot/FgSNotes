@@ -32,6 +32,14 @@ contextBridge.exposeInMainWorld(
     nativeBlur: process.argv.includes('--fgs-native-blur=1'),
     getAppInfo: () => ipcRenderer.invoke('get-app-info'),
     openExternal: (url) => ipcRenderer.send('open-external', url),
+    checkUpdates: () => ipcRenderer.invoke('updates-check'),
+    downloadUpdate: () => ipcRenderer.invoke('updates-download'),
+    installUpdate: () => ipcRenderer.invoke('updates-install'),
+    onUpdateProgress: (listener) => {
+      const wrapped = (event, progress) => listener(progress);
+      ipcRenderer.on('updates-progress', wrapped);
+      return () => ipcRenderer.removeListener('updates-progress', wrapped);
+    },
     // Ollama
     aiModels: (request) => ipcRenderer.invoke('ai-models', request),
     aiKeyStatus: () => ipcRenderer.invoke('ai-key-status'),

@@ -174,7 +174,51 @@
         return out.join('\n');
     }
 
-    const api = { highlightCode, tokenizeCode, highlightMarkdown, escapeHTML };
+    // Paints non-overlapping ranges onto the text of `root` without changing the characters, so a highlight
+    // mirror can show a keyboard selection the transparent textarea does not paint itself.
+    const markRank = { 'hl-find-current': 3, 'hl-selection': 2, 'hl-find': 1 };
+    function markTextRanges(root, ranges) {
+        const points = new Set();
+        (ranges || []).forEach(range => { if (range && range.className && range.to > range.from) { points.add(range.from); points.add(range.to); } });
+        const cuts = [...points].sort((a, b) => a - b);
+        const wanted = [];
+        for (let i = 0; i < cuts.length - 1; i++) {
+            const from = cuts[i], to = cuts[i + 1];
+            let className = '', score = 0;
+            for (const range of ranges) {
+                const rank = markRank[range.className] || 0;
+                if (range.className && range.from <= from && range.to >= to && rank >= score) { score = rank; className = range.className; }
+            }
+            if (!className) continue;
+            const prev = wanted[wanted.length - 1];
+            if (prev && prev.className === className && prev.to === from) prev.to = to;
+            else wanted.push({ from, to, className });
+        }
+        if (!wanted.length) return;
+        const nodes = [];
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let offset = 0, node;
+        while ((node = walker.nextNode())) { nodes.push({ node, start: offset }); offset += node.nodeValue.length; }
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const start = nodes[i].start;
+            let text = nodes[i].node;
+            const length = text.nodeValue.length;
+            const hits = wanted.filter(range => range.from < start + length && range.to > start)
+                .map(range => ({ from: Math.max(0, range.from - start), to: Math.min(length, range.to - start), className: range.className }))
+                .sort((a, b) => b.from - a.from);
+            for (const hit of hits) {
+                if (hit.to <= hit.from) continue;
+                if (hit.to < text.nodeValue.length) text.splitText(hit.to);
+                const mid = text.splitText(hit.from);
+                const span = document.createElement('span');
+                span.className = hit.className;
+                mid.parentNode.insertBefore(span, mid);
+                span.appendChild(mid);
+            }
+        }
+    }
+
+    const api = { highlightCode, tokenizeCode, highlightMarkdown, escapeHTML, markTextRanges };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else Object.assign(root, api);
 })(typeof window !== 'undefined' ? window : globalThis);

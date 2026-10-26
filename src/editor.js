@@ -77,13 +77,64 @@ document.addEventListener('DOMContentLoaded', () => {
         mirror.scrollTop = editor.scrollTop;
         mirror.scrollLeft = editor.scrollLeft;
     }
+    // Chromium does not paint ::selection on a transparent textarea when the selection was made from the keyboard
+    // (Shift+arrows, Cmd/Ctrl+A). The same ranges are drawn on the mirror, which already shows the coloured text.
+    let cachedKey = '', cachedHtml = '';
+    function sourceHtml() {
+        const highlighted = highlightEnabled();
+        const key = (highlighted ? '1:' : '0:') + editor.value;
+        if (key !== cachedKey) {
+            cachedKey = key;
+            cachedHtml = (highlighted ? highlightMarkdown(editor.value) : escapeHTML(editor.value)) + '\n';
+        }
+        return { highlighted, html: cachedHtml };
+    }
+    function overlayMarks() {
+        const marks = window.FgsFind && window.FgsFind.ranges ? window.FgsFind.ranges().slice() : [];
+        const from = editor.selectionStart, to = editor.selectionEnd;
+        if (to > from) {
+            const current = marks.find(range => range.className === 'hl-find-current');
+            if (!current || current.from !== from || current.to !== to) marks.push({ from, to, className: 'hl-selection' });
+        }
+        return marks;
+    }
     function renderHighlight() {
-        const on = highlightEnabled();
-        surface.classList.toggle('is-highlighted', on);
+        if (window.FgsFind && window.FgsFind.sync) window.FgsFind.sync();
+        if (document.documentElement.dataset.live !== undefined) {
+            surface.classList.remove('is-highlighted', 'marks-aligned');
+            mirror.innerHTML = '';
+            cachedKey = '';
+            if (window.FgsLive && window.FgsFind && window.FgsFind.open && window.FgsFind.open()) window.FgsLive.setFind(window.FgsFind.ranges());
+            return;
+        }
+        const marks = overlayMarks();
+        const source = sourceHtml();
+        const showMirror = source.highlighted || marks.length > 0;
+        surface.classList.toggle('is-highlighted', showMirror);
+        if (!showMirror) { mirror.innerHTML = ''; surface.classList.remove('marks-aligned'); syncMirror(); return; }
         // The trailing newline keeps the last empty line the same height as in the textarea.
-        mirror.innerHTML = on ? highlightMarkdown(editor.value) + '\n' : '';
+        mirror.innerHTML = source.html;
+        if (marks.length && window.markTextRanges) window.markTextRanges(mirror, marks);
+        const aligned = !marks.length || mirror.textContent.replace(/\n$/, '') === editor.value;
+        surface.classList.toggle('marks-aligned', aligned && marks.length > 0);
+        if (!aligned) mirror.innerHTML = source.html;
         syncMirror();
     }
+    let paintFrame = 0;
+    function schedulePaint() {
+        if (paintFrame) return;
+        paintFrame = requestAnimationFrame(() => { paintFrame = 0; renderHighlight(); });
+    }
+    document.addEventListener('selectionchange', () => { if (document.activeElement === editor) schedulePaint(); });
+    // The selection grows on keydown, after this listener, so paint on the next turn (and on keyup, for good measure).
+    editor.addEventListener('keydown', event => {
+        const arrows = event.shiftKey && /^(Arrow|Home|End|Page)/.test(event.key);
+        const selectAll = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a';
+        if (arrows || selectAll) setTimeout(schedulePaint, 0);
+    });
+    editor.addEventListener('keyup', () => { if (editor.selectionStart !== editor.selectionEnd) schedulePaint(); });
+    editor.addEventListener('mouseup', schedulePaint);
+    window.FgsEditorOverlay = { repaint: schedulePaint };
     new ResizeObserver(syncMirror).observe(editor);
     new MutationObserver(syncMirror).observe(editor, { attributes: true, attributeFilter: ['style'] });
     new MutationObserver(() => { renderHighlight(); updatePreview(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-code-highlight'] });
@@ -498,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '',
             '## Сочетания клавиш',
             '',
+            '**Ctrl / ⌘ F** — поиск по заметке  ',
             '**Ctrl / ⌘ N** — новая вкладка  ',
             '**Ctrl / ⌘ S** — сохранить файл  ',
             '**Ctrl / ⌘ J** — чат с ИИ',

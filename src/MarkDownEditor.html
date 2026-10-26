@@ -733,7 +733,10 @@
                 <h3 class="about-name">FgSNotes</h3>
                 <p class="about-tagline">Markdown-редактор с живым оформлением, темами и локальным ИИ</p>
                 <p class="about-version"><span id="about-version">версия</span></p>
+                <p class="about-update" id="about-update"></p>
+                <p class="about-update-notes" id="about-update-notes" hidden></p>
                 <div class="about-links">
+                  <button type="button" class="button-secondary" id="about-update-button">Проверить обновления</button>
                   <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes" data-external>Исходный код</a>
                   <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/releases/latest" data-external>Обновления</a>
                   <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/issues/new" data-external>Сообщить об ошибке</a>
@@ -767,6 +770,8 @@
     <script src="ai.js"></script>
     <script src="about.js"></script>
     <script src="shortcuts.js"></script>
+    <script src="find.js"></script>
+    <script src="updater-ui.js"></script>
     <script src="live.js"></script>
   </body>
 </html>

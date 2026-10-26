@@ -1,7 +1,7 @@
 // Live Markdown editor (CodeMirror 6). Formatting is applied as you type: headings, emphasis, links, lists, tasks and
 // code blocks render in place, and the Markdown marks are hidden everywhere except around the cursor.
 // `attach` makes it look like the original <textarea> to the rest of the app (value, selection, events).
-import { EditorState, StateField } from '@codemirror/state';
+import { EditorState, StateField, StateEffect } from '@codemirror/state';
 import { EditorView, Decoration, ViewPlugin, WidgetType, keymap, drawSelection } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { syntaxTree } from '@codemirror/language';
@@ -213,9 +213,25 @@ function buildDecorations(view) {
 const liveDecorations = ViewPlugin.fromClass(class {
     constructor(view) { this.decorations = buildDecorations(view); }
     update(update) {
+        // Rebuilding hide/show widgets while Shift+arrows extends the selection rewrites the DOM under the caret
+        // and the selection collapses or stops growing. Keep the current widgets until the selection is finished.
+        const selecting = update.selectionSet && !update.docChanged && !update.state.selection.main.empty;
+        if (selecting) return;
         if (update.docChanged || update.selectionSet || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) this.decorations = buildDecorations(update.view);
     }
 }, { decorations: plugin => plugin.decorations });
+
+// Find matches (Cmd/Ctrl+F). The bar itself lives outside the editor and pushes ranges in.
+const setFindMarks = StateEffect.define();
+const findField = StateField.define({
+    create() { return Decoration.none; },
+    update(marks, tr) {
+        marks = marks.map(tr.changes);
+        for (const effect of tr.effects) if (effect.is(setFindMarks)) marks = effect.value;
+        return marks;
+    },
+    provide: field => EditorView.decorations.from(field)
+});
 
 // Mod-i in the default keymap selects the parent syntax node; the app uses it for italics.
 const keys = defaultKeymap.filter(binding => binding.key !== 'Mod-i');
@@ -229,6 +245,7 @@ function attach(textarea, host) {
         EditorView.lineWrapping,
         markdown({ base: markdownLanguage, extensions: [GFM] }),
         liveDecorations,
+        findField,
         cellField,
         keymap.of([{ key: 'Shift-Enter', run: runCell }, { key: 'Mod-Enter', run: runCell }, ...keys, ...historyKeymap, indentWithTab]),
         EditorView.contentAttributes.of({ spellcheck: 'false', autocapitalize: 'sentences', 'aria-label': 'Редактор Markdown', 'aria-multiline': 'true' }),
@@ -251,7 +268,20 @@ function attach(textarea, host) {
     ];
     const create = doc => EditorState.create({ doc, extensions });
     const view = new EditorView({ state: create(textarea.value), parent: host });
-    const select = (anchor, head) => view.dispatch({ selection: { anchor: Math.min(anchor, view.state.doc.length), head: Math.min(head, view.state.doc.length) } });
+    const select = (anchor, head) => view.dispatch({
+        selection: { anchor: Math.min(anchor, view.state.doc.length), head: Math.min(head, view.state.doc.length) },
+        scrollIntoView: true
+    });
+    const setFind = ranges => {
+        const doc = view.state.doc.length;
+        const marks = [];
+        for (const range of ranges || []) {
+            const from = Math.max(0, Math.min(range.from, doc));
+            const to = Math.max(from, Math.min(range.to, doc));
+            if (to > from) marks.push(Decoration.mark({ class: range.current ? 'cm-find-current' : 'cm-find' }).range(from, to));
+        }
+        view.dispatch({ effects: setFindMarks.of(Decoration.set(marks, true)) });
+    };
 
     // The hidden <textarea> stays the app's model: reads and writes are redirected to the editor.
     const define = (key, descriptor) => Object.defineProperty(textarea, key, { configurable: true, ...descriptor });
@@ -277,6 +307,7 @@ function attach(textarea, host) {
 
     return {
         view,
+        setFind,
         destroy() {
             const doc = view.state.doc.toString();
             for (const key of ['value', 'selectionStart', 'selectionEnd', 'setSelectionRange', 'setRangeText', 'focus', 'blur', 'scrollTop']) delete textarea[key];

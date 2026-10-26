@@ -48,7 +48,10 @@ const iconPaths = {
     'collapse': '<path d="M13 6.500H9.500V3M3 9.500h3.500V13M9.500 6.500 14 2M6.500 9.500 2 14"/>',
     'trash': '<path d="M2.500 4.500h11M6.500 4.500v-2h3v2M4 4.500l.6 9h6.800l.6-9"/>',
     'info': '<circle cx="8" cy="8" r="6.500"/><path d="M8 7.200v4M8 4.800v.1"/>',
-    'external': '<path d="M9 2.500h4.500V7M13.500 2.500 7.500 8.500M11.500 9v3.500a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1H7"/>'
+    'external': '<path d="M9 2.500h4.500V7M13.500 2.500 7.500 8.500M11.500 9v3.500a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1H7"/>',
+    'search': '<circle cx="7" cy="7" r="4.25"/><path d="M10.2 10.2 13.5 13.5"/>',
+    'chevron-up': '<path d="M3.5 10.5 8 6l4.5 4.5"/>',
+    'chevron-down': '<path d="M3.5 6 8 10.5 12.5 6"/>'
 };
 function icon(name) {
     return `<svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${iconPaths[name] || iconPaths.file}</svg>`;

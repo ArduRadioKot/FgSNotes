@@ -246,8 +246,16 @@
         host.append(input, output);
         host.dataset.ready = '1';
 
-        function refresh() {
+        function paintSelection() {
             mirrorCode.innerHTML = highlight(area.value) + '\n';
+            const from = area.selectionStart, to = area.selectionEnd;
+            if (to > from && window.markTextRanges) window.markTextRanges(mirrorCode, [{ from, to, className: 'hl-selection' }]);
+            const aligned = mirrorCode.textContent.replace(/\n$/, '') === area.value;
+            body.classList.toggle('marks-aligned', aligned && to > from);
+            if (!aligned) mirrorCode.innerHTML = highlight(area.value) + '\n';
+        }
+        function refresh() {
+            paintSelection();
             area.style.height = '0px';
             area.style.height = area.scrollHeight + 'px';
         }
@@ -264,6 +272,7 @@
         paintAuto();
         refresh();
 
+        host.nbPaint = paintSelection;
         area.addEventListener('input', () => {
             refresh();
             writeCode(index, area.value);
@@ -285,6 +294,13 @@
         clear.addEventListener('click', () => clearOutput(docId, index));
         host.nbRefresh = refresh;
     }
+
+    document.addEventListener('selectionchange', () => {
+        const area = document.activeElement;
+        if (!area || !area.classList.contains('nb-editor')) return;
+        const host = area.closest('.nb-cell');
+        if (host && host.nbPaint) host.nbPaint();
+    });
 
     let currentDoc = () => 'doc';
     window.FgsNotebook = {

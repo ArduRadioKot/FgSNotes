@@ -11,6 +11,9 @@
         { id: 'newDocument', group: 'Файл', label: 'Новый документ', combo: 'Mod+KeyN', run: () => A().newDocument && A().newDocument() },
         { id: 'open', group: 'Файл', label: 'Открыть файл', combo: 'Mod+KeyO', run: () => A().open && A().open() },
         { id: 'save', group: 'Файл', label: 'Сохранить файл', combo: 'Mod+KeyS', run: () => A().save && A().save() },
+        { id: 'find', group: 'Правка', label: 'Найти', combo: 'Mod+KeyF', run: () => A().find && A().find() },
+        { id: 'findNext', group: 'Правка', label: 'Найти далее', combo: 'Mod+KeyG', run: () => A().findNext && A().findNext() },
+        { id: 'findPrevious', group: 'Правка', label: 'Найти ранее', combo: 'Mod+Shift+KeyG', run: () => A().findPrevious && A().findPrevious() },
         { id: 'closeTab', group: 'Вкладки', label: 'Закрыть вкладку', combo: 'Mod+Alt+KeyW', run: () => A().closeTab && A().closeTab() },
         { id: 'nextTab', group: 'Вкладки', label: 'Следующая вкладка', combo: mac ? 'Ctrl+Tab' : 'Mod+Tab', run: () => A().nextTab && A().nextTab() },
         { id: 'previousTab', group: 'Вкладки', label: 'Предыдущая вкладка', combo: mac ? 'Ctrl+Shift+Tab' : 'Mod+Shift+Tab', run: () => A().previousTab && A().previousTab() },
@@ -98,7 +101,7 @@
     let recording = false;
     document.addEventListener('keydown', event => {
         if (recording || event.defaultPrevented || event.isComposing) return;
-        if (document.querySelector('.modal.show, .ais-overlay')) return;
+        if (document.querySelector('.modal.show, .ais-overlay, .plugin-modal-back')) return;
         const combo = comboFromEvent(event);
         const action = combo && table().get(combo);
         if (!action) return;
