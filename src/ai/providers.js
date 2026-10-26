@@ -15,6 +15,9 @@ const PRESETS = {
     openrouter: { kind: 'openai', base: 'https://openrouter.ai/api/v1' },
     groq: { kind: 'openai', base: 'https://api.groq.com/openai/v1' },
     custom: { kind: 'openai', urlSetting: true, keyOptional: true },
+    // Desktop app only: the main process runs the installed CLI (agents.js). No key, and no HTTP call from here.
+    'claude-code': { kind: 'cli', local: true },
+    codex: { kind: 'cli', local: true },
     // Runs inside the phone app's web view (ai/web-backend.js); the functions below never see it.
     device: { kind: 'device', local: true }
 };
@@ -91,6 +94,7 @@ const NOT_CHAT = /embed|whisper|tts|dall-e|moderation|davinci|babbage|image|audi
 async function listModels({ provider, url, key, fetch: fetchImpl }) {
     try {
         const info = preset(provider);
+        if (info.kind === 'cli') throw new Error('Claude Code и Codex подключаются только в приложении для компьютера.');
         if (info.kind === 'ollama') return await ollama.listModels(baseOf(provider, url), fetchImpl);
         if (needsKey(provider) && !key) throw new Error('Укажите ключ API в настройках → ИИ.');
         const base = baseOf(provider, url);
@@ -111,6 +115,7 @@ async function listModels({ provider, url, key, fetch: fetchImpl }) {
 async function chat({ provider, url, key, model, messages, temperature, think, fetch: fetchImpl }, onDelta, signal, onThinking) {
     try {
         const info = preset(provider);
+        if (info.kind === 'cli') throw new Error('Claude Code и Codex подключаются только в приложении для компьютера.');
         if (info.kind === 'ollama') return await ollama.chat({ url: baseOf(provider, url), model, messages, temperature, think, fetch: fetchImpl }, onDelta, signal, onThinking);
         if (!model) throw new Error('Не выбрана модель. Откройте Настройки → ИИ.');
         if (needsKey(provider) && !key) throw new Error('Укажите ключ API в настройках → ИИ.');

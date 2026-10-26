@@ -28,6 +28,8 @@
     const PROVIDERS = {
         ollama: { name: 'Ollama', local: true, url: true, urlKey: 'ai-url', urlDefault: DEFAULT_URL, modelKey: 'ai-model', wizard: true },
         lmstudio: { name: 'LM Studio', local: true, url: true, urlKey: 'ai-url-lmstudio', urlDefault: 'http://localhost:1234/v1', modelKey: 'ai-model-lmstudio', keyOptional: true, key: true, keyLink: 'https://lmstudio.ai' },
+        'claude-code': { name: 'Claude Code', subscription: true, desktopOnly: true, optionalModel: true, modelKey: 'ai-model-claude-code', installLink: 'https://github.com/anthropics/claude-code' },
+        codex: { name: 'Codex', subscription: true, desktopOnly: true, optionalModel: true, modelKey: 'ai-model-codex', installLink: 'https://github.com/openai/codex' },
         openai: { name: 'OpenAI', key: true, modelKey: 'ai-model-openai', keyLink: 'https://platform.openai.com/api-keys' },
         anthropic: { name: 'Anthropic Claude', key: true, modelKey: 'ai-model-anthropic', keyLink: 'https://console.anthropic.com/settings/keys' },
         gemini: { name: 'Google Gemini', key: true, modelKey: 'ai-model-gemini', keyLink: 'https://aistudio.google.com/apikey' },
@@ -42,7 +44,7 @@
         const id = settings()['ai-provider'];
         if (!PROVIDERS[id]) return desktop ? 'ollama' : 'openai';
         if (desktop && PROVIDERS[id].device) return 'ollama';                       // on-device models exist only in the phone app
-        if (!desktop && PROVIDERS[id].local && !PROVIDERS[id].device) return 'openai';
+        if (!desktop && (PROVIDERS[id].desktopOnly || (PROVIDERS[id].local && !PROVIDERS[id].device))) return 'openai';
         return id;
     };
     const cfg = () => PROVIDERS[providerId()];
@@ -54,7 +56,7 @@
     let keyStatus = { keys: {}, secure: true };
     const refreshKeys = () => api.aiKeyStatus().then(status => { keyStatus = status; return status; }).catch(() => keyStatus);
     const hasKey = () => !!keyStatus.keys[providerId()];
-    const privacy = () => cfg().device ? 'Текст не покидает телефон: модель работает прямо на устройстве, интернет не нужен.' : cfg().local ? `Текст остаётся на этом компьютере: работает ${cfg().name}.` : `Текст заметки отправляется в ${cfg().name}. Не прикрепляйте то, что не хотите отдавать провайдеру.`;
+    const privacy = () => cfg().device ? 'Текст не покидает телефон: модель работает прямо на устройстве, интернет не нужен.' : cfg().subscription ? `Текст уходит в ${cfg().name} через программу на этом компьютере и вашу подписку. Ключ API не нужен. Не прикрепляйте то, что не хотите отправлять.` : cfg().local ? `Текст остаётся на этом компьютере: работает ${cfg().name}.` : `Текст заметки отправляется в ${cfg().name}. Не прикрепляйте то, что не хотите отдавать провайдеру.`;
     const format = number => number.toLocaleString('ru-RU');
     // Some models put their reasoning inline as <think>…</think>: split it from the answer.
     const splitInline = raw => { let thinking = ''; const answer = raw.replace(/<think>([\s\S]*?)(?:<\/think>|$)\s*/g, (all, thought) => { thinking += thought; return ''; }).replace(/^\s+/, ''); return { thinking, answer }; };
@@ -385,6 +387,12 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             ready = !!have[modelOf()] || Object.keys(have).length > 0;
             [title, text] = ['Модель не скачана', 'Скачайте небольшую модель: она будет работать прямо на телефоне, без интернета и без отправки текста.'];
             button = 'Открыть настройки';
+        } else if (cfg().subscription) {
+            const found = await api.aiModels({ provider: providerId() });
+            ready = !!(found && found.ok);
+            title = cfg().name + ' не найден';
+            text = (found && found.error) || 'Установите программу и войдите в аккаунт на этом компьютере. Ключ API не нужен.';
+            button = 'Открыть настройки';
         } else {
             const needKey = cfg().key && !cfg().keyOptional;
             ready = (!needKey || hasKey()) && (!cfg().url || !!serverUrl());
@@ -427,6 +435,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             if (!model) throw new Error('Модель не скачана. Откройте Настройки → ИИ и скачайте её.');
             return model;
         }
+        if (cfg().optionalModel) return modelOf();
         let model = modelOf();
         if (!model && (cfg().local || cfg().keyOptional)) {
             const found = await api.aiModels({ provider: providerId(), url: serverUrl() });
@@ -621,11 +630,12 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         $('#ai-row-key').hidden = !info.key;
         $('#ai-row-wizard').hidden = !info.wizard;
         $('#ai-model-field').value = modelOf();
+        $('#ai-model-field').placeholder = info.optionalModel ? 'Можно оставить пустым' : 'Выберите или впишите имя';
         const has = hasKey();
         $('#ai-key-status').textContent = has ? (keyStatus.secure ? 'Ключ сохранён и зашифрован системой. Показать его нельзя.' : desktop ? 'Ключ сохранён на этом компьютере в обычном файле: системного шифрования здесь нет.' : 'Ключ сохранён внутри приложения, другие программы его не видят. Системного шифрования на телефоне здесь нет.') : (info.keyOptional ? 'Необязательно: нужен, только если сервер просит ключ.' : 'Ключ хранится только на этом компьютере.');
         $('#ai-key-clear').hidden = !has;
         $('#ai-key-field').placeholder = has ? 'Ключ сохранён — вставьте новый, чтобы заменить' : 'Вставьте ключ';
-        $('#ai-note').innerHTML = onDevice ? 'Модели работают на процессоре или графическом ускорителе телефона. Маленькие модели хороши для коротких правок и ошибаются в сложных задачах. Не закрывайте приложение, пока идёт скачивание.' : info.keyLink ? `Ключ можно получить на <a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>. Оплату запросов ведёт сам провайдер.` : id === 'ollama' ? 'Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.' : '';
+        $('#ai-note').innerHTML = onDevice ? 'Модели работают на процессоре или графическом ускорителе телефона. Маленькие модели хороши для коротких правок и ошибаются в сложных задачах. Не закрывайте приложение, пока идёт скачивание.' : info.installLink ? `Нужна установленная программа ${escapeHtml(info.name)} и вход в аккаунт на этом компьютере. Ключ API не нужен. <a href="${info.installLink}" data-external>Страница установки</a>. Поле модели можно оставить пустым — тогда используется модель самой программы. Заметки программа не меняет.` : info.keyLink ? `Ключ можно получить на <a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>. Оплату запросов ведёт сам провайдер.` : id === 'ollama' ? 'Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.' : '';
     }
     async function refreshModels(event) {
         const fromButton = !!(event && event.currentTarget && event.currentTarget.id === 'ai-refresh');
@@ -643,11 +653,11 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         if (mine !== loadId) return;                       // the provider was switched while the request was running
         const names = result.ok ? result.models : [];
         setModelNames(names);
-        if (!result.ok) { status.classList.add('is-error'); status.textContent = result.error + (id === 'ollama' ? '' : ' Имя модели можно вписать вручную.'); }
+        if (!result.ok) { status.classList.add('is-error'); status.textContent = result.error + (id === 'ollama' || cfg().subscription ? '' : ' Имя модели можно вписать вручную.'); }
         else if (!names.length) { status.classList.add('is-error'); status.textContent = id === 'ollama' ? 'Подключено, но моделей нет. Откройте мастер и скачайте модель.' : 'Подключено, но сервер не вернул моделей. Впишите имя вручную.'; }
         else {
             status.classList.add('is-ok');
-            status.textContent = `Подключено · моделей: ${names.length}`;
+            status.textContent = cfg().subscription ? 'Программа найдена. Если вы ещё не входили в аккаунт, сделайте это в терминале. Модель можно не указывать.' : `Подключено · моделей: ${names.length}`;
             if (!modelOf() && (cfg().local || id === 'ollama')) { setModel(names[0]); $('#ai-model-field').value = names[0]; }
             // Pressing «Обновить» shows what the server has right away, even when a model is already chosen.
             if (fromButton) { $('#ai-model-field').focus(); openModelMenu(true); }
@@ -708,8 +718,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         // The shortcut that opens the chat is set in shortcuts.js; it calls this.
         window.FgsAssistant = { toggle: hotkey };
         // Each platform shows only what it can run: models on the phone, or the programs on the computer.
-        const group = document.querySelector(desktop ? '#ai-provider optgroup[data-device]' : '#ai-provider optgroup[label^="На вашем"]');
-        if (group) group.remove();
+        document.querySelectorAll(desktop ? '#ai-provider optgroup[data-device]' : '#ai-provider optgroup[data-desktop]').forEach(group => group.remove());
         $('#ai-url-field').addEventListener('change', () => {
             const value = $('#ai-url-field').value.trim();
             window.FgsSettings.update({ [cfg().urlKey]: value || cfg().urlDefault || '' });

@@ -12,8 +12,12 @@
     const readKeys = () => { try { return JSON.parse(localStorage.getItem(KEYS)) || {}; } catch { return {}; } };
     const writeKeys = keys => { try { localStorage.setItem(KEYS, JSON.stringify(keys)); } catch { /* storage unavailable */ } };
     const status = () => { const keys = readKeys(); return { keys: Object.fromEntries(Object.keys(providers.PRESETS).map(id => [id, !!keys[id]])), secure: false }; };
-    const refused = provider => providers.PRESETS[provider] && providers.PRESETS[provider].local && provider !== 'device'
-        ? { ok: false, error: 'Локальные модели работают только в приложении для компьютера. Выберите облачного провайдера.' } : null;
+    const refused = provider => {
+        const info = providers.PRESETS[provider];
+        if (!info) return null;
+        if (info.kind === 'cli') return { ok: false, error: 'Claude Code и Codex подключаются только в приложении для компьютера.' };
+        return info.local && provider !== 'device' ? { ok: false, error: 'Локальные модели работают только в приложении для компьютера. Выберите облачного провайдера.' } : null;
+    };
 
     // --- models that run on the phone ---------------------------------------------------------------------------------------
     // Sizes are the download for each weight format: q4f16 (WebGPU with 16-bit shaders), q4 (WebGPU), q8 (CPU through WebAssembly).

@@ -30,7 +30,9 @@ const defaultSettings = {
     'ai-model-gemini': '',
     'ai-model-openrouter': '',
     'ai-model-groq': '',
-    'ai-model-custom': ''
+    'ai-model-custom': '',
+    'ai-model-claude-code': '',
+    'ai-model-codex': ''
 };
 
 async function loadSettings() {

@@ -1,6 +1,6 @@
 {
   "name": "fgsnotes",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "FgSNotes — Markdown editor",
   "main": "main.js",
   "scripts": {
@@ -93,6 +93,7 @@
       "preload.js",
       "updater.js",
       "ollama.js",
+      "agents.js",
       "providers.js",
       "keystore.js",
       "src/**/*",

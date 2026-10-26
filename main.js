@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const ollama = require('./ollama');
 const providers = require('./providers');
+const agents = require('./agents');
 const { createKeystore } = require('./keystore');
 const updater = require('./updater');
 
@@ -35,8 +36,19 @@ ipcMain.handle('get-app-info', () => ({
   nativeBlur
 }));
 ipcMain.on('open-external', (event, url) => {
-  const allowed = /^https:\/\/(?:github\.com\/ArduRadioKot|ollama\.com|platform\.openai\.com\/api-keys|console\.anthropic\.com\/settings\/keys|aistudio\.google\.com\/apikey|openrouter\.ai\/keys|console\.groq\.com\/keys|lmstudio\.ai)/i;
-  if (allowed.test(String(url))) shell.openExternal(url);
+  let parsed;
+  try { parsed = new URL(String(url)); } catch { return; }
+  if (parsed.protocol !== 'https:') return;
+  const path = parsed.pathname;
+  const host = parsed.hostname;
+  const github = host === 'github.com' && /^\/(?:ArduRadioKot|anthropics\/claude-code|openai\/codex)(?:\/|$)/.test(path);
+  const site = host === 'ollama.com' || host === 'lmstudio.ai' || host === 'code.claude.com' || host === 'developers.openai.com';
+  const keyPage = (host === 'platform.openai.com' && path.startsWith('/api-keys'))
+    || (host === 'console.anthropic.com' && path.startsWith('/settings/keys'))
+    || (host === 'aistudio.google.com' && path.startsWith('/apikey'))
+    || (host === 'openrouter.ai' && path.startsWith('/keys'))
+    || (host === 'console.groq.com' && path.startsWith('/keys'));
+  if (github || site || keyPage) shell.openExternal(parsed.href);
 });
 
 // Ollama: the renderer asks for models and streams a chat; every request has an id so it can be stopped.
@@ -49,13 +61,16 @@ const keyStatus = () => ({ keys: keys().status(Object.keys(providers.PRESETS)), 
 ipcMain.handle('ai-key-status', () => keyStatus());
 ipcMain.handle('ai-key-set', (event, { provider, key }) => { keys().set(knownProvider(provider), key); return keyStatus(); });
 ipcMain.handle('ai-key-clear', (event, provider) => { keys().clear(knownProvider(provider)); return keyStatus(); });
-ipcMain.handle('ai-models', (event, { provider, url }) => providers.listModels({ provider, url, key: keys().get(provider) }));
+const cliProvider = provider => provider === 'claude-code' || provider === 'codex';
+ipcMain.handle('ai-models', (event, { provider, url }) => cliProvider(provider) ? agents.listModels(provider) : providers.listModels({ provider, url, key: keys().get(provider) }));
 ipcMain.handle('ai-chat', async (event, { id, provider, url, model, messages, temperature, think }) => {
   const controller = new AbortController();
   aiRequests.set(id, controller);
   const send = payload => { if (!event.sender.isDestroyed()) event.sender.send('ai-chunk', { id, ...payload }); };
-  const result = await providers.chat({ provider, url, key: keys().get(provider), model, messages, temperature, think: !!think },
-    delta => send({ delta }), controller.signal, text => send({ thinking: text }));
+  const result = cliProvider(provider)
+    ? await agents.chat({ provider, model, messages }, delta => send({ delta }), controller.signal, text => send({ thinking: text }))
+    : await providers.chat({ provider, url, key: keys().get(provider), model, messages, temperature, think: !!think },
+      delta => send({ delta }), controller.signal, text => send({ thinking: text }));
   aiRequests.delete(id);
   return result;
 });
