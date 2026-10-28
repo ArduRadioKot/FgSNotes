@@ -6,6 +6,11 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFile, spawn } = require('child_process');
+function tr(key, vars) {
+    const fn = globalThis.t;
+    if (typeof fn !== 'function') return vars ? Object.keys(vars).reduce((text, name) => text.split('{' + name + '}').join(String(vars[name])), key) : key;
+    return fn(key, vars);
+}
 
 const PROMPT_LIMIT = 200000;
 const SUGGESTIONS = {
@@ -78,13 +83,13 @@ const PROGRAMS = {
 function safeModel(model) {
     const text = String(model || '').trim();
     if (!text) return '';
-    if (!/^[A-Za-z0-9._:-]{1,80}$/.test(text)) throw new Error('Имя модели может содержать только буквы, цифры, точку, дефис и двоеточие.');
+    if (!/^[A-Za-z0-9._:-]{1,80}$/.test(text)) throw new Error(tr('Имя модели может содержать только буквы, цифры, точку, дефис и двоеточие.'));
     return text;
 }
 
 function argumentsFor(provider, options = {}) {
     const program = PROGRAMS[provider];
-    if (!program) throw new Error('Неизвестный провайдер');
+    if (!program) throw new Error(tr('Неизвестный провайдер'));
     return program.args({ model: safeModel(options.model || ''), help: options.help });
 }
 
@@ -130,7 +135,7 @@ function createClaudeParser(onDelta, onThinking) {
             }
             if (event.type === 'result' && event.is_error) {
                 const detail = event.result || (event.error && (event.error.message || event.error)) || 'Claude Code не смог ответить';
-                throw new Error(typeof detail === 'string' ? detail : 'Claude Code не смог ответить');
+                throw new Error(typeof detail === 'string' ? detail : tr('Claude Code не смог ответить'));
             }
             if (event.type === 'result' && typeof event.result === 'string' && event.result) snapshot = event.result;
         },
@@ -149,11 +154,11 @@ function createCodexParser(onDelta, onThinking) {
             if (!event || typeof event !== 'object') return;
             if (event.type === 'error') {
                 const message = event.message || (event.error && (event.error.message || event.error)) || 'Codex не смог ответить';
-                throw new Error(typeof message === 'string' ? message : 'Codex не смог ответить');
+                throw new Error(typeof message === 'string' ? message : tr('Codex не смог ответить'));
             }
             if (event.type === 'turn.failed') {
                 const message = (event.error && (event.error.message || event.error)) || 'Codex не смог ответить';
-                throw new Error(typeof message === 'string' ? message : 'Codex не смог ответить');
+                throw new Error(typeof message === 'string' ? message : tr('Codex не смог ответить'));
             }
             if (event.type !== 'item.completed' || !event.item) return;
             const item = event.item;
@@ -302,12 +307,12 @@ function runCli({ bin, args, prompt, signal, provider, command }, onDelta, onThi
                 stdio: ['pipe', 'pipe', 'pipe']
             });
         } catch {
-            return finish({ ok: false, error: 'Не удалось запустить программу.', emitted: false });
+            return finish({ ok: false, error: tr('Не удалось запустить программу.'), emitted: false });
         }
         if (signal) {
             if (signal.aborted) {
                 try { child.kill('SIGTERM'); } catch { /* not running */ }
-                return finish({ ok: false, aborted: true, error: 'Остановлено', emitted: false });
+                return finish({ ok: false, aborted: true, error: tr('Остановлено'), emitted: false });
             }
             signal.addEventListener('abort', onAbort, { once: true });
         }
@@ -344,7 +349,7 @@ function runCli({ bin, args, prompt, signal, provider, command }, onDelta, onThi
         child.stderr.on('data', chunk => { if (stderr.length < 8000) stderr += chunk.toString('utf8'); });
         child.on('error', error => {
             if (error.code === 'ENOENT') binCache.delete(command);
-            finish({ ok: false, error: error.code === 'ENOENT' ? 'Программа не найдена.' : 'Не удалось запустить программу.', emitted: emitted.value });
+            finish({ ok: false, error: error.code === 'ENOENT' ? tr('Программа не найдена.') : tr('Не удалось запустить программу.'), emitted: emitted.value });
         });
         child.stdin.on('error', () => {});
         try {
@@ -353,35 +358,36 @@ function runCli({ bin, args, prompt, signal, provider, command }, onDelta, onThi
             if (written) end(); else child.stdin.once('drain', end);
         } catch { /* the process exited before the note was written */ }
         child.on('close', code => {
-            if (signal && signal.aborted) return finish({ ok: false, aborted: true, error: 'Остановлено', emitted: emitted.value });
+            if (signal && signal.aborted) return finish({ ok: false, aborted: true, error: tr('Остановлено'), emitted: emitted.value });
             try { takeLine(buf); parser.flush(); } catch (error) { failed = failed || error; }
             if (failed) return finish({ ok: false, error: cleanError(failed.message), emitted: emitted.value });
             if (code === 0 && emitted.value) return finish({ ok: true, emitted: true });
-            const error = cleanError(stderr) || (emitted.value ? '' : 'Программа ничего не ответила.');
+            const error = cleanError(stderr) || (emitted.value ? '' : tr('Программа ничего не ответила.'));
             if (emitted.value && !error) return finish({ ok: true, emitted: true });
-            if (!emitted.value) return finish({ ok: false, error: error || ('Программа завершилась с кодом ' + code), emitted: false });
-            return finish({ ok: false, error: error || ('Программа завершилась с кодом ' + code), emitted: true });
+            const message = error || tr('Программа завершилась с кодом {code}', { code });
+            if (!emitted.value) return finish({ ok: false, error: message, emitted: false });
+            return finish({ ok: false, error: message, emitted: true });
         });
     });
 }
 
 async function listModels(provider) {
     const program = PROGRAMS[provider];
-    if (!program) return { ok: false, error: 'Неизвестный провайдер' };
+    if (!program) return { ok: false, error: tr('Неизвестный провайдер') };
     const bin = await findBin(provider);
-    if (!bin) return { ok: false, error: program.missing };
+    if (!bin) return { ok: false, error: tr(program.missing) };
     return { ok: true, models: SUGGESTIONS[provider] || [] };
 }
 
 async function chat(options, onDelta, signal, onThinking) {
     const provider = options && options.provider;
     const program = PROGRAMS[provider];
-    if (!program) return { ok: false, error: 'Неизвестный провайдер' };
+    if (!program) return { ok: false, error: tr('Неизвестный провайдер') };
     let model = '';
     try { model = safeModel(options.model); }
     catch (error) { return { ok: false, error: error.message }; }
     const bin = options.bin || await findBin(provider);
-    if (!bin) return { ok: false, error: program.missing };
+    if (!bin) return { ok: false, error: tr(program.missing) };
     const probed = options.help !== undefined ? options.help : await helpOf(bin, program.helpArgs);
     const help = probed ? probed : null;
     const prompt = buildPrompt(options.messages);

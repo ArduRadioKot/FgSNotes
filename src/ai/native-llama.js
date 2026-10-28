@@ -47,8 +47,8 @@
         async storage() { const found = await info(); return { free: found.free }; },
         async download(id, onProgress) {
             const model = CATALOG.find(entry => entry.id === id);
-            if (!model) throw new Error('Неизвестная модель');
-            if (!(await this.pick(model))) throw new Error('Для этой модели не хватит памяти телефона. Выберите модель поменьше.');
+            if (!model) throw new Error(typeof t === 'function' ? t('Неизвестная модель') : 'Неизвестная модель');
+            if (!(await this.pick(model))) throw new Error(typeof t === 'function' ? t('Для этой модели не хватит памяти телефона. Выберите модель поменьше.') : 'Для этой модели не хватит памяти телефона. Выберите модель поменьше.');
             let size = model.size;
             try {      // the exact size lets the plugin check that the file arrived whole
                 const tree = await (await fetch(`https://huggingface.co/api/models/${model.repo}/tree/main`)).json();
@@ -72,7 +72,7 @@
     // Streams an answer; resolves { ok } like the other providers.
     async function chat({ id, model, messages, think }, onDelta, signal) {
         const found = CATALOG.find(item => item.id === model);
-        if (!found || !ready()[model]) throw new Error('Модель не скачана. Откройте Настройки → ИИ и скачайте её.');
+        if (!found || !ready()[model]) throw new Error(typeof t === 'function' ? t('Модель не скачана. Откройте Настройки → ИИ и скачайте её.') : 'Модель не скачана. Откройте Настройки → ИИ и скачайте её.');
         const handle = await plugin.addListener('token', event => { if (event.id === id) onDelta(event.text); });
         const stop = () => plugin.stop({ id });
         if (signal.aborted) stop(); else signal.addEventListener('abort', stop, { once: true });

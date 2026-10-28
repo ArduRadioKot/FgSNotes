@@ -6,6 +6,13 @@ const providers = require('./providers');
 const agents = require('./agents');
 const { createKeystore } = require('./keystore');
 const updater = require('./updater');
+const i18n = require('./src/i18n');
+
+function useLanguage(code) {
+  const lang = code === 'en' || code === 'ru' ? code : (/^ru/i.test(app.getLocale() || '') ? 'ru' : 'en');
+  i18n.setLanguage(lang);
+  return lang;
+}
 
 // `npm start` and the installed app share the name, so they would share one profile, and the installed (single-instance)
 // copy keeps it locked: the dev copy then quits silently. Development gets a profile of its own.
@@ -146,25 +153,25 @@ function registerPluginHandlers() {
     } catch (error) { console.error('Ошибка чтения папки плагинов:', error); return []; }
   });
   ipcMain.handle('plugin-read', (event, file) => {
-    if (!pluginName.test(String(file))) throw new Error('Неверное имя плагина');
+    if (!pluginName.test(String(file))) throw new Error(i18n.t('Неверное имя плагина'));
     const target = path.join(pluginsDir(), file);
-    if (fs.statSync(target).size > 2 * 1024 * 1024) throw new Error('Плагин больше 2 МБ');
+    if (fs.statSync(target).size > 2 * 1024 * 1024) throw new Error(i18n.t('Плагин больше 2 МБ'));
     return fs.readFileSync(target, 'utf-8');
   });
   // The install button: pick files, confirm (a plugin runs with access to every note), copy them into the plugins folder.
   ipcMain.handle('plugin-install', async event => {
     const win = BrowserWindow.fromWebContents(event.sender);
     const picked = await dialog.showOpenDialog(win, {
-      title: 'Установить плагин', properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Плагины FgSNotes (.js, .css)', extensions: ['js', 'css'] }]
+      title: i18n.t('Установить плагин'), properties: ['openFile', 'multiSelections'],
+      filters: [{ name: i18n.t('Плагины FgSNotes (.js, .css)'), extensions: ['js', 'css'] }]
     });
     if (picked.canceled || !picked.filePaths.length) return { canceled: true, installed: [] };
     const files = picked.filePaths.filter(file => pluginName.test(path.basename(file)));
-    if (!files.length) return { canceled: false, installed: [], error: 'Нужны файлы .js или .css' };
+    if (!files.length) return { canceled: false, installed: [], error: i18n.t('Нужны файлы .js или .css') };
     const confirm = await dialog.showMessageBox(win, {
-      type: 'warning', buttons: ['Установить', 'Отмена'], defaultId: 1, cancelId: 1,
-      message: files.length === 1 ? `Установить плагин «${path.basename(files[0])}»?` : `Установить плагины (${files.length})?`,
-      detail: 'Плагин — это программа: он выполняется внутри FgSNotes и видит все ваши заметки. Устанавливайте только те плагины, которым доверяете.\n\nФайлы будут скопированы в папку Documents/FgSNotes/plugins.'
+      type: 'warning', buttons: [i18n.t('Установить'), i18n.t('Отмена')], defaultId: 1, cancelId: 1,
+      message: files.length === 1 ? i18n.t('Установить плагин «{name}»?', { name: path.basename(files[0]) }) : i18n.t('Установить плагины ({count})?', { count: files.length }),
+      detail: i18n.t('Плагин: это программа. Он выполняется внутри FgSNotes и видит все ваши заметки. Устанавливайте только те плагины, которым доверяете.\n\nФайлы будут скопированы в папку Documents/FgSNotes/plugins.')
     });
     if (confirm.response !== 0) return { canceled: true, installed: [] };
     const installed = [];
@@ -177,7 +184,7 @@ function registerPluginHandlers() {
     return { canceled: false, installed };
   });
   ipcMain.handle('plugin-remove', (event, file) => {
-    if (!pluginName.test(String(file))) throw new Error('Неверное имя плагина');
+    if (!pluginName.test(String(file))) throw new Error(i18n.t('Неверное имя плагина'));
     fs.rmSync(path.join(pluginsDir(), file), { force: true });
     return true;
   });
@@ -187,6 +194,7 @@ function registerPluginHandlers() {
 function createWindow() {
   const { configContent: initialConfig, configFilePath, themesDirPath } = loadAppConfig();
   let configContent = initialConfig;
+  useLanguage(configContent && configContent.language);
 
   const win = new BrowserWindow({
     width: 1200,
@@ -214,6 +222,7 @@ function createWindow() {
   // createWindow runs again on macOS 'activate', so drop handlers from the previous window first.
   ['get-config', 'get-themes-path', 'get-themes-list'].forEach(channel => ipcMain.removeHandler(channel));
   ipcMain.removeAllListeners('save-config');
+  ipcMain.removeAllListeners('set-language');
   registerPluginHandlers();
 
   ipcMain.handle('get-config', () => {
@@ -238,6 +247,8 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, 'src', 'MarkDownEditor.html'));
+
+  ipcMain.on('set-language', (event, code) => useLanguage(code));
 
   ipcMain.on('save-config', (event, config) => {
     try {
@@ -270,9 +281,9 @@ function warnAboutTranslation() {
   try { fs.writeFileSync(marker, ''); } catch { /* the warning may repeat, which is harmless */ }
   dialog.showMessageBox({
     type: 'info',
-    message: 'FgSNotes работает через Rosetta',
-    detail: 'Установлена версия для процессоров Intel, поэтому приложение запускается и работает заметно медленнее. Скачайте версию для Apple Silicon (файл с «arm64» в названии) и замените ею это приложение.',
-    buttons: ['Открыть страницу загрузки', 'Позже'],
+    message: i18n.t('FgSNotes работает через Rosetta'),
+    detail: i18n.t('Установлена версия для процессоров Intel, поэтому приложение запускается и работает заметно медленнее. Скачайте версию для Apple Silicon (файл с «arm64» в названии) и замените ею это приложение.'),
+    buttons: [i18n.t('Открыть страницу загрузки'), i18n.t('Позже')],
     defaultId: 0, cancelId: 1
   }).then(({ response }) => { if (response === 0) shell.openExternal(repositoryUrl + '/releases/latest'); });
 }

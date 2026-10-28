@@ -1,4 +1,5 @@
 const defaultSettings = {
+    'language': '',
     'theme': 'dark',
     'font-size': 'medium',
     'font-family': 'mono',
@@ -161,6 +162,11 @@ function applySettings(settings) {
     const aiAvailable = !!(window.electron && window.electron.aiChat) || !!window.FgsAiWeb;
     document.documentElement.dataset.aiAvailable = aiAvailable ? 'on' : 'off';
     document.documentElement.dataset.ai = aiAvailable && settings['ai-enabled'] === 'on' ? 'on' : 'off';
+    if (window.FgsI18n) {
+        const chosen = settings.language === 'en' || settings.language === 'ru' ? settings.language : window.FgsI18n.language;
+        if (settings.language !== chosen) settings.language = chosen;
+        if (window.FgsI18n.language !== chosen) window.FgsI18n.setLanguage(chosen);
+    }
     window.dispatchEvent(new CustomEvent('fgs-settings', { detail: settings }));
 
     // Formulas are typeset by math.js (KaTeX); this flag turns it on and off.
@@ -330,8 +336,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     function refreshThemeList() {
         if (!externalThemeSelect) return;
         const custom = Object.keys(loadCustomThemes());
+        const labelOf = (value, label) => !value ? t('Нет') : label.endsWith(' (добавлена)') ? t('{name} (добавлена)', { name: label.slice(0, -' (добавлена)'.length) }) : label;
         externalThemeSelect.replaceChildren(...[['', 'Нет'], ...folderThemes.map(name => [name, name]), ...custom.map(name => ['custom:' + name, name + ' (добавлена)'])]
-            .map(([value, label]) => Object.assign(document.createElement('option'), { value, textContent: label })));
+            .map(([value, label]) => Object.assign(document.createElement('option'), { value, textContent: labelOf(value, label) })));
         writeControlValue(externalThemeSelect, currentSettings['external-theme']);
         if (externalThemeSelect.value !== (currentSettings['external-theme'] || '')) externalThemeSelect.value = '';
         removeThemeButton.hidden = !String(externalThemeSelect.value).startsWith('custom:');
@@ -401,7 +408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const themeMenu = document.createElement('div');
     themeMenu.className = 'theme-menu';
     themeMenu.setAttribute('role', 'menu');
-    themeMenu.setAttribute('aria-label', 'Тема оформления');
+        themeMenu.setAttribute('aria-label', t('Тема оформления'));
     themeMenu.hidden = true;
     document.body.append(themeMenu);
     const escapeText = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -409,8 +416,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const item = (kind, value, label, checked) => `<button type="button" role="menuitemradio" aria-checked="${checked}" data-kind="${kind}" data-value="${escapeText(value)}"><span class="check">${checked ? icon('check') : ''}</span><span class="label">${escapeText(label)}</span></button>`;
         const mode = currentSettings['theme'] === 'light' ? 'light' : 'dark';
         const picked = currentSettings['external-theme'] || '';
-        const themes = [...externalThemeSelect.options].map(option => item('theme', option.value, option.value ? option.textContent.replace(/\.css$/i, '') : 'Без сторонней темы', option.value === picked)).join('');
-        themeMenu.innerHTML = `<div class="theme-menu-title">Режим</div>${item('mode', 'dark', 'Тёмная', mode === 'dark')}${item('mode', 'light', 'Светлая', mode === 'light')}<div class="theme-menu-title">Сторонние темы</div>${themes}<button type="button" class="theme-menu-more" data-kind="more">Добавить или удалить…</button>`;
+        const themes = [...externalThemeSelect.options].map(option => item('theme', option.value, option.value ? option.textContent.replace(/\.css$/i, '') : t('Без сторонней темы'), option.value === picked)).join('');
+        themeMenu.innerHTML = `<div class="theme-menu-title">${t('Режим')}</div>${item('mode', 'dark', t('Тёмная'), mode === 'dark')}${item('mode', 'light', t('Светлая'), mode === 'light')}<div class="theme-menu-title">${t('Сторонние темы')}</div>${themes}<button type="button" class="theme-menu-more" data-kind="more">${t('Добавить или удалить…')}</button>`;
     }
     function closeThemeMenu() { themeMenu.hidden = true; themeButton?.setAttribute('aria-expanded', 'false'); }
     function openThemeMenu() {
@@ -518,4 +525,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             first.focus();
         }
     });
+
+    function syncLanguageChrome() {
+        const active = document.querySelector('.settings-nav-item.is-active');
+        if (active && panelTitle) panelTitle.textContent = active.textContent.trim();
+        themeMenu.setAttribute('aria-label', t('Тема оформления'));
+        refreshThemeList();
+        if (!themeMenu.hidden) renderThemeMenu();
+    }
+    window.addEventListener('fgs-language', syncLanguageChrome);
+    syncLanguageChrome();
+    const bootLanguage = window.electron && window.electron.bootConfig && window.electron.bootConfig.language;
+    if (bootLanguage !== currentSettings.language) saveSettings(currentSettings);
 });

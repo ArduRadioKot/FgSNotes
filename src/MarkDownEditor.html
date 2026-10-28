@@ -4,9 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#2b2d30" />
-    <title>FgSNotes — Markdown-редактор</title>
+    <title>FgSNotes - Markdown-редактор</title>
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="liquid-glass/liquid-glass.css" />
+    <script src="i18n.js"></script>
     <script src="platform.js"></script>
     <script src="icons.js"></script>
     <script src="theme.js"></script>
@@ -129,7 +130,7 @@
             aria-valuemin="25"
             aria-valuemax="75"
             aria-valuenow="50"
-            title="Потяните для изменения ширины. Двойной щелчок — поровну."
+            title="Потяните для изменения ширины. Двойной щелчок выравнивает панели."
           ></div>
           <section class="preview-column" aria-label="Предпросмотр">
             <div class="editor-label">
@@ -260,13 +261,13 @@
         <footer class="status-bar">
           <div class="status-group">
             <span class="save-state" id="save-state" role="status"
-              ><span id="save-status">Черновик сохранён</span></span
+              ><span id="save-status" data-i18n-skip>Черновик сохранён</span></span
             ><span class="status-divider"></span
-            ><span id="word-count">0 слов</span
-            ><span id="character-count">0 символов</span>
+            ><span id="word-count" data-i18n-skip>0 слов</span
+            ><span id="character-count" data-i18n-skip>0 символов</span>
           </div>
           <div class="status-group">
-            <span id="cursor-position">Стр 1, стлб 1</span
+            <span id="cursor-position" data-i18n-skip>Стр 1, стлб 1</span
             ><span class="status-divider"></span><span>UTF-8</span>
           </div>
         </footer>
@@ -354,7 +355,7 @@
         </nav>
         <div class="settings-main">
           <div class="settings-main-header">
-            <h2 id="settings-panel-title">Внешний вид</h2>
+            <h2 id="settings-panel-title" data-i18n-skip>Внешний вид</h2>
             <button
               class="close-modal icon-button"
               aria-label="Закрыть настройки"
@@ -367,6 +368,18 @@
               data-settings-panel="appearance"
               role="tabpanel"
             >
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="language">Язык</label>
+                  <div class="setting-desc">Язык интерфейса. Русский или английский.</div>
+                </div>
+                <div class="setting-control">
+                  <select id="language">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
               <div class="setting-item">
                 <div class="setting-info">
                   <label class="setting-name" for="theme">Тема</label>
@@ -627,7 +640,7 @@
               <div class="setting-item">
                 <div class="setting-info">
                   <label class="setting-name" for="ai-enabled">Чат с ИИ</label>
-                  <div class="setting-desc">Чат рядом с заметкой (на компьютере — Ctrl / ⌘ J, на телефоне — кнопка в нижней панели). Модель выбираете вы: на своём компьютере или в облаке</div>
+                  <div class="setting-desc">Чат рядом с заметкой (на компьютере: Ctrl / ⌘ J, на телефоне: кнопка в нижней панели). Модель выбираете вы: на своём компьютере или в облаке</div>
                 </div>
                 <div class="setting-control">
                   <label class="setting-toggle">
@@ -736,8 +749,8 @@
                 <img class="about-logo" src="logo.png" alt="" width="72" height="72" />
                 <h3 class="about-name">FgSNotes</h3>
                 <p class="about-tagline">Markdown-редактор с живым оформлением, темами и локальным ИИ</p>
-                <p class="about-version"><span id="about-version">версия</span></p>
-                <p class="about-update" id="about-update"></p>
+                <p class="about-version"><span id="about-version" data-i18n-skip>версия</span></p>
+                <p class="about-update" id="about-update" data-i18n-skip></p>
                 <p class="about-update-notes" id="about-update-notes" hidden></p>
                 <div class="about-links">
                   <button type="button" class="button-secondary" id="about-update-button">Проверить обновления</button>

@@ -6,6 +6,7 @@ const path = require('path');
 const { execFile, spawn } = require('child_process');
 const api = require('./src/ai/ollama-api');
 const { describe } = api;
+const tr = key => (typeof globalThis.t === 'function' ? globalThis.t(key) : key);
 
 const exists = file => { try { return fs.existsSync(file); } catch { return false; } };
 function onPath() {
@@ -35,7 +36,7 @@ async function findInstall() {
 // Starts the server: the app if there is one, otherwise `ollama serve`, detached so it outlives FgSNotes.
 async function launch() {
     const install = await findInstall();
-    if (!install.installed) return { ok: false, error: 'Ollama не найдена на этом компьютере.' };
+    if (!install.installed) return { ok: false, error: tr('Ollama не найдена на этом компьютере.') };
     try {
         let child;
         if (install.kind === 'app' && process.platform === 'darwin') child = spawn('open', ['-a', install.path], { stdio: 'ignore' });

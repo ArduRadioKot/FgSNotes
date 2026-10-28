@@ -2,6 +2,7 @@
 // (ollama.js, providers.js); in the phone app it calls the same providers from the web view (ai/web-backend.js).
 // It can attach the selection or the whole note to a message, keeps its history, and writes answers back into the note.
 (function () {
+    const tr = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
     const desktop = !!(window.electron && window.electron.aiChat);
     const api = desktop ? window.electron : window.FgsAiWeb;
     if (!api) return;
@@ -16,8 +17,8 @@
         { id: 'improve', label: 'Улучшить', prompt: 'Улучши стиль и ясность текста, сохрани смысл, язык и Markdown-разметку.' },
         { id: 'fix', label: 'Исправить ошибки', prompt: 'Исправь орфографию, пунктуацию и грамматику. Не меняй смысл и не добавляй ничего нового.' },
         { id: 'shorten', label: 'Сократить', prompt: 'Сократи текст вдвое, сохранив главное и Markdown-разметку.' },
-        { id: 'translate', label: 'Перевести', prompt: 'Переведи текст: если он на русском — на английский, иначе на русский. Сохрани Markdown-разметку.' },
-        { id: 'summary', label: 'Резюме', prompt: 'Сделай краткое резюме текста: 3–5 пунктов списка Markdown.' },
+        { id: 'translate', label: 'Перевести', prompt: 'Переведи текст: если он на русском, на английский, иначе на русский. Сохрани Markdown-разметку.' },
+        { id: 'summary', label: 'Резюме', prompt: 'Сделай краткое резюме текста: 3-5 пунктов списка Markdown.' },
         { id: 'tasks', label: 'В задачи', prompt: 'Преврати текст в список задач Markdown (строки вида «- [ ] задача»).' },
         { id: 'title', label: 'Придумать заголовок', prompt: 'Придумай 5 коротких заголовков для этого текста, списком.' }
     ];
@@ -56,7 +57,7 @@
     let keyStatus = { keys: {}, secure: true };
     const refreshKeys = () => api.aiKeyStatus().then(status => { keyStatus = status; return status; }).catch(() => keyStatus);
     const hasKey = () => !!keyStatus.keys[providerId()];
-    const privacy = () => cfg().device ? 'Текст не покидает телефон: модель работает прямо на устройстве, интернет не нужен.' : cfg().subscription ? `Текст уходит в ${cfg().name} через программу на этом компьютере и вашу подписку. Ключ API не нужен. Не прикрепляйте то, что не хотите отправлять.` : cfg().local ? `Текст остаётся на этом компьютере: работает ${cfg().name}.` : `Текст заметки отправляется в ${cfg().name}. Не прикрепляйте то, что не хотите отдавать провайдеру.`;
+    const privacy = () => cfg().device ? tr('Текст не покидает телефон: модель работает прямо на устройстве, интернет не нужен.') : cfg().subscription ? tr('Текст уходит в {name} через программу на этом компьютере и вашу подписку. Ключ API не нужен. Не прикрепляйте то, что не хотите отправлять.', { name: tr(cfg().name) }) : cfg().local ? tr('Текст остаётся на этом компьютере: работает {name}.', { name: tr(cfg().name) }) : tr('Текст заметки отправляется в {name}. Не прикрепляйте то, что не хотите отдавать провайдеру.', { name: tr(cfg().name) });
     const format = number => number.toLocaleString('ru-RU');
     // Some models put their reasoning inline as <think>…</think>: split it from the answer.
     const splitInline = raw => { let thinking = ''; const answer = raw.replace(/<think>([\s\S]*?)(?:<\/think>|$)\s*/g, (all, thought) => { thinking += thought; return ''; }).replace(/^\s+/, ''); return { thinking, answer }; };
@@ -211,9 +212,9 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         divider.className = 'chat-divider';
         divider.setAttribute('role', 'separator');
         divider.setAttribute('aria-orientation', 'vertical');
-        divider.setAttribute('aria-label', 'Ширина чата');
+        divider.setAttribute('aria-label', tr('Ширина чата'));
         divider.tabIndex = 0;
-        divider.title = 'Потяните для изменения ширины. Двойной щелчок — по умолчанию.';
+        divider.title = tr('Потяните для изменения ширины. Двойной щелчок возвращает ширину по умолчанию.');
         divider.hidden = true;
         stage.append(wrapper, divider, panel);
         setupResize(divider, stage);
@@ -319,30 +320,31 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         const prev = chat.messages[index - 1];
         const canReplace = prev && prev.ctx && prev.ctx.scope === 'selection';
         const actions = done && message.content ? `<div class="ai-msg-actions">
-            ${canReplace ? `<button type="button" data-msg="replace" data-index="${index}">Заменить</button>` : ''}
-            <button type="button" data-msg="insert" data-index="${index}">Вставить</button>
-            <button type="button" data-msg="copy" data-index="${index}">Копировать</button>
-            ${last ? `<button type="button" data-msg="retry" data-index="${index}">Ещё раз</button>` : ''}</div>` : '';
+            ${canReplace ? `<button type="button" data-msg="replace" data-index="${index}">${tr('Заменить')}</button>` : ''}
+            <button type="button" data-msg="insert" data-index="${index}">${tr('Вставить')}</button>
+            <button type="button" data-msg="copy" data-index="${index}">${tr('Копировать')}</button>
+            ${last ? `<button type="button" data-msg="retry" data-index="${index}">${tr('Ещё раз')}</button>` : ''}</div>` : '';
         const waiting = !done && !message.content && !message.thinking ? ' is-waiting' : '';
         // Reasoning: open while the model is still thinking, folded once the answer starts (unless the person toggled it).
         const thinkingNow = !done && !message.content;
         const open = message.thinkOpen !== undefined ? message.thinkOpen : thinkingNow;
-        const thoughts = message.thinking ? `<details class="ai-think" data-index="${index}"${open ? ' open' : ''}><summary>${thinkingNow ? WAITING : 'Мысли модели'}</summary><div class="ai-think-body">${escapeHtml(message.thinking.trim())}</div></details>` : '';
+        const thoughts = message.thinking ? `<details class="ai-think" data-index="${index}"${open ? ' open' : ''}><summary>${thinkingNow ? WAITING : tr('Мысли модели')}</summary><div class="ai-think-body">${escapeHtml(message.thinking.trim())}</div></details>` : '';
         const bubble = body || waiting || !message.thinking ? `<div class="ai-bubble md${waiting}">${waiting ? WAITING : body}</div>` : '';
         return `<div class="ai-msg is-ai">${thoughts}${bubble}${error}${actions}</div>`;
     }
     function render() {
         const scroll = $('.ai-scroll', panel);
-        $('.ai-title', panel).textContent = chat.messages.length ? chat.title : 'Чат';
+        $('.ai-title', panel).textContent = chat.messages.length ? chat.title : tr('Чат');
         if (!chat.messages.length) {
-            scroll.innerHTML = `<div class="ai-empty"><h3>Чем помочь?</h3><p>${desktop ? `Выделите текст и нажмите ${isMac() ? '⌘' : 'Ctrl'} J` : 'Выделите текст в заметке'} — он прикрепится к сообщению. Или выберите действие.</p><div class="ai-chips">${ACTIONS.map(action => `<button type="button" class="ai-chip" data-action="${action.id}">${action.label}</button>`).join('')}</div><p class="ai-privacy${cfg().local ? '' : ' is-cloud'}">${escapeHtml(privacy())}</p></div>`;
+            const hint = desktop ? tr('Выделите текст и нажмите {key} J. Он прикрепится к сообщению. Или выберите действие.', { key: isMac() ? '⌘' : 'Ctrl' }) : tr('Выделите текст в заметке. Он прикрепится к сообщению. Или выберите действие.');
+            scroll.innerHTML = `<div class="ai-empty"><h3>${tr('Чем помочь?')}</h3><p>${hint}</p><div class="ai-chips">${ACTIONS.map(action => `<button type="button" class="ai-chip" data-action="${action.id}">${tr(action.label)}</button>`).join('')}</div><p class="ai-privacy${cfg().local ? '' : ' is-cloud'}">${escapeHtml(privacy())}</p></div>`;
         } else {
             scroll.innerHTML = chat.messages.map(messageHtml).join('');
             if (window.renderMath) window.renderMath(scroll);
             scroll.scrollTop = scroll.scrollHeight;
         }
         renderAttach();
-        $('.ai-model-name', panel).textContent = (providerId() === 'ollama' ? '' : cfg().name + ' · ') + (modelLabel() || 'модель не выбрана');
+        $('.ai-model-name', panel).textContent = (providerId() === 'ollama' ? '' : cfg().name + ' · ') + (modelLabel() || tr('модель не выбрана'));
     }
     const isMac = () => /Mac/i.test(navigator.platform);
 
@@ -354,19 +356,19 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     }
     function renderHistory() {
         const list = chats.filter(item => item.messages.length);
-        const ago = time => { const minutes = Math.round((Date.now() - time) / 60000); return minutes < 1 ? 'только что' : minutes < 60 ? `${minutes} мин назад` : minutes < 1440 ? `${Math.round(minutes / 60)} ч назад` : new Date(time).toLocaleDateString('ru-RU'); };
+        const ago = time => { const minutes = Math.round((Date.now() - time) / 60000); return minutes < 1 ? tr('только что') : minutes < 60 ? tr('{n} мин назад', { n: minutes }) : minutes < 1440 ? tr('{n} ч назад', { n: Math.round(minutes / 60) }) : new Date(time).toLocaleDateString(window.FgsI18n && window.FgsI18n.language === 'en' ? 'en' : 'ru'); };
         $('.ai-history', panel).innerHTML = list.length ? list.map(item => `
             <div class="ai-history-row${item.id === chat.id ? ' is-current' : ''}">
-                <button type="button" class="ai-history-open" data-open="${item.id}"><strong>${escapeHtml(item.title)}</strong><small>${ago(item.updated)} · сообщений: ${item.messages.length}</small></button>
-                <button type="button" class="icon-button" data-delete="${item.id}" aria-label="Удалить чат" title="Удалить">${icon('trash')}</button>
-            </div>`).join('') : '<p class="ai-history-empty">Пока нет сохранённых чатов.</p>';
+                <button type="button" class="ai-history-open" data-open="${item.id}"><strong>${escapeHtml(item.title)}</strong><small>${ago(item.updated)} · ${tr('сообщений: {n}', { n: item.messages.length })}</small></button>
+                <button type="button" class="icon-button" data-delete="${item.id}" aria-label="${tr('Удалить чат')}" title="${tr('Удалить')}">${icon('trash')}</button>
+            </div>`).join('') : `<p class="ai-history-empty">${tr('Пока нет сохранённых чатов.')}</p>`;
     }
 
     function setRunning(value) {
         running = value;
         const send = $('.ai-send', panel);
         send.innerHTML = icon(value ? 'stop' : 'send');
-        send.setAttribute('aria-label', value ? 'Остановить' : 'Отправить');
+        send.setAttribute('aria-label', value ? tr('Остановить') : tr('Отправить'));
         send.classList.toggle('is-stop', !!value);
         panel.classList.toggle('is-running', !!value);
     }
@@ -374,31 +376,31 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     // --- connection ---------------------------------------------------------------------------------
     async function checkConnection() {
         await refreshKeys();
-        let ready, title, text, button = 'Настроить';
+        let ready, title, text, button = tr('Настроить');
         if (providerId() === 'ollama') {
             const [found, install] = await Promise.all([api.aiModels({ provider: 'ollama', url: serverUrl() }), api.aiDetect()]);
             ready = found.ok && found.models.length > 0;
-            [title, text] = !install.installed && !found.ok ? ['Ollama не установлена', 'Нужна бесплатная программа Ollama: она запускает модели на вашем компьютере. Установка займёт пару минут.']
-                : !found.ok ? ['Ollama не запущена', 'Ollama установлена, но не работает. Запустите её, и чат заработает.']
-                : ['Нет ни одной модели', 'Ollama работает, но модель ещё не скачана. Выберите её в настройке.'];
-            button = 'Настроить Ollama';
+            [title, text] = !install.installed && !found.ok ? [tr('Ollama не установлена'), tr('Нужна бесплатная программа Ollama: она запускает модели на вашем компьютере. Установка займёт пару минут.')]
+                : !found.ok ? [tr('Ollama не запущена'), tr('Ollama установлена, но не работает. Запустите её, и чат заработает.')]
+                : [tr('Нет ни одной модели'), tr('Ollama работает, но модель ещё не скачана. Выберите её в настройке.')];
+            button = tr('Настроить Ollama');
         } else if (cfg().device) {
             const have = api.device ? api.device.ready() : {};
             ready = !!have[modelOf()] || Object.keys(have).length > 0;
-            [title, text] = ['Модель не скачана', 'Скачайте небольшую модель: она будет работать прямо на телефоне, без интернета и без отправки текста.'];
-            button = 'Открыть настройки';
+            [title, text] = [tr('Модель не скачана'), tr('Скачайте небольшую модель: она будет работать прямо на телефоне, без интернета и без отправки текста.')];
+            button = tr('Открыть настройки');
         } else if (cfg().subscription) {
             const found = await api.aiModels({ provider: providerId() });
             ready = !!(found && found.ok);
-            title = cfg().name + ' не найден';
-            text = (found && found.error) || 'Установите программу и войдите в аккаунт на этом компьютере. Ключ API не нужен.';
-            button = 'Открыть настройки';
+            title = tr('{name} не найден', { name: cfg().name });
+            text = (found && found.error) || tr('Установите программу и войдите в аккаунт на этом компьютере. Ключ API не нужен.');
+            button = tr('Открыть настройки');
         } else {
             const needKey = cfg().key && !cfg().keyOptional;
             ready = (!needKey || hasKey()) && (!cfg().url || !!serverUrl());
-            [title, text] = needKey && !hasKey() ? [`Нужен ключ ${cfg().name}`, 'Добавьте ключ API в настройках. Он хранится только на этом компьютере и никогда не показывается в окне.']
-                : ['Не указан адрес сервера', 'Впишите адрес сервера в настройках.'];
-            button = 'Открыть настройки';
+            [title, text] = needKey && !hasKey() ? [tr('Нужен ключ {name}', { name: cfg().name }), tr('Добавьте ключ API в настройках. Он хранится только на этом компьютере и никогда не показывается в окне.')]
+                : [tr('Не указан адрес сервера'), tr('Впишите адрес сервера в настройках.')];
+            button = tr('Открыть настройки');
         }
         $('.ai-offline', panel).hidden = ready;
         $('.ai-scroll', panel).hidden = !ready || !$('.ai-history', panel).hidden;
@@ -423,7 +425,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         if (providerId() === 'ollama') {
             const found = await api.aiModels({ provider: 'ollama', url: serverUrl() });
             if (!found.ok) throw new Error(found.error);
-            if (!found.models.length) throw new Error('В Ollama нет моделей.');
+            if (!found.models.length) throw new Error(tr('В Ollama нет моделей.'));
             let model = modelOf();
             if (!model || !found.models.includes(model)) { model = found.models[0]; setModel(model); }
             return model;
@@ -432,7 +434,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             const have = api.device.ready();
             let model = modelOf();
             if (!have[model]) { model = Object.keys(have)[0]; if (model) setModel(model); }
-            if (!model) throw new Error('Модель не скачана. Откройте Настройки → ИИ и скачайте её.');
+            if (!model) throw new Error(tr('Модель не скачана. Откройте Настройки → ИИ и скачайте её.'));
             return model;
         }
         if (cfg().optionalModel) return modelOf();
@@ -441,14 +443,14 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             const found = await api.aiModels({ provider: providerId(), url: serverUrl() });
             if (found.ok && found.models.length) { model = found.models[0]; setModel(model); }
         }
-        if (!model) throw new Error('Выберите модель в настройках → ИИ.');
+        if (!model) throw new Error(tr('Выберите модель в настройках → ИИ.'));
         return model;
     }
 
     // --- messages -----------------------------------------------------------------------------------
     function modelMessages() {
         const history = chat.messages.filter(message => message.role === 'user' || message.content).slice(-HISTORY_LIMIT);
-        return [{ role: 'system', content: SYSTEM }, ...history.map(message => message.role === 'user'
+        return [{ role: 'system', content: tr(SYSTEM) }, ...history.map(message => message.role === 'user'
             ? { role: 'user', content: message.content + (message.ctx ? '\n\n<текст>\n' + message.ctx.text + '\n</текст>' : '') }
             : { role: 'assistant', content: message.content })];
     }
@@ -464,7 +466,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     function quickAction(action) {
         if (running || !action) return;
         const ctx = action.before ? beforeContext() : (pendingContext() || selectionContext() || noteContext());
-        send(action.prompt, ctx, action.label);
+        send(tr(action.prompt), ctx, tr(action.label));
     }
     async function run() {
         const id = uid();
@@ -619,7 +621,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         $('#ai-privacy').textContent = privacy();
         $('#ai-privacy').classList.toggle('is-cloud', !info.local);
         $('#ai-row-url').hidden = !info.url;
-        $('#ai-url-hint').textContent = id === 'ollama' ? 'По умолчанию сервер слушает http://localhost:11434' : id === 'lmstudio' ? 'Включите локальный сервер в LM Studio (по умолчанию http://localhost:1234/v1)' : (desktop ? 'Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI' : 'Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI. Работает только https');
+        $('#ai-url-hint').textContent = id === 'ollama' ? tr('По умолчанию сервер слушает http://localhost:11434') : id === 'lmstudio' ? tr('Включите локальный сервер в LM Studio (по умолчанию http://localhost:1234/v1)') : (desktop ? tr('Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI') : tr('Адрес вида https://хост/v1: подойдёт любой сервер с API как у OpenAI. Работает только https'));
         $('#ai-url-field').placeholder = info.urlDefault || 'https://example.com/v1';
         $('#ai-url-field').value = settings()[info.urlKey] || (id === 'custom' ? '' : info.urlDefault);
         $('#ai-provider').value = id;
@@ -630,12 +632,12 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         $('#ai-row-key').hidden = !info.key;
         $('#ai-row-wizard').hidden = !info.wizard;
         $('#ai-model-field').value = modelOf();
-        $('#ai-model-field').placeholder = info.optionalModel ? 'Можно оставить пустым' : 'Выберите или впишите имя';
+        $('#ai-model-field').placeholder = info.optionalModel ? tr('Можно оставить пустым') : tr('Выберите или впишите имя');
         const has = hasKey();
-        $('#ai-key-status').textContent = has ? (keyStatus.secure ? 'Ключ сохранён и зашифрован системой. Показать его нельзя.' : desktop ? 'Ключ сохранён на этом компьютере в обычном файле: системного шифрования здесь нет.' : 'Ключ сохранён внутри приложения, другие программы его не видят. Системного шифрования на телефоне здесь нет.') : (info.keyOptional ? 'Необязательно: нужен, только если сервер просит ключ.' : 'Ключ хранится только на этом компьютере.');
+        $('#ai-key-status').textContent = has ? (keyStatus.secure ? tr('Ключ сохранён и зашифрован системой. Показать его нельзя.') : desktop ? tr('Ключ сохранён на этом компьютере в обычном файле: системного шифрования здесь нет.') : tr('Ключ сохранён внутри приложения, другие программы его не видят. Системного шифрования на телефоне здесь нет.')) : (info.keyOptional ? tr('Необязательно: нужен, только если сервер просит ключ.') : tr('Ключ хранится только на этом компьютере.'));
         $('#ai-key-clear').hidden = !has;
-        $('#ai-key-field').placeholder = has ? 'Ключ сохранён — вставьте новый, чтобы заменить' : 'Вставьте ключ';
-        $('#ai-note').innerHTML = onDevice ? 'Модели работают на процессоре или графическом ускорителе телефона. Маленькие модели хороши для коротких правок и ошибаются в сложных задачах. Не закрывайте приложение, пока идёт скачивание.' : info.installLink ? `Нужна установленная программа ${escapeHtml(info.name)} и вход в аккаунт на этом компьютере. Ключ API не нужен. <a href="${info.installLink}" data-external>Страница установки</a>. Поле модели можно оставить пустым — тогда используется модель самой программы. Заметки программа не меняет.` : info.keyLink ? `Ключ можно получить на <a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>. Оплату запросов ведёт сам провайдер.` : id === 'ollama' ? 'Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.' : '';
+        $('#ai-key-field').placeholder = has ? tr('Ключ сохранён. Вставьте новый, чтобы заменить') : tr('Вставьте ключ');
+        $('#ai-note').innerHTML = onDevice ? tr('Модели работают на процессоре или графическом ускорителе телефона. Маленькие модели хороши для коротких правок и ошибаются в сложных задачах. Не закрывайте приложение, пока идёт скачивание.') : info.installLink ? `${tr('Нужна установленная программа {name} и вход в аккаунт на этом компьютере. Ключ API не нужен.', { name: escapeHtml(info.name) })} <a href="${info.installLink}" data-external>${tr('Страница установки')}</a>. ${tr('Поле модели можно оставить пустым, тогда используется модель самой программы. Заметки программа не меняет.')}` : info.keyLink ? tr('Ключ можно получить на {host}. Оплату запросов ведёт сам провайдер.', { host: `<a href="${info.keyLink}" data-external>${new URL(info.keyLink).hostname}</a>` }) : id === 'ollama' ? tr('Нет Ollama? Мастер установит её и скачает модель. Список моделей берётся с вашего сервера.') : '';
     }
     async function refreshModels(event) {
         const fromButton = !!(event && event.currentTarget && event.currentTarget.id === 'ai-refresh');
@@ -647,17 +649,17 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         if (cfg().device) { status.textContent = ''; setModelNames([]); return; }
         status.className = 'setting-desc';
         setModelNames([]);
-        if (cfg().key && !cfg().keyOptional && !hasKey()) { status.textContent = 'Сначала сохраните ключ API.'; return; }
-        status.textContent = 'Проверяю подключение…';
+        if (cfg().key && !cfg().keyOptional && !hasKey()) { status.textContent = tr('Сначала сохраните ключ API.'); return; }
+        status.textContent = tr('Проверяю подключение…');
         const result = await api.aiModels({ provider: id, url: serverUrl() });
         if (mine !== loadId) return;                       // the provider was switched while the request was running
         const names = result.ok ? result.models : [];
         setModelNames(names);
-        if (!result.ok) { status.classList.add('is-error'); status.textContent = result.error + (id === 'ollama' || cfg().subscription ? '' : ' Имя модели можно вписать вручную.'); }
-        else if (!names.length) { status.classList.add('is-error'); status.textContent = id === 'ollama' ? 'Подключено, но моделей нет. Откройте мастер и скачайте модель.' : 'Подключено, но сервер не вернул моделей. Впишите имя вручную.'; }
+        if (!result.ok) { status.classList.add('is-error'); status.textContent = result.error + (id === 'ollama' || cfg().subscription ? '' : tr(' Имя модели можно вписать вручную.')); }
+        else if (!names.length) { status.classList.add('is-error'); status.textContent = id === 'ollama' ? tr('Подключено, но моделей нет. Откройте мастер и скачайте модель.') : tr('Подключено, но сервер не вернул моделей. Впишите имя вручную.'); }
         else {
             status.classList.add('is-ok');
-            status.textContent = cfg().subscription ? 'Программа найдена. Если вы ещё не входили в аккаунт, сделайте это в терминале. Модель можно не указывать.' : `Подключено · моделей: ${names.length}`;
+            status.textContent = cfg().subscription ? tr('Программа найдена. Если вы ещё не входили в аккаунт, сделайте это в терминале. Модель можно не указывать.') : tr('Подключено · моделей: {count}', { count: names.length });
             if (!modelOf() && (cfg().local || id === 'ollama')) { setModel(names[0]); $('#ai-model-field').value = names[0]; }
             // Pressing «Обновить» shows what the server has right away, even when a model is already chosen.
             if (fromButton) { $('#ai-model-field').focus(); openModelMenu(true); }
@@ -683,7 +685,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             option.querySelector('.model-name').textContent = name;
             return option;
         }));
-        if (!shown.length) menu.append(Object.assign(document.createElement('div'), { className: 'model-empty', textContent: modelNames.length ? 'Нет моделей с таким именем — можно вписать его вручную' : 'Список пуст. Нажмите «Обновить»' }));
+        if (!shown.length) menu.append(Object.assign(document.createElement('div'), { className: 'model-empty', textContent: modelNames.length ? tr('Нет моделей с таким именем. Можно вписать его вручную') : tr('Список пуст. Нажмите «Обновить»') }));
         field.setAttribute('aria-activedescendant', menuActive >= 0 ? `ai-model-option-${menuActive}` : '');
         return shown;
     }
@@ -771,6 +773,13 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             if ($('.settings-nav-item[data-settings-section="ai"]').classList.contains('is-active')) refreshModels();
         }, 0));
         $('.settings-nav-item[data-settings-section="ai"]').addEventListener('click', refreshModels);
+        window.addEventListener('fgs-language', () => {
+            const bar = $('.chat-divider');
+            if (bar) { bar.title = tr('Потяните для изменения ширины. Двойной щелчок возвращает ширину по умолчанию.'); bar.setAttribute('aria-label', tr('Ширина чата')); }
+            syncProviderUI();
+            if (panel && !panel.hidden) checkConnection().then(() => render());
+            else if (panel) render();
+        });
         window.addEventListener('fgs-settings', () => {
             if (panel) renderAttach();
             if (document.documentElement.dataset.ai !== 'on') close();

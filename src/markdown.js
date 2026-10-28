@@ -71,7 +71,7 @@ function parseMarkdown(source) {
                 result.push(`<h${heading[1].length} id="${id}">${markdownInline(heading[2])}</h${heading[1].length}>`);
                 i++; continue;
             }
-            if (/^\[toc\]$/i.test(line)) { result.push('<nav class="table-of-contents" aria-label="Оглавление">{{toc}}</nav>'); i++; continue; }
+            if (/^\[toc\]$/i.test(line)) { result.push('<nav class="table-of-contents" aria-label="' + (typeof t === 'function' ? t('Оглавление') : 'Оглавление') + '">{{toc}}</nav>'); i++; continue; }
             if (/^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line)) { result.push('<hr>'); i++; continue; }
             if (/^\s*>/.test(line)) {
                 const quote = [];

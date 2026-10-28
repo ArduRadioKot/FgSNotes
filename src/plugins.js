@@ -10,6 +10,7 @@
 //   // ==/FgsPlugin==
 //   fgs.addButton({ title: 'Вставить дату', icon: 'calendar', run: () => fgs.editor.insert(new Date().toLocaleDateString()) });
 (function () {
+    const tr = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
     const ENABLED = 'fgsnotes.plugins.enabled';
     const STORED = 'fgsnotes.plugins.files';
     const desktop = !!(window.electron && window.electron.getPlugins);
@@ -37,7 +38,7 @@
     async function source(file) {
         if (desktop) return window.electron.readPlugin(file);
         const text = read(STORED, {})[file];
-        if (text === undefined) throw new Error('Файл плагина не найден');
+        if (text === undefined) throw new Error(tr('Файл плагина не найден'));
         return text;
     }
 
@@ -77,13 +78,14 @@
             menu = document.createElement('div');
             menu.className = 'theme-menu plugin-menu';
             menu.setAttribute('role', 'menu');
-            menu.setAttribute('aria-label', 'Плагины');
+            menu.setAttribute('aria-label', tr('Плагины'));
             document.body.append(menu);
             document.addEventListener('mousedown', event => { if (!menu.hidden && !menu.contains(event.target) && !event.target.closest('.plugin-more')) closeMenu(); }, true);
             document.addEventListener('keydown', event => { if (event.key === 'Escape' && !menu.hidden) { closeMenu(); const more = document.querySelector('.plugin-more'); if (more) more.focus(); } });
             window.addEventListener('resize', closeMenu);
         }
-        menu.replaceChildren(Object.assign(document.createElement('div'), { className: 'theme-menu-title', textContent: 'Плагины' }));
+        menu.setAttribute('aria-label', tr('Плагины'));
+        menu.replaceChildren(Object.assign(document.createElement('div'), { className: 'theme-menu-title', textContent: tr('Плагины') }));
         for (const entry of entries) {
             const item = document.createElement('button');
             item.type = 'button';
@@ -118,7 +120,7 @@
             if (!toolbar) return;
             rail = document.createElement('div');
             rail.className = 'sidebar-plugin-buttons';
-            rail.setAttribute('aria-label', 'Плагины');
+            rail.setAttribute('aria-label', tr('Плагины'));
             toolbar.insertBefore(rail, toolbar.querySelector('.sidebar-bottom-buttons'));
             resizeWatcher = new ResizeObserver(() => layout());
             resizeWatcher.observe(rail);
@@ -224,7 +226,7 @@
             modal({ title = '', width = 720, onClose } = {}) {
                 const back = document.createElement('div');
                 back.className = 'plugin-modal-back';
-                back.innerHTML = '<div class="plugin-modal" role="dialog" aria-modal="true"><div class="plugin-modal-head"><strong></strong><button type="button" class="icon-button" aria-label="Закрыть"></button></div><div class="plugin-modal-body"></div></div>';
+                back.innerHTML = `<div class="plugin-modal" role="dialog" aria-modal="true"><div class="plugin-modal-head"><strong></strong><button type="button" class="icon-button" aria-label="${tr('Закрыть')}"></button></div><div class="plugin-modal-body"></div></div>`;
                 const box = back.firstChild;
                 box.style.width = `min(${width}px, 100%)`;
                 back.querySelector('strong').textContent = title;
@@ -346,24 +348,25 @@
                     <div class="setting-desc">${escapeHtml(info.description || file)}</div>${error}
                 </div>
                 <div class="setting-control plugin-actions">
-                    <button type="button" class="button-secondary" data-act="remove">${armed === file ? 'Точно удалить?' : 'Удалить'}</button>
-                    <label class="setting-toggle"><input type="checkbox" data-act="toggle" ${on[file] ? 'checked' : ''} aria-label="Включить плагин ${escapeHtml(info.name)}"><span class="setting-toggle-track" aria-hidden="true"></span></label>
+                    <button type="button" class="button-secondary" data-act="remove">${armed === file ? tr('Точно удалить?') : tr('Удалить')}</button>
+                    <label class="setting-toggle"><input type="checkbox" data-act="toggle" ${on[file] ? 'checked' : ''} aria-label="${tr('Включить плагин {name}', { name: escapeHtml(info.name) })}"><span class="setting-toggle-track" aria-hidden="true"></span></label>
                 </div>
             </div>`;
         }));
-        host.querySelector('[data-plugin-list]').innerHTML = rows.join('') || '<div class="setting-item plugin-empty"><div class="setting-info"><div class="setting-desc">Плагинов пока нет. Нажмите «Установить плагин» и выберите файл .js или .css.</div></div></div>';
+        host.querySelector('[data-plugin-list]').innerHTML = rows.join('') || `<div class="setting-item plugin-empty"><div class="setting-info"><div class="setting-desc">${tr('Плагинов пока нет. Нажмите «Установить плагин» и выберите файл .js или .css.')}</div></div></div>`;
+        if (window.FgsI18n) window.FgsI18n.apply(host);
     }
     function mount(host) {
         if (host.dataset.bound) return;
         host.dataset.bound = '1';
         host.innerHTML = `<div class="setting-item">
                 <div class="setting-info">
-                    <span class="setting-name">Установленные плагины</span>
-                    <div class="setting-desc">${desktop ? 'Файлы .js и .css из папки Documents/FgSNotes/plugins.' : 'Файлы .js и .css, сохранённые в приложении.'} Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.</div>
+                    <span class="setting-name">${tr('Установленные плагины')}</span>
+                    <div class="setting-desc">${desktop ? tr('Файлы .js и .css из папки Documents/FgSNotes/plugins. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.') : tr('Файлы .js и .css, сохранённые в приложении. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.')}</div>
                 </div>
                 <div class="setting-control plugin-actions">
-                    ${desktop ? '<button type="button" class="button-secondary" data-act="folder">Открыть папку</button>' : ''}
-                    <button type="button" class="button-secondary" data-act="install">Установить плагин</button>
+                    ${desktop ? `<button type="button" class="button-secondary" data-act="folder">${tr('Открыть папку')}</button>` : ''}
+                    <button type="button" class="button-secondary" data-act="install">${tr('Установить плагин')}</button>
                 </div>
             </div>
             <div data-plugin-list></div>`;
@@ -396,6 +399,19 @@
         if (host) mount(host);
     }
     window.FgsPlugins = { emit, install, remove, toggle, files, running: () => [...running.keys()], onChange: fn => { listeners.add(fn); return () => listeners.delete(fn); }, parseMeta: meta };
+    window.addEventListener('fgs-language', () => {
+        const host = document.getElementById('plugin-manager');
+        if (!host || !host.dataset.bound) return;
+        const name = host.querySelector(':scope > .setting-item .setting-name');
+        if (name) name.textContent = tr('Установленные плагины');
+        const desc = host.querySelector(':scope > .setting-item .setting-desc');
+        if (desc) desc.textContent = desktop ? tr('Файлы .js и .css из папки Documents/FgSNotes/plugins. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.') : tr('Файлы .js и .css, сохранённые в приложении. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.');
+        const folder = host.querySelector('[data-act="folder"]');
+        if (folder) folder.textContent = tr('Открыть папку');
+        const installBtn = host.querySelector('[data-act="install"]');
+        if (installBtn) installBtn.textContent = tr('Установить плагин');
+        draw(host);
+    });
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 0));
     else setTimeout(init, 0);
 })();

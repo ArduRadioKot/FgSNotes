@@ -1,6 +1,6 @@
 // Liquid Glass configuration: schema with safe limits, presets and theme-aware resolving.
 (function (root) {
-    // [min, max, step] — every numeric parameter is clamped so a slider cannot break the UI.
+    // [min, max, step]: every numeric parameter is clamped so a slider cannot break the UI.
     const limits = {
         blur: [0, 40, 0.5], opacity: [0, 0.8, 0.01], brightness: [0.7, 1.4, 0.01], contrast: [0.8, 1.4, 0.01], saturation: [0.6, 2.2, 0.01], frost: [0, 1, 0.01],
         refraction: [0, 1, 0.01], displacement: [0, 48, 1], edgeWidth: [4, 48, 1], thickness: [0.2, 1.6, 0.01], curve: [1.5, 6, 0.1],

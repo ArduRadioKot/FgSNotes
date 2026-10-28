@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateCursor() {
         const lines = editor.value.slice(0, editor.selectionStart).split('\n');
-        document.getElementById('cursor-position').textContent = `Стр ${lines.length}, стлб ${lines.at(-1).length + 1}`;
+        document.getElementById('cursor-position').textContent = t('Стр {line}, стлб {col}', { line: lines.length, col: lines.at(-1).length + 1 });
     }
     function plural(value, forms) {
         const mod100 = value % 100, mod10 = value % 10;
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Typing inside a notebook cell already updated the note; rebuilding would throw away the cell being edited.
         const keepCells = window.FgsNotebook && window.FgsNotebook.takeSkip();
         if (!keepCells) {
-            preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>Здесь оживут ваши идеи</h2><p>Начните писать в редакторе — результат появится здесь.</p></div>`;
+            preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>${t('Здесь оживут ваши идеи')}</h2><p>${t('Начните писать в редакторе, и результат появится здесь.')}</p></div>`;
             if (document.documentElement.dataset.codeHighlight !== 'off') {
                 preview.querySelectorAll('pre code').forEach(block => {
                     block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
@@ -187,8 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHighlight();
         const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
         const characters = Array.from(editor.value).length;
-        document.getElementById('word-count').textContent = `${words} ${plural(words, ['слово', 'слова', 'слов'])}`;
-        document.getElementById('character-count').textContent = `${characters} ${plural(characters, ['символ', 'символа', 'символов'])}`;
+        const countWord = (value, forms) => (window.FgsI18n && window.FgsI18n.language === 'en' ? t(value === 1 ? forms[0] : forms[2]) : plural(value, forms));
+        document.getElementById('word-count').textContent = `${words} ${countWord(words, ['слово', 'слова', 'слов'])}`;
+        document.getElementById('character-count').textContent = `${characters} ${countWord(characters, ['символ', 'символа', 'символов'])}`;
         updateCursor();
     }
     function persistWorkspace() {
@@ -197,9 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const notes = notesOnly();
             const activeNote = isView(documents[activeDocumentIndex]) ? notes.findIndex(doc => doc.id === lastNoteId) : activeDocumentIndex;
             localStorage.setItem(storageKey, JSON.stringify({ documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId }));
-            document.getElementById('save-status').textContent = 'Черновик сохранён';
+            document.getElementById('save-status').textContent = t('Черновик сохранён');
         } catch (error) {
-            document.getElementById('save-status').textContent = 'Не удалось сохранить черновик';
+            document.getElementById('save-status').textContent = t('Не удалось сохранить черновик');
             console.error('Draft storage failed:', error);
         }
     }
@@ -215,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             workspace.dataset.pluginView = '';
             viewHost.hidden = false;
             shown.element.dispatchEvent(new CustomEvent('plugin-view-show'));
-            document.title = `${shown.title} — FgSNotes`;
+            document.title = `${shown.title} - FgSNotes`;
             return;
         }
         delete workspace.dataset.pluginView;
@@ -226,12 +227,12 @@ document.addEventListener('DOMContentLoaded', () => {
         editor.scrollTop = 0;
         preview.scrollTop = 0;
         updatePreview();
-        document.title = `${documents[index].title} — FgSNotes`;
+        document.title = `${documents[index].title} - FgSNotes`;
     }
     function addNewTab() {
         saveCurrentDocument();
         const id = nextDocumentId++;
-        activeDocumentIndex = insertNote({ id, title: `Документ ${id}`, content: '' });
+        activeDocumentIndex = insertNote({ id, title: t('Документ {n}', { n: id }), content: '' });
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
@@ -291,8 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const close = document.createElement('button');
             close.className = 'close-tab';
             close.innerHTML = icon('close');
-            close.setAttribute('aria-label', `Закрыть ${doc.title}`);
-            close.title = documents.length === 1 ? 'Оставьте хотя бы один документ открытым' : 'Закрыть документ';
+            close.setAttribute('aria-label', t('Закрыть') + ' ' + doc.title);
+            close.title = documents.length === 1 ? t('Оставьте хотя бы один документ открытым') : t('Закрыть документ');
             close.disabled = documents.length === 1;
             close.addEventListener('click', () => closeTab(index));
             tab.append(select, close);
@@ -321,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadDocument(activeDocumentIndex);
                 persistWorkspace();
             };
-            reader.onerror = () => { document.getElementById('save-status').textContent = 'Не удалось открыть файл'; };
+            reader.onerror = () => { document.getElementById('save-status').textContent = t('Не удалось открыть файл'); };
             reader.readAsText(file);
         };
         input.click();
@@ -334,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fileName = /\.(md|markdown|txt)$/i.test(doc.title) ? doc.title : `${doc.title}.md`;
         if (window.fgsPlatform && window.fgsPlatform.native) {
             window.fgsPlatform.saveText(fileName, doc.content).catch(error => {
-                if (!/cancel/i.test(String(error && error.message))) document.getElementById('save-status').textContent = 'Не удалось сохранить файл';
+                if (!/cancel/i.test(String(error && error.message))) document.getElementById('save-status').textContent = t('Не удалось сохранить файл');
             });
             return;
         }
@@ -370,12 +371,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.view-switch button').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
     document.querySelectorAll('[data-format]').forEach(button => {
         button.addEventListener('mousedown', event => event.preventDefault());
-        button.addEventListener('click', () => window.insertMarkdown(...markdownFormats[button.dataset.format]));
+        button.addEventListener('click', () => applyFormat(button.dataset.format));
     });
     editor.addEventListener('input', () => {
         updatePreview();
         saveCurrentDocument();
-        document.getElementById('save-status').textContent = 'Сохранение…';
+        document.getElementById('save-status').textContent = t('Сохранение…');
         clearTimeout(saveTimer);
         saveTimer = setTimeout(persistWorkspace, 300);
     });
@@ -420,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             editor.dispatchEvent(new Event('input', { bubbles: true }));
         },
         canFormat: () => workspace.dataset.view !== 'preview',
-        format: name => { if (window.FgsActions.canFormat() && markdownFormats[name]) window.insertMarkdown(...markdownFormats[name]); }
+        format: name => { if (window.FgsActions.canFormat() && markdownFormats[name]) applyFormat(name); }
     };
 
     // Tab writes an indent instead of moving the focus; Shift+Tab takes one away. On a list line, or with several lines selected,
@@ -492,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Recover all legacy drafts, including gaps left by closed tabs.
         Object.keys(localStorage).filter(key => /^editorContent_doc\d+$/.test(key)).sort((a, b) => Number(a.replace('editorContent_doc', '')) - Number(b.replace('editorContent_doc', ''))).forEach(key => {
             const id = Number(key.replace('editorContent_doc', ''));
-            documents.push({ id, title: `Документ ${id}`, content: localStorage.getItem(key) });
+            documents.push({ id, title: t('Документ {n}', { n: id }), content: localStorage.getItem(key) });
         });
     }
     nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
@@ -500,13 +501,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const intro = [
             '# Хорошие идеи начинаются с заметки',
             '',
-            'Пишите слева, а оформление появляется справа. Ниже — то, что умеет FgSNotes, на живых примерах. Меняйте их прямо здесь.',
+            'Пишите слева, а оформление появляется справа. Ниже то, что умеет FgSNotes, на живых примерах. Меняйте их прямо здесь.',
             '',
             '## Разметка',
             '',
-            'Выделите слово и нажмите **Ctrl / ⌘ B** — получится **жирный**, а **Ctrl / ⌘ I** даст *курсив*. Ещё есть ~~зачёркнутый~~ текст, `код в строке` и [ссылки](https://github.com/ArduRadioKot/FgSNotes).',
+            'Выделите слово и нажмите **Ctrl / ⌘ B**, получится **жирный**, а **Ctrl / ⌘ I** даст *курсив*. Ещё есть ~~зачёркнутый~~ текст, `код в строке` и [ссылки](https://github.com/ArduRadioKot/FgSNotes).',
             '',
-            '- Одна вкладка — одна идея',
+            '- Одна вкладка, одна идея',
             '- Вложенные списки работают:',
             '  - так',
             '  - и так',
@@ -549,25 +550,39 @@ document.addEventListener('DOMContentLoaded', () => {
             '',
             '## Сочетания клавиш',
             '',
-            '**Ctrl / ⌘ F** — поиск по заметке  ',
-            '**Ctrl / ⌘ N** — новая вкладка  ',
-            '**Ctrl / ⌘ S** — сохранить файл  ',
-            '**Ctrl / ⌘ J** — чат с ИИ',
+            '**Ctrl / ⌘ F**: поиск по заметке  ',
+            '**Ctrl / ⌘ N**: новая вкладка  ',
+            '**Ctrl / ⌘ S**: сохранить файл  ',
+            '**Ctrl / ⌘ J**: чат с ИИ',
             '',
             'Черновики открытых вкладок сохраняются на этом устройстве автоматически.'
-        ].join('\n');
-        documents.push({ id: nextDocumentId++, title: 'Начните здесь.md', content: intro });
+        ].map(line => t(line)).join('\n');
+        documents.push({ id: nextDocumentId++, title: t('Начните здесь.md'), content: intro });
     }
     renderTabs();
     lastNoteId = documents[activeDocumentIndex].id;
     editor.value = documents[activeDocumentIndex].content;
     editor.setSelectionRange(0, 0);
     editor.scrollTop = 0;
-    document.title = `${documents[activeDocumentIndex].title} — FgSNotes`;
+    document.title = `${documents[activeDocumentIndex].title} - FgSNotes`;
     setView(localStorage.getItem('editorView') || 'split');
+    window.addEventListener('fgs-language', () => {
+        updatePreview();
+        renderTabs();
+        updateCursor();
+        const status = document.getElementById('save-status');
+        if (status) status.textContent = t('Черновик сохранён');
+    });
     // Preview, highlighting and math wait a tick so the window can paint before the heavy first render.
     setTimeout(() => {
         preview.scrollTop = 0;
         updatePreview();
     }, 0);
 });
+function applyFormat(name) {
+    const spec = markdownFormats[name];
+    if (!spec) return;
+    const copy = spec.slice();
+    copy[2] = t(copy[2]);
+    window.insertMarkdown(...copy);
+}

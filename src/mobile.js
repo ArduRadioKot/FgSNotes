@@ -154,7 +154,7 @@
                 const open = el('button', 'm-doc' + (tab.classList.contains('active') ? ' active' : ''), `<span class="m-doc-title">${safe(title.replace(/\.(md|markdown|txt)$/i, ''))}</span><span class="m-doc-snippet">${safe(notes[index] || '')}</span>`);
                 open.addEventListener('click', () => { tab.querySelector('.tab-select').click(); setDrawer(false); });
                 const close = el('button', 'm-doc-close', icon('close'));
-                close.setAttribute('aria-label', `Закрыть ${title}`);
+                close.setAttribute('aria-label', t('Закрыть') + ' ' + title);
                 close.disabled = tab.querySelector('.close-tab').disabled;
                 close.addEventListener('click', () => tab.querySelector('.close-tab').click());
                 item.append(open, close);
@@ -163,6 +163,7 @@
             drawer.querySelector('.m-count').textContent = tabs.length;
             const active = tabBar.querySelector('.tab-item.active .tab-title');
             header.querySelector('.m-title').textContent = active ? active.textContent.replace(/\.(md|markdown|txt)$/i, '') : 'FgSNotes';
+            header.querySelector('.m-title').setAttribute('data-i18n-skip', '');
         }
         new MutationObserver(renderDocs).observe(tabBar, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'disabled'] });
         renderDocs();
@@ -177,7 +178,8 @@
         const syncView = () => {
             const reading = workspace.dataset.view === 'preview';
             viewButton.innerHTML = icon(reading ? 'edit' : 'eye');
-            viewButton.setAttribute('aria-label', reading ? 'Редактировать' : 'Режим чтения');
+            viewButton.setAttribute('data-i18n-aria', reading ? 'Редактировать' : 'Режим чтения');
+            viewButton.setAttribute('aria-label', t(reading ? 'Редактировать' : 'Режим чтения'));
             if (typeof syncSheet === 'function') syncSheet();
         };
         viewButton.addEventListener('click', () => {
@@ -208,6 +210,7 @@
             else if (start.open && dx < -56) { setDrawer(false); start = null; }
         }, { passive: true });
         document.addEventListener('touchend', () => { start = null; }, { passive: true });
+        if (window.FgsI18n) window.FgsI18n.apply(document);
     }
 
     function sync() { if (query.matches) build(); }

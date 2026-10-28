@@ -1,6 +1,7 @@
-// Ollama setup dialog: walks through the three things the assistant needs — Ollama installed, server running, a model downloaded.
+// Ollama setup dialog: walks through the three things the assistant needs: Ollama installed, server running, a model downloaded.
 // It checks the real state every few seconds, so the dialog moves on by itself when the user finishes a step.
 (function () {
+    const tr = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
     const api = window.electron;
     if (!api || !api.aiDetect) return;
 
@@ -17,7 +18,7 @@
     const PULL_STATUS = { 'pulling manifest': 'Получаю список файлов…', 'verifying sha256 digest': 'Проверяю файлы…', 'writing manifest': 'Завершаю…', 'removing any unused layers': 'Завершаю…', success: 'Готово' };
 
     const escapeHtml = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const size = bytes => bytes >= 1e9 ? (bytes / 1e9).toFixed(1).replace('.', ',') + ' ГБ' : Math.round(bytes / 1e6) + ' МБ';
+    const size = bytes => bytes >= 1e9 ? (bytes / 1e9).toFixed(1).replace('.', ',') + ' ' + tr('ГБ') : Math.round(bytes / 1e6) + ' ' + tr('МБ');
     const url = () => ((window.FgsSettings && window.FgsSettings.get()['ai-url']) || 'http://localhost:11434').trim();
 
     let root = null, timer = null, onDone = null, opener = null, lastHtml = '';
@@ -45,13 +46,13 @@
         const stepsHtml = STEPS.map((label, index) => {
             const status = index < done ? 'done' : index === done ? 'current' : 'todo';
             const busy = status === 'current' && (state.launching || state.pull);
-            return `<li class="ais-step is-${status}${busy ? ' is-busy' : ''}"><span class="ais-bar"></span><span class="ais-step-label">${index < done ? icon('check') : ''}${label}</span></li>`;
+            return `<li class="ais-step is-${status}${busy ? ' is-busy' : ''}"><span class="ais-bar"></span><span class="ais-step-label">${index < done ? icon('check') : ''}${tr(label)}</span></li>`;
         }).join('');
         const body = { install, start, catalog, ready }[current]();
         const orb = current === 'ready' ? 'ok' : state.launching || state.pull ? 'busy' : current === 'install' ? 'idle' : 'wait';
         const html = `
-            <button type="button" class="ais-close icon-button" data-act="close" aria-label="Закрыть">${icon('close')}</button>
-            <ol class="ais-steps" aria-label="Шаги настройки">${stepsHtml}</ol>
+            <button type="button" class="ais-close icon-button" data-act="close" aria-label="${tr('Закрыть')}">${icon('close')}</button>
+            <ol class="ais-steps" aria-label="${tr('Шаги настройки')}">${stepsHtml}</ol>
             <div class="ais-hero"><span class="ais-orb is-${orb}" aria-hidden="true">${icon(current === 'ready' ? 'check' : 'sparkles')}</span>${body.head}</div>
             ${body.main || ''}
             <div class="ais-actions">${body.actions}</div>
@@ -72,17 +73,17 @@
         else if (!root.contains(document.activeElement)) root.querySelector('.ais-dialog').focus({ preventScroll: true });
     }
 
-    const head = (title, text) => `<div><h2 id="ais-title">${title}</h2><p>${text}</p></div>`;
+    const head = (title, text) => `<div><h2 id="ais-title">${tr(title)}</h2><p>${tr(text)}</p></div>`;
     function install() {
         return {
             head: head('Установите Ollama', 'Бесплатная программа, которая запускает языковые модели прямо на вашем компьютере. Заметки не покидают его.'),
-            actions: `<button type="button" class="button-primary" data-act="download" data-primary>Скачать Ollama</button><button type="button" class="button-secondary" data-act="recheck">Проверить снова</button><span class="ais-hint">Окно само заметит установку.</span>`
+            actions: `<button type="button" class="button-primary" data-act="download" data-primary>${tr('Скачать Ollama')}</button><button type="button" class="button-secondary" data-act="recheck">${tr('Проверить снова')}</button><span class="ais-hint">${tr('Окно само заметит установку.')}</span>`
         };
     }
     function start() {
         return {
             head: head('Запустите Ollama', state.launching ? 'Ждём, пока сервер ответит. Обычно это пара секунд.' : 'Ollama установлена, но сейчас не работает. FgSNotes запустит её за вас.'),
-            actions: `<button type="button" class="button-primary" data-act="launch" data-primary ${state.launching ? 'disabled' : ''}>${state.launching ? 'Запускаю…' : 'Запустить Ollama'}</button>`
+            actions: `<button type="button" class="button-primary" data-act="launch" data-primary ${state.launching ? 'disabled' : ''}>${state.launching ? tr('Запускаю…') : tr('Запустить Ollama')}</button>`
         };
     }
     function catalog() {
@@ -91,24 +92,24 @@
         const cards = MODELS.map(model => `
             <button type="button" class="ais-model${model.name === state.picked ? ' is-picked' : ''}" data-act="pick" data-name="${model.name}" role="radio" aria-checked="${model.name === state.picked}" ${pull ? 'disabled' : ''}>
                 <span class="ais-radio" aria-hidden="true"></span>
-                <span class="ais-model-text"><strong>${model.title}</strong><small>${model.note}</small></span>
-                <span class="ais-size">${have.has(model.name) ? 'Скачана' : size(model.size)}</span>
+                <span class="ais-model-text"><strong>${model.title}</strong><small>${tr(model.note)}</small></span>
+                <span class="ais-size">${have.has(model.name) ? tr('Скачана') : size(model.size)}</span>
             </button>`).join('');
         const picked = MODELS.find(model => model.name === state.picked);
         let actions;
         if (pull) {
             const percent = pull.total ? Math.min(100, Math.round(pull.completed / pull.total * 100)) : 0;
-            actions = `<div class="ais-progress"><div class="ais-progress-top"><span>${pull.total ? `${size(pull.completed)} из ${size(pull.total)}` : escapeHtml(PULL_STATUS[pull.status] || 'Подготовка…')}</span><span>${pull.total ? percent + '%' : ''}</span></div><div class="ais-track"><span style="width:${pull.total ? percent : 8}%"${pull.total ? '' : ' class="is-indeterminate"'}></span></div></div><button type="button" class="button-secondary" data-act="cancel">Отменить</button>`;
+            actions = `<div class="ais-progress"><div class="ais-progress-top"><span>${pull.total ? tr('{done} из {total}', { done: size(pull.completed), total: size(pull.total) }) : escapeHtml(tr(PULL_STATUS[pull.status] || 'Подготовка…'))}</span><span>${pull.total ? percent + '%' : ''}</span></div><div class="ais-track"><span style="width:${pull.total ? percent : 8}%"${pull.total ? '' : ' class="is-indeterminate"'}></span></div></div><button type="button" class="button-secondary" data-act="cancel">${tr('Отменить')}</button>`;
         } else if (have.has(state.picked)) {
-            actions = `<button type="button" class="button-primary" data-act="use" data-primary>Использовать ${picked.title}</button>`;
+            actions = `<button type="button" class="button-primary" data-act="use" data-primary>${tr('Использовать {name}', { name: picked.title })}</button>`;
         } else {
-            actions = `<button type="button" class="button-primary" data-act="pull" data-primary>Скачать · ${size(picked.size)}</button>${state.server.models.length ? '<button type="button" class="button-secondary" data-act="back">Назад</button>' : ''}`;
+            actions = `<button type="button" class="button-primary" data-act="pull" data-primary>${tr('Скачать · {size}', { size: size(picked.size) })}</button>${state.server.models.length ? `<button type="button" class="button-secondary" data-act="back">${tr('Назад')}</button>` : ''}`;
         }
         return {
             head: head('Выберите модель', 'Модель скачивается один раз и потом работает без интернета.'),
-            main: `<div class="ais-models" role="radiogroup" aria-label="Модель">${cards}</div>
-                <p class="ais-custom-label">Нужна другая? Впишите имя из <a href="https://ollama.com/search" data-act="library">каталога Ollama</a>.</p>
-                <form class="ais-custom" data-act="custom-form"><input type="text" class="ais-custom-input" placeholder="например, mistral-small3.2 или hf.co/автор/модель" aria-label="Имя своей модели" spellcheck="false" autocomplete="off" ${pull ? 'disabled' : ''} /><button type="submit" class="button-secondary" ${pull ? 'disabled' : ''}>Скачать</button></form>`,
+            main: `<div class="ais-models" role="radiogroup" aria-label="${tr('Модель')}">${cards}</div>
+                <p class="ais-custom-label">${tr('Нужна другая? Впишите имя из')} <a href="https://ollama.com/search" data-act="library">${tr('каталога Ollama')}</a>.</p>
+                <form class="ais-custom" data-act="custom-form"><input type="text" class="ais-custom-input" placeholder="${tr('например, mistral-small3.2 или hf.co/автор/модель')}" aria-label="${tr('Имя своей модели')}" spellcheck="false" autocomplete="off" ${pull ? 'disabled' : ''} /><button type="submit" class="button-secondary" ${pull ? 'disabled' : ''}>${tr('Скачать')}</button></form>`,
             actions
         };
     }
@@ -121,8 +122,8 @@
             </button>`).join('');
         return {
             head: head('Чат готов', 'Выберите модель по умолчанию. Её можно сменить в настройках.'),
-            main: `<div class="ais-models" role="radiogroup" aria-label="Скачанные модели">${cards}</div>`,
-            actions: `<button type="button" class="button-primary" data-act="finish" data-primary>Готово</button><button type="button" class="button-secondary" data-act="more">Скачать другую модель</button>`
+            main: `<div class="ais-models" role="radiogroup" aria-label="${tr('Скачанные модели')}">${cards}</div>`,
+            actions: `<button type="button" class="button-primary" data-act="finish" data-primary>${tr('Готово')}</button><button type="button" class="button-secondary" data-act="more">${tr('Скачать другую модель')}</button>`
         };
     }
 
@@ -153,7 +154,7 @@
         const result = await api.aiLaunch();
         if (!result.ok) { state.launching = false; state.error = result.error; render(); return; }
         // Give the server up to 30 seconds; the regular polling picks it up as soon as it answers.
-        setTimeout(() => { if (state.launching) { state.launching = false; state.error = 'Ollama не ответила за 30 секунд. Запустите её вручную и нажмите «Проверить снова».'; render(); } }, 30000);
+        setTimeout(() => { if (state.launching) { state.launching = false; state.error = tr('Ollama не ответила за 30 секунд. Запустите её вручную и нажмите «Проверить снова».'); render(); } }, 30000);
     }
 
     function onClick(event) {
@@ -195,6 +196,7 @@
         if (returnTo && returnTo.isConnected) returnTo.focus({ preventScroll: true });
     }
 
+    window.addEventListener('fgs-language', () => { lastHtml = ''; render(); });
     window.FgsAiSetup = {
         open(options = {}) {
             if (root) return;
@@ -209,7 +211,7 @@
                 event.preventDefault();
                 const name = state.custom.trim();
                 if (state.pull || !name) return;
-                if (!/^[\w.\-:/]+$/.test(name)) { state.error = 'В имени модели допустимы буквы, цифры и знаки . - _ : /'; render(); return; }
+                if (!/^[\w.\-:/]+$/.test(name)) { state.error = tr('В имени модели допустимы буквы, цифры и знаки . - _ : /'); render(); return; }
                 pullModel(name);
             });
             root.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } });

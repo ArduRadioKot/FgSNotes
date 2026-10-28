@@ -1,6 +1,7 @@
 // Settings → ИИ → «Модель на телефоне»: the list of models that run on the device, with download, progress and removal.
 // The work itself is done by ai/web-backend.js (device) and the engine behind it (device-engine/index.js).
 (function () {
+    const tr = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
     const web = window.FgsAiWeb;
     if (!web || !web.device) return;                               // the desktop app has no on-device models
     const D = web.device;
@@ -8,7 +9,7 @@
     const state = { progress: {}, errors: {}, busy: null, armed: null };
     let host = null, hint = null, redraw = 0;
 
-    const size = bytes => bytes >= 1e9 ? (bytes / 1e9).toFixed(1).replace('.', ',') + ' ГБ' : Math.round(bytes / 1e6) + ' МБ';
+    const size = bytes => bytes >= 1e9 ? (bytes / 1e9).toFixed(1).replace('.', ',') + ' ' + tr('ГБ') : Math.round(bytes / 1e6) + ' ' + tr('МБ');
     const escapeHtml = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const selected = () => (window.FgsSettings && window.FgsSettings.get()[modelKey]) || '';
 
@@ -27,24 +28,24 @@
                 const percent = progress.total ? Math.min(100, Math.round(progress.loaded / progress.total * 100)) : 0;
                 side = `<span class="dev-progress"><span class="dev-progress-top"><span>${size(progress.loaded)} из ${size(progress.total || bytes)}</span><span>${percent}%</span></span><span class="dev-track"><span style="width:${percent}%"></span></span></span>`;
             } else if (downloaded) {
-                side = `<span class="dev-badge">Скачана</span><button type="button" class="dev-button is-quiet" data-act="remove" data-id="${model.id}">${state.armed === model.id ? 'Точно удалить?' : 'Удалить'}</button>`;
+                side = `<span class="dev-badge">${tr('Скачана')}</span><button type="button" class="dev-button is-quiet" data-act="remove" data-id="${model.id}">${state.armed === model.id ? tr('Точно удалить?') : tr('Удалить')}</button>`;
             } else if (!choice) {
-                side = `<span class="dev-badge is-muted">${caps.native ? 'Мало памяти' : 'Нужен WebGPU'}</span>`;
+                side = `<span class="dev-badge is-muted">${caps.native ? tr('Мало памяти') : tr('Нужен WebGPU')}</span>`;
             } else {
-                side = `<button type="button" class="dev-button" data-act="download" data-id="${model.id}" ${state.busy ? 'disabled' : ''}>Скачать · ${size(bytes)}</button>`;
+                side = `<button type="button" class="dev-button" data-act="download" data-id="${model.id}" ${state.busy ? 'disabled' : ''}>${tr('Скачать · {size}', { size: size(bytes) })}</button>`;
             }
             const error = state.errors[model.id] ? `<small class="dev-error">${escapeHtml(state.errors[model.id])}</small>` : '';
             const picked = downloaded && chosen === model.id;
             return `<div class="dev-model${picked ? ' is-picked' : ''}${downloaded ? ' is-ready' : ''}" role="radio" aria-checked="${picked}" tabindex="${downloaded ? 0 : -1}" data-id="${model.id}">
                 <span class="ais-radio" aria-hidden="true"></span>
-                <span class="dev-text"><strong>${model.title}</strong><small>${model.note}</small>${error}</span>
+                <span class="dev-text"><strong>${model.title}</strong><small>${tr(model.note)}</small>${error}</span>
                 <span class="dev-side">${side}</span></div>`;
         }));
-        host.innerHTML = `<div class="dev-models" role="radiogroup" aria-label="Модели на телефоне">${cards.join('')}</div>`;
+        host.innerHTML = `<div class="dev-models" role="radiogroup" aria-label="${tr('Модели на телефоне')}">${cards.join('')}</div>`;
         if (hint) {
-            const free = storage ? ` Свободно на устройстве: ${size(storage.free)}.` : '';
-            hint.textContent = (caps.backend === 'webgpu' || caps.backend === 'metal' ? 'Телефон считает на графическом процессоре: ответы быстрые.' : 'Графического ускорения нет: модель считает на процессоре, ответы будут медленнее.')
-                + ' Модель скачивается один раз, потом работает без интернета.' + free;
+            const free = storage ? tr(' Свободно на устройстве: {size}.', { size: size(storage.free) }) : '';
+            hint.textContent = (caps.backend === 'webgpu' || caps.backend === 'metal' ? tr('Телефон считает на графическом процессоре: ответы быстрые.') : tr('Графического ускорения нет: модель считает на процессоре, ответы будут медленнее.'))
+                + tr(' Модель скачивается один раз, потом работает без интернета.') + free;
         }
     }
     function schedule() { if (!redraw) redraw = setTimeout(() => { redraw = 0; draw(); }, 250); }

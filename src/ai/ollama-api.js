@@ -5,6 +5,10 @@
     if (typeof module === 'object' && module.exports) module.exports = api;
     else root.FgsOllamaApi = api;
 })(typeof self !== 'undefined' ? self : this, function () {
+function tr(key, vars) {
+    const fn = globalThis.t;
+    return typeof fn === 'function' ? fn(key, vars) : key;
+}
 const DEFAULT_URL = 'http://localhost:11434';
 
 // A response body as an async sequence of byte chunks. Node and new browsers iterate a stream directly; Safari before 17 does not,
@@ -21,24 +25,24 @@ async function* chunksOf(response) {
 
 function baseUrl(value) {
     const text = String(value || DEFAULT_URL).trim().replace(/\/+$/, '');
-    if (!/^https?:\/\/[^\s/]+(?::\d+)?$/i.test(text)) throw new Error('Адрес сервера должен выглядеть как http://localhost:11434');
+    if (!/^https?:\/\/[^\s/]+(?::\d+)?$/i.test(text)) throw new Error(tr('Адрес сервера должен выглядеть как http://localhost:11434'));
     // Node 18 (Electron 28) resolves "localhost" to ::1 first, while Ollama listens on 127.0.0.1: the connection is refused.
     return text.replace(/^(https?:\/\/)localhost(?=[:/]|$)/i, '$1127.0.0.1');
 }
 
 function describe(error) {
-    if (error.name === 'AbortError') return 'Остановлено';
+    if (error.name === 'AbortError') return tr('Остановлено');
     const code = error.cause && error.cause.code;
-    if (code === 'ECONNREFUSED') return 'Ollama не запущена. Откройте приложение Ollama или выполните «ollama serve».';
-    if (code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') return 'Ollama оборвала соединение. Возможно, модели не хватило памяти — попробуйте модель поменьше.';
-    if (/model .*not found/i.test(error.message)) return 'Эта модель не скачана. Откройте «Настроить Ollama» и скачайте её.';
+    if (code === 'ECONNREFUSED') return tr('Ollama не запущена. Откройте приложение Ollama или выполните «ollama serve».');
+    if (code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') return tr('Ollama оборвала соединение. Возможно, модели не хватило памяти. Попробуйте модель поменьше.');
+    if (/model .*not found/i.test(error.message)) return tr('Эта модель не скачана. Откройте «Настроить Ollama» и скачайте её.');
     return error.message || String(error);
 }
 
 async function listModels(url, fetchImpl) {
     try {
         const response = await (fetchImpl || fetch)(baseUrl(url) + '/api/tags', { signal: AbortSignal.timeout(4000) });
-        if (!response.ok) throw new Error('Сервер ответил ' + response.status);
+        if (!response.ok) throw new Error(tr('Сервер ответил') + ' ' + response.status);
         const data = await response.json();
         const models = (data.models || []).map(model => model.name).sort();
         return { ok: true, models };
@@ -50,7 +54,7 @@ async function listModels(url, fetchImpl) {
 // Streams /api/chat (newline-delimited JSON). Calls onDelta(text) for every piece; resolves {ok} or {ok:false,error}.
 async function chat({ url, model, messages, temperature, think, fetch: fetchImpl }, onDelta, signal, onThinking) {
     try {
-        if (!model) throw new Error('Не выбрана модель. Откройте Настройки → ИИ.');
+        if (!model) throw new Error(tr('Не выбрана модель. Откройте Настройки → ИИ.'));
         // think: show the model's reasoning (the person's choice); off makes reasoning models answer at once.
         // No answer-length limit (num_predict -1) and a roomy context, so reasoning plus the answer are not cut off.
         const body = { model, messages, stream: true, think: !!think, options: { num_predict: -1, num_ctx: 16384 } };
@@ -91,14 +95,14 @@ async function chat({ url, model, messages, temperature, think, fetch: fetchImpl
 // Downloads a model (/api/pull). onProgress({ status, completed, total }) is called for every update.
 async function pull({ url, model, fetch: fetchImpl }, onProgress, signal) {
     try {
-        if (!/^[\w.\-:/]+$/.test(String(model || ''))) throw new Error('Неверное имя модели');
+        if (!/^[\w.\-:/]+$/.test(String(model || ''))) throw new Error(tr('Неверное имя модели'));
         const response = await (fetchImpl || fetch)(baseUrl(url) + '/api/pull', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model, stream: true }),
             signal
         });
-        if (!response.ok) throw new Error('Сервер ответил ' + response.status);
+        if (!response.ok) throw new Error(tr('Сервер ответил') + ' ' + response.status);
         const decoder = new TextDecoder();
         let pending = '';
         for await (const chunk of chunksOf(response)) {

@@ -15,8 +15,9 @@
     const refused = provider => {
         const info = providers.PRESETS[provider];
         if (!info) return null;
-        if (info.kind === 'cli') return { ok: false, error: 'Claude Code и Codex подключаются только в приложении для компьютера.' };
-        return info.local && provider !== 'device' ? { ok: false, error: 'Локальные модели работают только в приложении для компьютера. Выберите облачного провайдера.' } : null;
+        const tr = (key) => (typeof t === 'function' ? t(key) : key);
+        if (info.kind === 'cli') return { ok: false, error: tr('Claude Code и Codex подключаются только в приложении для компьютера.') };
+        return info.local && provider !== 'device' ? { ok: false, error: tr('Локальные модели работают только в приложении для компьютера. Выберите облачного провайдера.') } : null;
     };
 
     // --- models that run on the phone ---------------------------------------------------------------------------------------
@@ -80,7 +81,7 @@
             const script = document.createElement('script');
             script.src = 'ai/device-engine.js';
             script.onload = () => resolve(window.FgsDeviceEngine);
-            script.onerror = () => { engineLoading = null; reject(new Error('Не удалось загрузить движок моделей.')); };
+            script.onerror = () => { engineLoading = null; reject(new Error(typeof t === 'function' ? t('Не удалось загрузить движок моделей.') : 'Не удалось загрузить движок моделей.')); };
             document.head.appendChild(script);
         });
         return engineLoading;
@@ -95,15 +96,15 @@
         // Downloads the weights and loads the model; onProgress({ loaded, total }) is called while it runs.
         async download(id, onProgress) {
             const model = CATALOG.find(entry => entry.id === id);
-            if (!model) throw new Error('Неизвестная модель');
+            if (!model) throw new Error(typeof t === 'function' ? t('Неизвестная модель') : 'Неизвестная модель');
             const choice = await pick(model);
-            if (!choice) throw new Error('Эта модель работает только на телефонах с WebGPU. Выберите другую.');
+            if (!choice) throw new Error(typeof t === 'function' ? t('Эта модель работает только на телефонах с WebGPU. Выберите другую.') : 'Эта модель работает только на телефонах с WebGPU. Выберите другую.');
             const engineApi = await engine();
             const options = { repo: model.repo, dtype: choice.dtype, backend: choice.backend, family: model.family };
             let shown = 0;                       // the big files and the small ones are counted apart: never let the bar go back
             await engineApi.download(options, info => { shown = Math.max(shown, Math.min(info.loaded, choice.bytes)); if (onProgress) onProgress({ loaded: shown, total: Math.max(info.total, choice.bytes) }); });
             const entry = { ...options, file: model.file, bytes: choice.bytes, at: Date.now() };
-            if (!(await cachedModel(entry))) throw new Error('Не удалось сохранить модель на устройстве: хранилище приложения отказалось принять файл. Освободите место или выберите модель поменьше.');
+            if (!(await cachedModel(entry))) throw new Error(typeof t === 'function' ? t('Не удалось сохранить модель на устройстве: хранилище приложения отказалось принять файл. Освободите место или выберите модель поменьше.') : 'Не удалось сохранить модель на устройстве: хранилище приложения отказалось принять файл. Освободите место или выберите модель поменьше.');
             markReady(id, entry);
         },
         async remove(id) {
@@ -139,7 +140,7 @@
                 try {
                     if (native) { await native.chat({ id, model, messages, think }, delta => emit({ id, delta }), controller.signal); return { ok: true }; }
                     const entry = ready()[model], found = CATALOG.find(item => item.id === model);
-                    if (!entry || !found) throw new Error('Модель не скачана. Откройте Настройки → ИИ и скачайте её.');
+                    if (!entry || !found) throw new Error(typeof t === 'function' ? t('Модель не скачана. Откройте Настройки → ИИ и скачайте её.') : 'Модель не скачана. Откройте Настройки → ИИ и скачайте её.');
                     const engineApi = await engine();
                     await engineApi.generate({ repo: found.repo, dtype: entry.dtype, backend: entry.backend, family: found.family, messages, think: !!think }, delta => emit({ id, delta }), controller.signal);
                     return { ok: true };
@@ -150,7 +151,7 @@
                         // The GPU path does not work on this phone: forget the model so that it is downloaded again for the processor.
                         caps = Promise.resolve({ backend: 'wasm', order: ['q8', 'q4'] });
                         markReady(model, null);
-                        message = 'Графический ускоритель телефона не справился с моделью. Откройте Настройки → ИИ и скачайте модель заново: она запустится на процессоре.';
+                        message = typeof t === 'function' ? t('Графический ускоритель телефона не справился с моделью. Откройте Настройки → ИИ и скачайте модель заново: она запустится на процессоре.') : 'Графический ускоритель телефона не справился с моделью. Откройте Настройки → ИИ и скачайте модель заново: она запустится на процессоре.';
                     }
                     return { ok: false, error: controller.signal.aborted ? 'Остановлено' : message, aborted: controller.signal.aborted };
                 } finally { busy--; controllers.delete(id); }
@@ -163,7 +164,7 @@
         aiAbort(id) { const controller = controllers.get(id); if (controller) controller.abort(); },
         onAiChunk(listener) { listeners.add(listener); return () => listeners.delete(listener); },
         aiKeyStatus: async () => status(),
-        async aiKeySet(provider, key) { if (!providers.PRESETS[provider]) throw new Error('Неизвестный провайдер'); const keys = readKeys(); const value = String(key || '').trim(); if (value) keys[provider] = value; else delete keys[provider]; writeKeys(keys); return status(); },
+        async aiKeySet(provider, key) { if (!providers.PRESETS[provider]) throw new Error(typeof t === 'function' ? t('Неизвестный провайдер') : 'Неизвестный провайдер'); const keys = readKeys(); const value = String(key || '').trim(); if (value) keys[provider] = value; else delete keys[provider]; writeKeys(keys); return status(); },
         async aiKeyClear(provider) { const keys = readKeys(); delete keys[provider]; writeKeys(keys); return status(); },
         // Installing or starting Ollama is a computer's job.
         aiDetect: async () => ({ installed: false, kind: null, path: '' }),

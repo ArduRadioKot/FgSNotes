@@ -26,8 +26,8 @@
         bar.className = 'find-bar';
         bar.hidden = true;
         bar.setAttribute('role', 'search');
-        bar.innerHTML = '<input class="find-input" type="search" placeholder="Найти" aria-label="Найти в заметке" spellcheck="false" autocomplete="off" />'
-            + '<span class="find-count" aria-live="polite"></span>'
+        bar.innerHTML = '<input class="find-input" type="search" spellcheck="false" autocomplete="off" />'
+            + '<span class="find-count" data-i18n-skip aria-live="polite"></span>'
             + '<button type="button" class="icon-button find-prev" aria-label="Предыдущее совпадение"></button>'
             + '<button type="button" class="icon-button find-next" aria-label="Следующее совпадение"></button>'
             + '<button type="button" class="find-case" aria-pressed="false" title="Учитывать регистр">Aa</button>'
@@ -42,6 +42,15 @@
         prev.innerHTML = window.icon ? window.icon('chevron-up') : '↑';
         next.innerHTML = window.icon ? window.icon('chevron-down') : '↓';
         closeButton.innerHTML = window.icon ? window.icon('close') : '×';
+        function labels() {
+            input.placeholder = t('Найти');
+            input.setAttribute('aria-label', t('Найти в заметке'));
+            prev.setAttribute('aria-label', t('Предыдущее совпадение'));
+            next.setAttribute('aria-label', t('Следующее совпадение'));
+            caseButton.title = t('Учитывать регистр');
+            closeButton.setAttribute('aria-label', t('Закрыть поиск'));
+        }
+        labels();
 
         let query = '', caseSensitive = false, matches = [], index = -1, synced = '';
 
@@ -61,7 +70,7 @@
         }
         function paintCount() {
             if (!query) { count.textContent = ''; return; }
-            count.textContent = matches.length ? `${index + 1} из ${matches.length}` : 'Нет совпадений';
+            count.textContent = matches.length ? t('{n} из {total}', { n: index + 1, total: matches.length }) : t('Нет совпадений');
             count.classList.toggle('is-empty', !matches.length);
         }
         // Called while the mirror is repainted. Recomputes matches after the note changes and does not repaint again.
@@ -173,6 +182,7 @@
         closeButton.addEventListener('click', closeFind);
         [prev, next, caseButton, closeButton].forEach(button => button.addEventListener('mousedown', event => event.preventDefault()));
         window.addEventListener('fgs-live-change', () => { if (!bar.hidden) pushDecorations(); });
+        window.addEventListener('fgs-language', () => { labels(); paintCount(); });
 
         window.FgsFind = { ranges, sync, open: () => !bar.hidden };
         const actions = window.FgsActions || (window.FgsActions = {});

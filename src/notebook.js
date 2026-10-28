@@ -23,7 +23,7 @@
             const next = seen.concat([value]);
             if (Array.isArray(value)) {
                 const items = value.slice(0, 100).map(item => inspect(item, depth + 1, next));
-                if (value.length > 100) items.push(`… ещё ${value.length - 100}`);
+                if (value.length > 100) items.push(t('… ещё {n}', { n: value.length - 100 }));
                 return `[${items.join(', ')}]`;
             }
             if (value instanceof Map) return `Map(${value.size}) {${[...value].slice(0, 50).map(([k, v]) => `${inspect(k, depth + 1, next)} => ${inspect(v, depth + 1, next)}`).join(', ')}}`;
@@ -124,7 +124,7 @@
 
     function run(docId, index, source, options = {}) {
         const state = stateFor(docId, index);
-        if (state.running) { stopKernel(docId, 'Выполнение остановлено'); return; }
+        if (state.running) { stopKernel(docId, t('Выполнение остановлено')); return; }
         if (!String(source).trim()) return;
         const kernel = kernelFor(docId);
         const id = ++sequence;
@@ -158,7 +158,7 @@
         notify(state);
     }
     function resetKernel(docId) {
-        stopKernel(docId, 'Среда перезапущена');
+        stopKernel(docId, t('Среда перезапущена'));
         cellStates.forEach((state, key) => { if (key.startsWith(docId + ':')) { state.n = 0; notify(state); } });
     }
 
@@ -181,7 +181,7 @@
             state.lines.forEach(line => content.append(el('pre', `nb-line is-${line.kind}`, line.text)));
             if (state.error) content.append(el('pre', 'nb-line is-error', state.error));
             else if (state.value !== null) content.append(el('pre', 'nb-line is-value', state.value));
-            else if (!state.lines.length && !state.running) content.append(el('pre', 'nb-line is-empty', 'Готово, без вывода'));
+            else if (!state.lines.length && !state.running) content.append(el('pre', 'nb-line is-empty', t('Готово, без вывода')));
             host.append(gutter, content);
         });
     }
@@ -226,18 +226,18 @@
         const area = el('textarea', 'nb-editor');
         area.value = code;
         area.spellcheck = false;
-        area.setAttribute('aria-label', 'Ячейка JavaScript');
+        area.setAttribute('aria-label', t('Ячейка JavaScript'));
         area.rows = 1;
         body.append(mirror, area);
 
         const tools = el('div', 'nb-tools');
         const autoButton = el('button', 'nb-tool');
         autoButton.type = 'button';
-        autoButton.title = 'Выполнять ячейку по ходу набора';
-        const restart = el('button', 'nb-tool', 'Сбросить');
+        autoButton.title = t('Выполнять ячейку по ходу набора');
+        const restart = el('button', 'nb-tool', t('Сбросить'));
         restart.type = 'button';
-        restart.title = 'Перезапустить среду выполнения: переменные ячеек будут забыты';
-        const clear = el('button', 'nb-tool', 'Очистить вывод');
+        restart.title = t('Перезапустить среду выполнения: переменные ячеек будут забыты');
+        const clear = el('button', 'nb-tool', t('Очистить вывод'));
         clear.type = 'button';
         tools.append(autoButton, restart, clear);
         input.append(gutter, body, tools);
@@ -259,10 +259,10 @@
             area.style.height = '0px';
             area.style.height = area.scrollHeight + 'px';
         }
-        const paintAuto = () => { autoButton.textContent = auto ? 'Авто: вкл' : 'Авто'; autoButton.classList.toggle('is-on', auto); };
+        const paintAuto = () => { autoButton.textContent = auto ? t('Авто: вкл') : t('Авто'); autoButton.classList.toggle('is-on', auto); };
         const unwatch = watch(docId, index, current => {
             host.classList.toggle('is-running', current.running);
-            runButton.title = current.running ? 'Остановить (выполнение прервётся)' : 'Запустить ячейку (Shift+Enter)';
+            runButton.title = current.running ? t('Остановить (выполнение прервётся)') : t('Запустить ячейку (Shift+Enter)');
             runButton.setAttribute('aria-label', runButton.title);
             runButton.innerHTML = window.icon ? window.icon(current.running ? 'stop' : 'play') : '';
             label.textContent = current.running ? '[*]' : current.n ? `[${current.n}]` : '[ ]';
@@ -312,13 +312,13 @@
         // editor.js asks this before rebuilding the preview: edits made inside a cell must not destroy the cell being typed in.
         takeSkip() { const value = skipNext; skipNext = false; return value; },
         forget(docId) {
-            stopKernel(docId, 'Документ закрыт');
+            stopKernel(docId, t('Документ закрыт'));
             cellStates.forEach((state, key) => { if (key.startsWith(docId + ':')) cellStates.delete(key); });
         },
         // For the live editor.
         setDocument(provider) { currentDoc = provider; },
         docId: () => currentDoc(),
         cells, run, autoRun, watch, mountOutput, clearOutput, resetKernel,
-        stopKernel: docId => stopKernel(docId, 'Выполнение остановлено')
+        stopKernel: docId => stopKernel(docId, t('Выполнение остановлено'))
     };
 })();

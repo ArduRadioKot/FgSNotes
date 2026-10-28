@@ -75,11 +75,11 @@
     function problem(combo) {
         const parts = combo.split('+'), code = parts.pop();
         const hasModifier = parts.some(part => part === 'Mod' || part === 'Ctrl' || part === 'Alt');
-        if (!/^F\d{1,2}$/.test(code) && !hasModifier) return 'Нужна клавиша-модификатор: Ctrl, ⌘ или Alt.';
-        if (parts.length === 1 && parts[0] === 'Mod' && /^Key[ACVXZY]$/.test(code)) return 'Это сочетание нужно системе (копировать, вставить, отменить).';
-        if (mac && parts.includes('Mod') && /^Key[QWMH]$/.test(code) && parts.length === 1) return 'Это системное сочетание macOS.';
-        if (!mac && parts.length === 1 && parts[0] === 'Mod' && code === 'KeyW') return 'Это сочетание закрывает окно.';
-        if (['Tab', 'Escape', 'Enter', 'Space', 'Backspace'].includes(code) && !parts.some(part => part === 'Mod' || part === 'Ctrl' || part === 'Alt')) return 'Эту клавишу нельзя назначить одну.';
+        if (!/^F\d{1,2}$/.test(code) && !hasModifier) return t('Нужна клавиша-модификатор: Ctrl, ⌘ или Alt.');
+        if (parts.length === 1 && parts[0] === 'Mod' && /^Key[ACVXZY]$/.test(code)) return t('Это сочетание нужно системе (копировать, вставить, отменить).');
+        if (mac && parts.includes('Mod') && /^Key[QWMH]$/.test(code) && parts.length === 1) return t('Это системное сочетание macOS.');
+        if (!mac && parts.length === 1 && parts[0] === 'Mod' && code === 'KeyW') return t('Это сочетание закрывает окно.');
+        if (['Tab', 'Escape', 'Enter', 'Space', 'Backspace'].includes(code) && !parts.some(part => part === 'Mod' || part === 'Ctrl' || part === 'Alt')) return t('Эту клавишу нельзя назначить одну.');
         return '';
     }
 
@@ -123,7 +123,8 @@
             document.querySelectorAll(action.button).forEach(node => {
                 if (!node.dataset.baseTitle) node.dataset.baseTitle = (node.getAttribute('title') || action.label).replace(/\s*\([^)]*\)\s*$/, '');
                 const label = describe(comboOf(action, saved));
-                node.title = node.dataset.baseTitle + (label ? ` (${label})` : '');
+                const base = t(node.dataset.baseTitle);
+                node.title = base + (label ? ` (${label})` : '');
             });
         });
     }
@@ -139,12 +140,12 @@
         const intro = document.createElement('p');
         intro.className = 'settings-note';
         intro.style.margin = '0 0 4px';
-        intro.textContent = 'Нажмите на сочетание и введите новое. Esc отменяет, Backspace снимает сочетание. Tab и Shift+Tab в редакторе всегда ставят и убирают отступ.';
+        intro.textContent = t('Нажмите на сочетание и введите новое. Esc отменяет, Backspace снимает сочетание. Tab и Shift+Tab в редакторе всегда ставят и убирают отступ.');
         panel.append(intro);
         groups.forEach(group => {
             const title = document.createElement('h3');
             title.className = 'shortcut-group';
-            title.textContent = group;
+            title.textContent = t(group);
             panel.append(title);
             ACTIONS.filter(action => action.group === group).forEach(action => {
                 const combo = comboOf(action, saved);
@@ -153,7 +154,7 @@
                 const info = document.createElement('div');
                 info.className = 'setting-info';
                 info.innerHTML = '<span class="setting-name"></span><div class="setting-desc"></div>';
-                info.firstChild.textContent = action.label;
+                info.firstChild.textContent = t(action.label);
                 const desc = info.lastChild;
                 if (note && note.id === action.id) { desc.textContent = note.text; desc.classList.add('is-note'); } else desc.hidden = true;
                 const control = document.createElement('div');
@@ -161,16 +162,16 @@
                 const key = document.createElement('button');
                 key.type = 'button';
                 key.className = 'shortcut-key' + (combo ? '' : ' is-empty');
-                key.textContent = describe(combo) || 'Не назначено';
+                key.textContent = describe(combo) || t('Не назначено');
                 key.dataset.id = action.id;
-                key.setAttribute('aria-label', `${action.label}: ${describe(combo) || 'не назначено'}. Нажмите, чтобы изменить`);
+                key.setAttribute('aria-label', t('{label}: {combo}. Нажмите, чтобы изменить', { label: t(action.label), combo: describe(combo) || t('не назначено') }));
                 key.addEventListener('click', () => record(key, action));
                 const reset = document.createElement('button');
                 reset.type = 'button';
                 reset.className = 'shortcut-reset icon-button';
                 reset.hidden = combo === action.combo;
-                reset.title = 'Вернуть ' + (describe(action.combo) || '«не назначено»');
-                reset.setAttribute('aria-label', 'Сбросить сочетание: ' + action.label);
+                reset.title = t('Вернуть {combo}', { combo: describe(action.combo) || t('не назначено') });
+                reset.setAttribute('aria-label', t('Сбросить сочетание: {label}', { label: t(action.label) }));
                 reset.innerHTML = window.icon ? window.icon('refresh') : '↺';
                 reset.addEventListener('click', () => { note = null; const next = overrides(); delete next[action.id]; save(next); });
                 control.append(key, reset);
@@ -181,7 +182,7 @@
         const all = document.createElement('button');
         all.type = 'button';
         all.className = 'button-secondary shortcut-reset-all';
-        all.textContent = 'Сбросить все сочетания';
+        all.textContent = t('Сбросить все сочетания');
         all.disabled = !Object.keys(saved).length;
         all.addEventListener('click', () => { note = null; save({}); });
         panel.append(all);
@@ -191,7 +192,7 @@
         if (recording) return;
         recording = true;
         button.classList.add('is-recording');
-        button.textContent = 'Нажмите сочетание…';
+        button.textContent = t('Нажмите сочетание…');
         const finish = () => { recording = false; document.removeEventListener('keydown', onKey, true); document.removeEventListener('click', onOutside, true); render(); };
         const onOutside = event => { if (event.target !== button) finish(); };
         const onKey = event => {
@@ -207,7 +208,7 @@
             const holder = ACTIONS.find(other => other.id !== action.id && comboOf(other, next) === combo);
             if (holder) next[holder.id] = '';
             next[action.id] = combo;
-            note = holder ? { id: action.id, text: `Сочетание забрано у действия «${holder.label}»: у него теперь нет сочетания.` } : null;
+            note = holder ? { id: action.id, text: t('Сочетание забрано у действия «{label}»: у него теперь нет сочетания.', { label: t(holder.label) }) } : null;
             save(next);
             finish();
         };
@@ -217,5 +218,6 @@
 
     window.FgsShortcuts = { ACTIONS, describe, comboOf };
     window.addEventListener('fgs-settings', () => { updateTitles(); if (!recording) render(); });
+    window.addEventListener('fgs-language', () => { updateTitles(); if (!recording) render(); });
     document.addEventListener('DOMContentLoaded', () => { updateTitles(); render(); });
 })();

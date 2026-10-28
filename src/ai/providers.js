@@ -5,6 +5,11 @@
     if (typeof module === 'object' && module.exports) module.exports = factory(require('./ollama-api'));
     else root.FgsProviders = factory(root.FgsOllamaApi);
 })(typeof self !== 'undefined' ? self : this, function (ollama) {
+function tr(key, vars) {
+    const fn = globalThis.t;
+    if (typeof fn !== 'function') return vars ? Object.keys(vars).reduce((text, name) => text.split('{' + name + '}').join(String(vars[name])), key) : key;
+    return fn(key, vars);
+}
 // "openai" kind is the de-facto standard (/models, /chat/completions with SSE): OpenAI itself, OpenRouter, Groq, LM Studio, vLLM, llama.cpp...
 const PRESETS = {
     ollama: { kind: 'ollama', local: true, urlSetting: true },
@@ -24,7 +29,7 @@ const PRESETS = {
 
 function preset(id) {
     const found = PRESETS[id];
-    if (!found) throw new Error('Неизвестный провайдер: ' + id);
+    if (!found) throw new Error(tr('Неизвестный провайдер: {id}', { id }));
     return found;
 }
 const needsKey = id => !preset(id).local && !preset(id).keyOptional;
@@ -34,8 +39,8 @@ function baseOf(id, url) {
     const info = preset(id);
     if (!info.urlSetting) return info.base;
     const text = String(url || info.base || '').trim().replace(/\/+$/, '');
-    if (!text) throw new Error('Укажите адрес сервера в настройках.');
-    if (!/^https?:\/\/[^\s/]+(?::\d+)?(?:\/[^\s?#]*)?$/i.test(text)) throw new Error('Адрес должен начинаться с http:// или https://');
+    if (!text) throw new Error(tr('Укажите адрес сервера в настройках.'));
+    if (!/^https?:\/\/[^\s/]+(?::\d+)?(?:\/[^\s?#]*)?$/i.test(text)) throw new Error(tr('Адрес должен начинаться с http:// или https://'));
     return text.replace(/^(https?:\/\/)localhost(?=[:/]|$)/i, '$1127.0.0.1');   // Node 18 resolves "localhost" to ::1 first
 }
 
@@ -46,18 +51,18 @@ async function readError(response) {
         detail = (data.error && (data.error.message || data.error)) || data.message || '';
         if (typeof detail !== 'string') detail = JSON.stringify(detail);
     } catch { /* not JSON */ }
-    if (response.status === 401 || response.status === 403) return 'Сервер не принял ключ API. Проверьте его в настройках → ИИ.';
-    if (response.status === 404) return detail || 'Модель или адрес не найдены (404). Проверьте имя модели и адрес сервера.';
-    if (response.status === 429) return 'Превышен лимит запросов или закончились средства на счёте. ' + detail;
-    return detail || 'Сервер ответил ' + response.status;
+    if (response.status === 401 || response.status === 403) return tr('Сервер не принял ключ API. Проверьте его в настройках → ИИ.');
+    if (response.status === 404) return detail || tr('Модель или адрес не найдены (404). Проверьте имя модели и адрес сервера.');
+    if (response.status === 429) return tr('Превышен лимит запросов или закончились средства на счёте.') + (detail ? ' ' + detail : '');
+    return detail || tr('Сервер ответил') + ' ' + response.status;
 }
 function describe(error) {
-    if (error.name === 'AbortError') return 'Остановлено';
-    if (error.name === 'TimeoutError') return 'Сервер не ответил вовремя.';
+    if (error.name === 'AbortError') return tr('Остановлено');
+    if (error.name === 'TimeoutError') return tr('Сервер не ответил вовремя.');
     const code = error.cause && error.cause.code;
-    if (code === 'ECONNREFUSED') return 'Не удалось подключиться: сервер не запущен или адрес указан неверно.';
-    if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return 'Не удалось найти сервер. Проверьте адрес и подключение к интернету.';
-    if (code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') return 'Соединение оборвалось.';
+    if (code === 'ECONNREFUSED') return tr('Не удалось подключиться: сервер не запущен или адрес указан неверно.');
+    if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') return tr('Не удалось найти сервер. Проверьте адрес и подключение к интернету.');
+    if (code === 'ECONNRESET' || code === 'UND_ERR_SOCKET') return tr('Соединение оборвалось.');
     return error.message || String(error);
 }
 
@@ -94,9 +99,9 @@ const NOT_CHAT = /embed|whisper|tts|dall-e|moderation|davinci|babbage|image|audi
 async function listModels({ provider, url, key, fetch: fetchImpl }) {
     try {
         const info = preset(provider);
-        if (info.kind === 'cli') throw new Error('Claude Code и Codex подключаются только в приложении для компьютера.');
+        if (info.kind === 'cli') throw new Error(tr('Claude Code и Codex подключаются только в приложении для компьютера.'));
         if (info.kind === 'ollama') return await ollama.listModels(baseOf(provider, url), fetchImpl);
-        if (needsKey(provider) && !key) throw new Error('Укажите ключ API в настройках → ИИ.');
+        if (needsKey(provider) && !key) throw new Error(tr('Укажите ключ API в настройках → ИИ.'));
         const base = baseOf(provider, url);
         const endpoint = info.kind === 'gemini' ? base + '/models?pageSize=200' : base + '/models' + (info.kind === 'anthropic' ? '?limit=100' : '');
         const response = await (fetchImpl || fetch)(endpoint, { headers: headersFor(info.kind, key), signal: AbortSignal.timeout(8000) });
@@ -115,10 +120,10 @@ async function listModels({ provider, url, key, fetch: fetchImpl }) {
 async function chat({ provider, url, key, model, messages, temperature, think, fetch: fetchImpl }, onDelta, signal, onThinking) {
     try {
         const info = preset(provider);
-        if (info.kind === 'cli') throw new Error('Claude Code и Codex подключаются только в приложении для компьютера.');
+        if (info.kind === 'cli') throw new Error(tr('Claude Code и Codex подключаются только в приложении для компьютера.'));
         if (info.kind === 'ollama') return await ollama.chat({ url: baseOf(provider, url), model, messages, temperature, think, fetch: fetchImpl }, onDelta, signal, onThinking);
-        if (!model) throw new Error('Не выбрана модель. Откройте Настройки → ИИ.');
-        if (needsKey(provider) && !key) throw new Error('Укажите ключ API в настройках → ИИ.');
+        if (!model) throw new Error(tr('Не выбрана модель. Откройте Настройки → ИИ.'));
+        if (needsKey(provider) && !key) throw new Error(tr('Укажите ключ API в настройках → ИИ.'));
         const base = baseOf(provider, url);
         const system = messages.filter(message => message.role === 'system').map(message => message.content).join('\n\n');
         const turns = messages.filter(message => message.role !== 'system');
@@ -163,7 +168,7 @@ async function chat({ provider, url, key, model, messages, temperature, think, f
             if (info.kind === 'anthropic') {
                 if (event.type === 'content_block_delta' && event.delta && event.delta.type === 'text_delta') onDelta(event.delta.text);
                 else if (event.type === 'content_block_delta' && event.delta && event.delta.type === 'thinking_delta' && event.delta.thinking && onThinking) onThinking(event.delta.thinking);
-                else if (event.type === 'error') throw new Error(event.error && event.error.message || 'Ошибка сервера');
+                else if (event.type === 'error') throw new Error(event.error && event.error.message || tr('Ошибка сервера'));
             } else if (info.kind === 'gemini') {
                 const parts = event.candidates && event.candidates[0] && event.candidates[0].content && event.candidates[0].content.parts || [];
                 for (const part of parts) { if (part.text && !part.thought) onDelta(part.text); else if (part.thought && part.text && onThinking) onThinking(part.text); }
