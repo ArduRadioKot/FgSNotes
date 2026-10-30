@@ -159,3 +159,38 @@
     addEventListener('scroll', update, { passive: true });
     update();
 })();
+
+// Footer year, the current home section in the header, and a short rise as blocks come into view.
+(function () {
+    document.querySelectorAll('[data-year]').forEach(node => { node.textContent = new Date().getFullYear(); });
+
+    const links = [...document.querySelectorAll('.nav-links a[href^="index.html#"]')];
+    const owner = { features: 'features', modes: 'features', ai: 'ai', mobile: 'mobile' };
+    const sections = Object.keys(owner).map(id => document.getElementById(id)).filter(Boolean);
+    if (links.length && sections.length) {
+        const spy = () => {
+            const line = innerHeight * .35;
+            const current = sections.find(section => { const box = section.getBoundingClientRect(); return box.top <= line && box.bottom > line; });
+            links.forEach(link => {
+                const on = !!current && link.hash === '#' + owner[current.id];
+                if (on) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+            });
+        };
+        addEventListener('scroll', spy, { passive: true });
+        addEventListener('resize', spy);
+        spy();
+    }
+
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const blocks = document.querySelectorAll('.page > .flat, .page > .island:not(.store-top), .bento > .cell, .dl, .steps li');
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-in');
+        observer.unobserve(entry.target);
+    }), { rootMargin: '0px 0px -8% 0px' });
+    blocks.forEach(block => {
+        if (block.getBoundingClientRect().top < innerHeight) return;
+        block.classList.add('reveal');
+        observer.observe(block);
+    });
+})();

@@ -24,7 +24,7 @@
                 <p>${text(p.description)}</p>
                 <div class="ptags">${p.online ? '<span class="chip">Нужен интернет</span>' : ''}</div>
                 <div class="actions">
-                    <a class="btn primary small" href="plugins/${p.file}" download="${p.file}"><svg class="icon"><use href="#i-download"/></svg>Скачать .js</a>
+                    <a class="btn primary small" href="plugins/${p.file}" download="${p.file}">Скачать .js <span aria-hidden="true">↓</span></a>
                 </div>
             </article>`).join('');
     }

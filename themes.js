@@ -23,7 +23,7 @@
                     <p>${text(theme.description)}</p>
                 </div>
                 <div class="actions">
-                    <a class="btn primary small" href="themes/${theme.id}.css" download="${theme.id}.css"><svg class="icon"><use href="#i-download"/></svg>Скачать .css</a>
+                    <a class="btn primary small" href="themes/${theme.id}.css" download="${theme.id}.css">Скачать .css <span aria-hidden="true">↓</span></a>
                     <button class="btn small" data-view="${theme.id}">Превью</button>
                 </div>
             </article>`).join('');
