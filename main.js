@@ -6,6 +6,7 @@ const providers = require('./providers');
 const agents = require('./agents');
 const { createKeystore } = require('./keystore');
 const updater = require('./updater');
+const { createSyncTransport } = require('./sync-server');
 const i18n = require('./src/i18n');
 
 function useLanguage(code) {
@@ -93,6 +94,29 @@ ipcMain.handle('ai-pull', async (event, { id, url, model }) => {
   return result;
 });
 ipcMain.on('ai-abort', (event, id) => { const controller = aiRequests.get(id); if (controller) controller.abort(); });
+
+// Sync over the local network. Requests from other devices go to the page (it holds the notes and the key) and its
+// answer goes back; the page sends its own notes through send. Only sealed text passes through here.
+const syncReplies = new Map();
+let syncReplyId = 0;
+const lanSync = createSyncTransport({
+  log: (...args) => console.warn(...args),
+  onRequest: body => new Promise(resolve => {
+    const [win] = BrowserWindow.getAllWindows();
+    if (!win || win.webContents.isDestroyed()) return resolve(null);
+    const id = ++syncReplyId;
+    const timer = setTimeout(() => { syncReplies.delete(id); resolve(null); }, 20000);
+    syncReplies.set(id, answer => { clearTimeout(timer); syncReplies.delete(id); resolve(answer); });
+    win.webContents.send('sync-incoming', { id, body });
+  })
+});
+ipcMain.on('sync-reply', (event, { id, body }) => { const done = syncReplies.get(id); if (done) done(typeof body === 'string' ? body : null); });
+ipcMain.handle('sync-start', (event, identity) => lanSync.start(identity));
+ipcMain.handle('sync-stop', () => { lanSync.stop(); return lanSync.info(); });
+ipcMain.handle('sync-info', () => lanSync.info());
+ipcMain.handle('sync-peers', () => lanSync.peers());
+ipcMain.handle('sync-send', (event, { address, body }) => lanSync.send(address, String(body)));
+app.on('will-quit', () => lanSync.stop());
 
 const fallbackConfig = {
   'theme': 'dark',

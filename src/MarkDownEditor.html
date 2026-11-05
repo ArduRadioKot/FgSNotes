@@ -323,6 +323,15 @@
             </button>
             <button
               type="button"
+              class="settings-nav-item"
+              role="tab"
+              aria-selected="false"
+              data-settings-section="sync"
+            >
+              Синхронизация
+            </button>
+            <button
+              type="button"
               class="settings-nav-item desktop-only"
               role="tab"
               aria-selected="false"
@@ -744,6 +753,59 @@
               <p class="settings-note" id="ai-note"></p>
             </section>
 
+            <section class="settings-panel" data-settings-panel="sync" role="tabpanel" hidden>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="sync-enabled">Синхронизация по сети</label>
+                  <div class="setting-desc">Открытые заметки сами обновляются на ваших устройствах в одной сети Wi-Fi. Всё, что передаётся, зашифровано кодом синхронизации</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="sync-enabled" />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="sync-code">Код синхронизации</label>
+                  <div class="setting-desc">Впишите один и тот же код на всех устройствах. Не показывайте его другим: с кодом можно читать ваши заметки</div>
+                </div>
+                <div class="setting-control theme-control">
+                  <input type="text" id="sync-code" class="setting-text" spellcheck="false" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" />
+                  <button class="button-secondary" id="sync-copy" type="button">Копировать</button>
+                  <button class="button-secondary" id="sync-new-code" type="button">Новый код</button>
+                </div>
+              </div>
+              <div class="setting-item" id="sync-row-address">
+                <div class="setting-info">
+                  <span class="setting-name">Адрес этого компьютера</span>
+                  <div class="setting-desc">Впишите его на телефоне в поле «Адрес компьютера»</div>
+                </div>
+                <div class="setting-control">
+                  <span class="sync-address" id="sync-address" data-i18n-skip></span>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="sync-peer">Адрес компьютера</label>
+                  <div class="setting-desc" id="sync-peer-desc"></div>
+                </div>
+                <div class="setting-control">
+                  <input type="text" id="sync-peer" class="setting-text" spellcheck="false" autocomplete="off" inputmode="url" placeholder="192.168.1.20" />
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-name">Состояние</span>
+                  <div class="setting-desc" id="sync-status" role="status" data-i18n-skip></div>
+                </div>
+                <div class="setting-control">
+                  <button class="button-secondary" id="sync-now" type="button">Синхронизировать</button>
+                </div>
+              </div>
+              <p class="settings-note">Синхронизируются открытые вкладки с заметками. Если одну заметку изменили на двух устройствах до встречи, обе версии сохранятся: вторая откроется отдельной вкладкой с пометкой «конфликт».</p>
+            </section>
             <section class="settings-panel" data-settings-panel="about" role="tabpanel" hidden>
               <div class="about">
                 <img class="about-logo" src="logo.png" alt="" width="72" height="72" />
@@ -776,6 +838,7 @@
     <script src="liquid-glass/displacement.js"></script>
     <script src="liquid-glass/liquid-glass.js"></script>
     <script src="settings.js"></script>
+    <script src="sync.js"></script>
     <script src="plugins.js"></script>
     <script src="mobile.js"></script>
     <script src="ai/ollama-api.js"></script>

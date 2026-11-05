@@ -14,6 +14,13 @@ const aiListeners = new Set();
 const pullListeners = new Set();
 ipcRenderer.on('ai-pull-progress', (event, progress) => pullListeners.forEach(listener => listener(progress)));
 ipcRenderer.on('ai-chunk', (event, chunk) => aiListeners.forEach(listener => listener(chunk)));
+// Sync: one handler answers requests from other devices (the page decrypts, merges and seals the reply).
+let syncHandler = null;
+ipcRenderer.on('sync-incoming', async (event, { id, body }) => {
+    let reply = null;
+    try { reply = syncHandler ? await syncHandler(body) : null; } catch { reply = null; }
+    ipcRenderer.send('sync-reply', { id, body: reply });
+});
 
 contextBridge.exposeInMainWorld(
   'electron', {
@@ -52,6 +59,13 @@ contextBridge.exposeInMainWorld(
     aiPull: (request) => ipcRenderer.invoke('ai-pull', request),
     onAiPull: (listener) => { pullListeners.add(listener); return () => pullListeners.delete(listener); },
     aiAbort: (id) => ipcRenderer.send('ai-abort', id),
-    onAiChunk: (listener) => { aiListeners.add(listener); return () => aiListeners.delete(listener); }
+    onAiChunk: (listener) => { aiListeners.add(listener); return () => aiListeners.delete(listener); },
+    // Sync over the local network
+    syncStart: (identity) => ipcRenderer.invoke('sync-start', identity),
+    syncStop: () => ipcRenderer.invoke('sync-stop'),
+    syncInfo: () => ipcRenderer.invoke('sync-info'),
+    syncPeers: () => ipcRenderer.invoke('sync-peers'),
+    syncSend: (address, body) => ipcRenderer.invoke('sync-send', { address, body }),
+    onSyncRequest: (handler) => { syncHandler = handler; }
   }
 );

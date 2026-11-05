@@ -96,6 +96,7 @@
       "agents.js",
       "providers.js",
       "keystore.js",
+      "sync-server.js",
       "src/**/*",
       "package.json",
       "!src/vendor/ort/**",

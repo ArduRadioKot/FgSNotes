@@ -1225,3 +1225,15 @@ html[data-native] .native-only { display: block; }
 .model-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-empty { padding: 8px 10px; color: var(--text-muted); font-size: 12.5px; }
 @media (max-width: 720px) { .model-combo { flex: 1 1 100%; } .model-menu { width: 100%; } .model-option { min-height: 40px; font-size: 15px; } }
+
+/* A file dragged over the window: the editor area shows where it will open */
+.editor-wrapper { position: relative; }
+.workspace[data-dropping] .editor-wrapper::after {
+    content: attr(data-drop-label); position: absolute; inset: 6px; z-index: 30; display: grid; place-items: center; pointer-events: none;
+    border: 2px dashed var(--accent-color); border-radius: var(--radius-lg); color: var(--text-color); font-size: 15px; font-weight: 600;
+    background: color-mix(in srgb, var(--card-bg) 82%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+
+/* Sync settings */
+.sync-address { font: 500 13px var(--mono-font); color: var(--text-color); user-select: all; text-align: right; }
+#sync-status { color: var(--text-muted); }

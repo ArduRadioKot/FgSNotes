@@ -161,6 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let nextDocumentId = 1;
     let saveTimer;
     const storageKey = 'fgsnotes.workspace.v1';
+    // For sync (sync.js): every note has a uid shared by all devices, the time of its last edit and the versions it has
+    // been through; closed notes are kept for a while as tombstones so other devices close them too.
+    let removedNotes = [];
+    const newUid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+    const noteChanged = () => window.dispatchEvent(new CustomEvent('fgs-notes-changed'));
 
     function updateCursor() {
         const lines = editor.value.slice(0, editor.selectionStart).split('\n');
@@ -197,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const notes = notesOnly();
             const activeNote = isView(documents[activeDocumentIndex]) ? notes.findIndex(doc => doc.id === lastNoteId) : activeDocumentIndex;
-            localStorage.setItem(storageKey, JSON.stringify({ documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId }));
+            localStorage.setItem(storageKey, JSON.stringify({ documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId, removed: removedNotes }));
             document.getElementById('save-status').textContent = t('Черновик сохранён');
         } catch (error) {
             document.getElementById('save-status').textContent = t('Не удалось сохранить черновик');
@@ -206,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function saveCurrentDocument() {
         const doc = documents[activeDocumentIndex];
-        if (doc && !isView(doc)) doc.content = editor.value;
+        if (doc && !isView(doc) && doc.content !== editor.value) { doc.content = editor.value; doc.updatedAt = Date.now(); }
     }
     function loadDocument(index) {
         const shown = documents[index];
@@ -232,10 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function addNewTab() {
         saveCurrentDocument();
         const id = nextDocumentId++;
-        activeDocumentIndex = insertNote({ id, title: t('Документ {n}', { n: id }), content: '' });
+        activeDocumentIndex = insertNote({ id, uid: newUid(), updatedAt: Date.now(), title: t('Документ {n}', { n: id }), content: '' });
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
+        noteChanged();
         setView(workspace.dataset.view === 'preview' ? 'editor' : workspace.dataset.view);
         editor.focus();
     }
@@ -258,13 +264,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveCurrentDocument();
         const closing = documents[index];
         if (isView(closing)) { closing.element.remove(); if (closing.onClose) try { closing.onClose(); } catch (error) { console.error(error); } }
-        else if (window.FgsNotebook) window.FgsNotebook.forget(closing.id);
+        else {
+            if (window.FgsNotebook) window.FgsNotebook.forget(closing.id);
+            const known = window.FgsSync ? window.FgsSync.stamp([closing])[0].hist : closing.hist;
+            removedNotes = removedNotes.filter(note => note.uid !== closing.uid).concat({ uid: closing.uid, deleted: true, updatedAt: Date.now(), hist: known || [] });
+        }
         documents.splice(index, 1);
         if (index < activeDocumentIndex) activeDocumentIndex--;
         activeDocumentIndex = Math.min(activeDocumentIndex, documents.length - 1);
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
+        if (!isView(closing)) noteChanged();
         tabBar.querySelector('.active .tab-select').focus();
     }
     function renderTabs() {
@@ -303,6 +314,15 @@ document.addEventListener('DOMContentLoaded', () => {
         tabBar.querySelector('.active').scrollIntoView({ block: 'nearest', inline: 'nearest' });
         tabLens.place();
     }
+    // A file from the picker or dropped on the window becomes a new tab.
+    function openText(name, content) {
+        saveCurrentDocument();
+        activeDocumentIndex = insertNote({ id: nextDocumentId++, uid: newUid(), updatedAt: Date.now(), title: name, content: String(content).replace(/\r\n?/g, '\n') });
+        renderTabs();
+        loadDocument(activeDocumentIndex);
+        persistWorkspace();
+        noteChanged();
+    }
     function openFile() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -315,13 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             input.remove();
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = () => {
-                saveCurrentDocument();
-                activeDocumentIndex = insertNote({ id: nextDocumentId++, title: file.name, content: reader.result });
-                renderTabs();
-                loadDocument(activeDocumentIndex);
-                persistWorkspace();
-            };
+            reader.onload = () => openText(file.name, reader.result);
             reader.onerror = () => { document.getElementById('save-status').textContent = t('Не удалось открыть файл'); };
             reader.readAsText(file);
         };
@@ -378,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveCurrentDocument();
         document.getElementById('save-status').textContent = t('Сохранение…');
         clearTimeout(saveTimer);
-        saveTimer = setTimeout(persistWorkspace, 300);
+        saveTimer = setTimeout(() => { persistWorkspace(); noteChanged(); }, 300);
     });
     ['click', 'keyup', 'select'].forEach(event => editor.addEventListener(event, updateCursor));
     // Everything a shortcut can trigger. shortcuts.js owns the key bindings and calls these.
@@ -420,9 +434,95 @@ document.addEventListener('DOMContentLoaded', () => {
             editor.value = String(content || '');
             editor.dispatchEvent(new Event('input', { bubbles: true }));
         },
+        // For sync.js: every note and tombstone, and a merged list to adopt. Views (plugin tabs) are never synced.
+        syncNotes: () => {
+            saveCurrentDocument();
+            return [...notesOnly().map(({ uid, title, content, updatedAt, hist }) => ({ uid, title, content, updatedAt: updatedAt || 0, hist: hist || [] })), ...removedNotes];
+        },
+        applySyncNotes: notes => applySyncNotes(notes),
         canFormat: () => workspace.dataset.view !== 'preview',
         format: name => { if (window.FgsActions.canFormat() && markdownFormats[name]) applyFormat(name); }
     };
+
+    // Adopt the merged list from sync: update notes in place, add new ones, close the ones closed elsewhere.
+    // The note on screen keeps the caret and scroll; nothing here counts as a local edit.
+    function applySyncNotes(notes) {
+        saveCurrentDocument();
+        const active = documents[activeDocumentIndex];
+        let tabsChanged = false, activeChanged = false;
+        const incoming = new Map(notes.map(note => [note.uid, note]));
+        removedNotes = notes.filter(note => note.deleted);
+        for (let i = documents.length - 1; i >= 0; i--) {
+            const doc = documents[i];
+            if (isView(doc)) continue;
+            const next = incoming.get(doc.uid);
+            if (!next) continue;
+            if (next.deleted) {
+                if (notesOnly().length === 1) { removedNotes = removedNotes.filter(note => note.uid !== doc.uid); continue; }   // one note always stays open
+                if (window.FgsNotebook) window.FgsNotebook.forget(doc.id);
+                documents.splice(i, 1);
+                if (doc === active) activeChanged = true;
+                tabsChanged = true;
+                continue;
+            }
+            if (doc.title !== next.title) tabsChanged = true;
+            if (doc.content !== next.content && doc === active) activeChanged = true;
+            Object.assign(doc, { title: next.title, content: next.content, updatedAt: next.updatedAt, hist: next.hist });
+        }
+        const known = new Set(documents.map(doc => doc.uid));
+        for (const note of notes) {
+            if (note.deleted || known.has(note.uid)) continue;
+            insertNote({ id: nextDocumentId++, uid: note.uid, title: note.title, content: note.content, updatedAt: note.updatedAt, hist: note.hist });
+            tabsChanged = true;
+        }
+        const still = documents.indexOf(active);
+        activeDocumentIndex = still >= 0 ? still : Math.min(activeDocumentIndex, documents.length - 1);
+        if (tabsChanged) renderTabs();
+        if (still < 0) loadDocument(activeDocumentIndex);
+        else if (activeChanged && !isView(active)) {
+            const { selectionStart, selectionEnd } = editor, top = editor.scrollTop;
+            editor.value = active.content;
+            editor.setSelectionRange(Math.min(selectionStart, editor.value.length), Math.min(selectionEnd, editor.value.length));
+            editor.scrollTop = top;
+            updatePreview();
+            document.title = `${active.title} - FgSNotes`;
+        } else if (tabsChanged && !isView(active)) document.title = `${active.title} - FgSNotes`;
+        persistWorkspace();
+    }
+
+    // Drop a .md or .txt file anywhere on the window to open it in a new tab. A plugin that handles a drop itself
+    // (it calls preventDefault) keeps it; any other dropped file is refused instead of replacing the page.
+    const textFile = file => /\.(md|markdown|mdown|mkd|txt|text)$/i.test(file.name) || /^text\//.test(file.type);
+    const hasFiles = event => !!(event.dataTransfer && [...event.dataTransfer.types].includes('Files'));
+    let dragDepth = 0;
+    const setDropping = on => {
+        if (!on) { delete workspace.dataset.dropping; return; }
+        document.querySelector('.editor-wrapper').dataset.dropLabel = t('Отпустите, чтобы открыть файл');
+        workspace.dataset.dropping = '';
+    };
+    window.addEventListener('dragenter', event => { if (hasFiles(event) && !workspace.inert) { dragDepth++; setDropping(true); } });
+    window.addEventListener('dragleave', event => { if (hasFiles(event) && --dragDepth <= 0) { dragDepth = 0; setDropping(false); } });
+    window.addEventListener('dragover', event => {
+        if (!hasFiles(event)) return;
+        if (!event.defaultPrevented) { event.preventDefault(); event.dataTransfer.dropEffect = workspace.inert ? 'none' : 'copy'; }
+    });
+    window.addEventListener('drop', async event => {
+        dragDepth = 0;
+        setDropping(false);
+        if (!hasFiles(event) || event.defaultPrevented) return;
+        event.preventDefault();
+        if (workspace.inert) return;
+        const files = [...event.dataTransfer.files];
+        const texts = files.filter(file => textFile(file) && file.size <= 10 * 1024 * 1024);
+        const status = document.getElementById('save-status');
+        if (!texts.length) { status.textContent = t('Открыть можно файлы .md и .txt'); return; }
+        for (const file of texts) {
+            try { openText(file.name, await file.text()); }
+            catch { status.textContent = t('Не удалось открыть файл'); }
+        }
+        if (texts.length < files.length) status.textContent = t('Открыты только файлы .md и .txt');
+        editor.focus();
+    });
 
     // Tab writes an indent instead of moving the focus; Shift+Tab takes one away. On a list line, or with several lines selected,
     // whole lines move. Esc then Tab still leaves the field, so the keyboard is never trapped. (The live editor has its own Tab.)
@@ -487,6 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saved && Array.isArray(saved.documents)) {
             documents = saved.documents.filter(doc => Number.isFinite(doc.id) && typeof doc.title === 'string' && typeof doc.content === 'string');
             activeDocumentIndex = Math.max(0, Math.min(Number(saved.activeDocumentIndex) || 0, documents.length - 1));
+            if (Array.isArray(saved.removed)) removedNotes = saved.removed.filter(note => note && typeof note.uid === 'string' && note.deleted);
         }
     } catch (error) { console.error('Could not restore workspace:', error); }
     if (!documents.length) {
@@ -497,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
+    documents.forEach(doc => { if (!doc.uid) doc.uid = newUid(); if (!doc.updatedAt) doc.updatedAt = 0; });
     if (!documents.length) {
         const intro = [
             '# Хорошие идеи начинаются с заметки',
@@ -557,7 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
             '',
             'Черновики открытых вкладок сохраняются на этом устройстве автоматически.'
         ].map(line => t(line)).join('\n');
-        documents.push({ id: nextDocumentId++, title: t('Начните здесь.md'), content: intro });
+        // The same uid on every device, so the welcome note does not multiply when they sync.
+        documents.push({ id: nextDocumentId++, uid: 'welcome-' + ((window.FgsI18n && window.FgsI18n.language) || 'ru'), updatedAt: 0, title: t('Начните здесь.md'), content: intro });
     }
     renderTabs();
     lastNoteId = documents[activeDocumentIndex].id;

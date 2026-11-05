@@ -66,6 +66,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>FgSNotes connects to your computer on the local network to sync notes and to reach a local AI model.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
