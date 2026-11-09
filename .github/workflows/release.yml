@@ -1,0 +1,104 @@
+# Builds the desktop apps and publishes them as a GitHub release when a version tag is pushed:
+#   git tag v2.8.0 && git push origin v2.8.0
+# The tag must match "version" in package.json. A tag with a suffix (v2.8.0-beta) becomes a prerelease, which the
+# in-app updater does not offer. Running this by hand from the Actions tab only builds: the files stay in the run.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check the tag against package.json
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in package.json"
+            exit 1
+          fi
+      - run: npm test
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: --mac
+          - os: windows-latest
+            platform: --win
+          - os: ubuntu-latest
+            platform: --linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # Install scripts only fetch binaries for the phone builds and for `electron .`; electron-builder gets Electron itself.
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npx electron-builder ${{ matrix.platform }} --publish never
+      # Named one by one: dist/ also holds unpacked apps and helper files that must not reach the release.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-${{ matrix.os }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            dist/*.dmg
+            dist/FgSNotes-Setup-*.exe
+            dist/FgSNotes-Portable-*.exe
+            dist/*.AppImage
+            dist/*.tar.gz
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -l release
+          # updater.js picks its download by these names, so a missing file would break updates for that system.
+          version="${TAG#v}"
+          for file in "FgSNotes-$version-arm64.dmg" "FgSNotes-$version-x64.dmg" "FgSNotes-Setup-$version.exe" \
+                      "FgSNotes-Portable-$version.exe" "FgSNotes-$version.AppImage" "fgsnotes-$version.tar.gz"; do
+            if [ ! -f "release/$file" ]; then
+              echo "::error::$file was not built"
+              exit 1
+            fi
+          done
+
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" release/* --clobber
+          else
+            flags=()
+            case "$TAG" in *-*) flags+=(--prerelease) ;; esac
+            gh release create "$TAG" release/* --title "$TAG" --generate-notes --verify-tag "${flags[@]}"
+          fi

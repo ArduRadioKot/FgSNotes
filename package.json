@@ -1,6 +1,6 @@
 {
   "name": "fgsnotes",
-  "version": "2.7.1",
+  "version": "2.8.1",
   "description": "FgSNotes — Markdown editor",
   "main": "main.js",
   "scripts": {
@@ -97,6 +97,7 @@
       "providers.js",
       "keystore.js",
       "sync-server.js",
+      "google-calendar.js",
       "src/**/*",
       "package.json",
       "!src/vendor/ort/**",

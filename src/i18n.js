@@ -13,6 +13,8 @@
         'app.title': 'FgSNotes - Markdown editor',
         'editor.placeholder': '# Where should we start?\n\nWrite down a thought, make a plan, or open a file…',
         'Основные действия': 'Main actions',
+        'Других устройств в сети пока нет': 'No other devices on the network yet',
+        'Заметки синхронизированы': 'Notes are synced',
         "Синхронизация": "Sync",
         "Синхронизация по сети": "Sync over the network",
         "Открытые заметки сами обновляются на ваших устройствах в одной сети Wi-Fi. Всё, что передаётся, зашифровано кодом синхронизации": "Open notes update by themselves on your devices on the same Wi-Fi network. Everything sent is encrypted with the sync code",

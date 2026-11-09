@@ -7,19 +7,25 @@ const source = path.join(root, 'plugins-examples');
 const site = path.join(root, 'website');
 // Store tiles use the app's own icon set (src/icons.js), so the site and the editor show the same glyphs.
 const iconPaths = new Function(fs.readFileSync(path.join(root, 'src', 'icons.js'), 'utf8').replace(/function icon[\s\S]*$/, '') + '; return iconPaths;')();
+const builtin = path.join(root, 'src', 'builtin-plugins');
 const extra = JSON.parse(fs.readFileSync(path.join(source, 'catalog.json'), 'utf8'));
 const field = (header, name) => { const match = new RegExp('@' + name + '\\s+(.+)').exec(header); return match ? match[1].trim() : ''; };
 
 fs.rmSync(path.join(site, 'plugins'), { recursive: true, force: true });
 fs.mkdirSync(path.join(site, 'plugins'), { recursive: true });
 const plugins = [];
-for (const file of fs.readdirSync(source).filter(name => name.endsWith('.js')).sort()) {
+// The standard plugins that were in the store stay downloadable for older app versions; sync needs the app itself.
+const entries = [
+    ...fs.readdirSync(source).filter(name => name.endsWith('.js')).map(file => [source, file]),
+    ...fs.readdirSync(builtin).filter(name => name.endsWith('.js') && extra[name.replace(/\.js$/, '')]).map(file => [builtin, file])
+].sort((a, b) => a[1].localeCompare(b[1]));
+for (const [folder, file] of entries) {
     const id = file.replace(/\.js$/, '');
-    const text = fs.readFileSync(path.join(source, file), 'utf8');
+    const text = fs.readFileSync(path.join(folder, file), 'utf8');
     const header = (/==FgsPlugin==([\s\S]*?)==\/FgsPlugin==/.exec(text) || [, ''])[1];
     const meta = extra[id];
     if (!meta) throw new Error(`plugins-examples/catalog.json has no entry for ${id}`);
-    fs.copyFileSync(path.join(source, file), path.join(site, 'plugins', file));
+    fs.copyFileSync(path.join(folder, file), path.join(site, 'plugins', file));
     if (!iconPaths[meta.icon]) throw new Error(`${id}: no icon "${meta.icon}" in src/icons.js`);
     plugins.push({ id, file, name: field(header, 'name'), version: field(header, 'version'), description: field(header, 'description'), author: field(header, 'author') || 'FgSNotes', size: Buffer.byteLength(text), ...meta, icon: iconPaths[meta.icon] });
 }

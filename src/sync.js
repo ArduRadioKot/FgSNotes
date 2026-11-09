@@ -3,15 +3,15 @@
 // (main process, sync-server.js); a phone talks to a computer by its address. Everything on the wire is AES-GCM
 // sealed with a key derived from the code, so a device without the code can neither read nor change notes.
 //
-// Merging: each note has a stable uid and a short history of content hashes it has had. If one side's version is in
-// the other's history, the other is newer and wins. If neither is (both edited since they last met), the newer one
-// keeps the note and the other becomes a separate copy, so no text is lost. Closed notes travel as tombstones.
+// Merging: each note has a stable uid and a version vector: per device, how many edits that device has made. If one
+// vector covers the other, that side has seen everything the other did and wins, whatever the text or the clocks say.
+// If neither does (both edited since they last met), the newer one keeps the note and the other becomes a separate
+// copy, so no text is lost. Closed notes travel as tombstones.
 (function (root, factory) {
     const api = factory();
     if (typeof module === 'object' && module.exports) module.exports = api;
     else root.FgsSync = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-    const HISTORY = 40;
     const TOMBSTONE_DAYS = 30;
 
     // cyrb53: a fast 53-bit string hash, enough to tell versions of one note apart.
@@ -27,11 +27,19 @@
         return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
     }
     const hashNote = note => (note.deleted ? '-' : hashText(String(note.title) + '\u0000' + String(note.content)));
-    const history = (...lists) => [...new Set(lists.flat().filter(Boolean))].slice(-HISTORY);
-
-    // Remember the current version of every note as known, so a later answer carrying it is not taken as a conflict.
-    function stamp(notes) {
-        return notes.map(note => ({ ...note, hist: history(note.hist || [], hashNote(note)) }));
+    // 'a' or 'b' when that vector covers the other, 'same' when they are equal, 'both' when each has edits the other lacks.
+    function compareVersions(a = {}, b = {}) {
+        let aAhead = false, bAhead = false;
+        for (const device of new Set([...Object.keys(a), ...Object.keys(b)])) {
+            if ((a[device] || 0) > (b[device] || 0)) aAhead = true;
+            if ((b[device] || 0) > (a[device] || 0)) bAhead = true;
+        }
+        return aAhead ? (bAhead ? 'both' : 'a') : (bAhead ? 'b' : 'same');
+    }
+    function joinVersions(a = {}, b = {}) {
+        const joined = { ...a };
+        for (const [device, count] of Object.entries(b)) joined[device] = Math.max(joined[device] || 0, count);
+        return joined;
     }
 
     // Merge our notes with theirs. Pure and symmetric: both sides reach the same list. conflictLabel names the copy.
@@ -41,37 +49,37 @@
         const local = byUid(ours), remote = byUid(theirs);
         const result = new Map();
         const copies = [];
-        const keep = (note, ...hists) => {
-            const merged = { ...note, hist: history(...hists, hashNote(note)) };
+        const keep = (note, ver) => {
+            const merged = { ...note, ver };
             if (merged.deleted) { delete merged.title; delete merged.content; }
             return merged;
         };
         for (const uid of new Set([...local.keys(), ...remote.keys()])) {
             const L = local.get(uid), R = remote.get(uid);
-            if (!L || !R) { result.set(uid, keep(L || R, (L || R).hist || [])); continue; }
+            if (!L || !R) { result.set(uid, keep(L || R, (L || R).ver || {})); continue; }
             const hL = hashNote(L), hR = hashNote(R);
-            const lHist = L.hist || [], rHist = R.hist || [];
+            const order = compareVersions(L.ver, R.ver);
             let winner;
             if (hL === hR) winner = (R.updatedAt || 0) > (L.updatedAt || 0) ? R : L;
-            else if (lHist.includes(hR)) winner = L;            // theirs is an older version of ours
-            else if (rHist.includes(hL)) winner = R;            // ours is an older version of theirs
+            else if (order === 'a') winner = L;
+            else if (order === 'b') winner = R;
             else if (L.deleted || R.deleted) winner = L.deleted ? R : L;   // edited on one side, closed on the other: keep the text
             else {
                 // Both changed since they last met: the newer keeps the note, the other is saved next to it.
                 const lNewer = (L.updatedAt || 0) !== (R.updatedAt || 0) ? (L.updatedAt || 0) > (R.updatedAt || 0) : hL > hR;
                 winner = lNewer ? L : R;
                 const loser = lNewer ? R : L, hLoser = lNewer ? hR : hL;
-                copies.push({ uid: `${uid}~${hLoser.slice(0, 10)}`, title: `${loser.title} (${conflictLabel})`, content: loser.content, updatedAt: loser.updatedAt || now, hist: [] });
+                copies.push({ uid: `${uid}~${hLoser.slice(0, 10)}`, title: `${loser.title} (${conflictLabel})`, content: loser.content, updatedAt: loser.updatedAt || now });
             }
-            result.set(uid, keep(winner, lHist, rHist, [hL, hR]));
+            result.set(uid, keep(winner, joinVersions(L.ver, R.ver)));
         }
-        for (const copy of copies) if (!result.has(copy.uid)) result.set(copy.uid, keep(copy, []));
+        for (const copy of copies) if (!result.has(copy.uid)) result.set(copy.uid, keep(copy, {}));
         // Tombstones are needed only until every device has seen them.
         const cutoff = now - TOMBSTONE_DAYS * 86400000;
         return [...result.values()].filter(note => !note.deleted || (note.updatedAt || 0) > cutoff);
     }
 
-    const api = { merge, stamp, hashNote, hashText };
+    const api = { merge, compareVersions, hashNote, hashText };
     if (typeof window === 'undefined' || typeof document === 'undefined') return api;
 
     // ---------- in the app ----------
@@ -132,12 +140,7 @@
     // ---------- talking to the editor ----------
     const actions = () => window.FgsActions;
     const deviceName = () => (desktop ? (info && info.name) || 'Computer' : platform().name === 'ios' ? 'iPhone' : platform().name === 'android' ? 'Android' : 'Browser');
-    function localNotes() {
-        // Mark what we are about to send as known, and keep that mark in the workspace.
-        const stamped = stamp(actions().syncNotes());
-        actions().applySyncNotes(stamped);
-        return stamped;
-    }
+    const localNotes = () => actions().syncNotes();
     function absorb(theirs) {
         const merged = merge(actions().syncNotes(), theirs, t('конфликт'));
         actions().applySyncNotes(merged);
@@ -148,6 +151,9 @@
     let info = null;              // desktop: { addresses, port, name }
     let peers = [];               // desktop: computers found on the network
     let lastSync = 0, lastError = '', busy = false, timer = 0, pushTimer = 0;
+    let pluginOn = false;         // the standard Sync plugin owns the feature: off there means off everywhere
+    let running = null, queued = false, unsent = false;
+    const active = () => pluginOn && settings.enabled && available() && !!normalizeCode(settings.code);
     const seen = new Map();       // device -> name of devices we exchanged notes with recently
 
     async function exchange(address, name) {
@@ -170,7 +176,7 @@
 
     // Requests from other devices (desktop only): merge theirs into ours and answer with the result.
     async function answer(body) {
-        if (!settings.enabled || !normalizeCode(settings.code)) return null;
+        if (!active()) return null;
         let message;
         try { message = await open(body); } catch { return null; }
         const merged = absorb(message.notes);
@@ -187,10 +193,24 @@
         return t('Не удалось синхронизировать: {error}', { error: text });
     }
 
-    async function syncNow() {
-        if (busy || !settings.enabled || !available() || !normalizeCode(settings.code)) return;
-        busy = true;
+    // One run at a time; a request during a run (a change made meanwhile) starts another right after it.
+    function syncNow() {
+        if (!active()) return Promise.resolve({ ok: 0, targets: 0, failure: '' });
+        if (running) { queued = true; return running; }
+        running = runSync().finally(() => {
+            running = null;
+            if (queued) { queued = false; syncNow(); }
+        });
+        return running;
+    }
+    function setBusy(on) {
+        busy = on;
+        document.documentElement.toggleAttribute('data-sync-busy', on);
         render();
+    }
+    async function runSync() {
+        setBusy(true);
+        unsent = false;
         const targets = [];
         if (desktop) {
             try { peers = await window.electron.syncPeers(); } catch { peers = []; }
@@ -204,30 +224,35 @@
             catch (error) { failure = describeError(error); }
         }
         if (ok) { lastSync = Date.now(); lastError = ''; }
-        else if (failure) lastError = failure;
-        busy = false;
-        render();
+        else if (failure) { lastError = failure; unsent = true; }
+        setBusy(false);
+        return { ok, targets: targets.length, failure };
     }
 
     function schedule() {
         clearInterval(timer);
-        if (!settings.enabled || !available() || !normalizeCode(settings.code)) return;
+        if (!active()) return;
         timer = setInterval(() => { if (!document.hidden) syncNow(); }, desktop ? 20000 : 15000);
         syncNow();
     }
     // A local change goes out a moment after typing stops.
     window.addEventListener('fgs-notes-changed', () => {
-        if (!settings.enabled) return;
+        if (!active()) return;
+        unsent = true;
         clearTimeout(pushTimer);
         pushTimer = setTimeout(syncNow, 2500);
     });
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && settings.enabled) syncNow(); });
+    // A phone cannot be called by the computer, so what it has must leave before the app goes to the background.
+    document.addEventListener('visibilitychange', () => {
+        if (!active()) return;
+        if (!document.hidden || unsent) { clearTimeout(pushTimer); syncNow(); }
+    });
 
     async function applyState() {
         const code = normalizeCode(settings.code);
         if (desktop) {
             try {
-                if (settings.enabled && code) {
+                if (pluginOn && settings.enabled && code) {
                     const { group } = await keys();
                     info = await window.electron.syncStart({ group, device: settings.device, name: '' });
                 } else info = await window.electron.syncStop();
@@ -264,7 +289,7 @@
                 + (names.length ? '. ' + t('Устройства: {list}', { list: names.join(', ') }) : '');
         } else status = desktop ? t('Ищем другие устройства в сети…') : (settings.peer ? t('Подключаемся…') : t('Впишите адрес компьютера'));
         panel.textContent = status;
-        $('sync-now').disabled = !settings.enabled || busy || !available();
+        $('sync-now').disabled = !active() || busy;
         $('sync-copy').disabled = !normalizeCode(settings.code);
     }
 
@@ -313,5 +338,20 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();
 
-    return Object.assign(api, { syncNow });
+    return Object.assign(api, {
+        syncNow,
+        // One more edit on this device.
+        bump: (ver = {}) => ({ ...ver, [settings.device]: (ver[settings.device] || 0) + 1 }),
+        ready: active,
+        setPluginEnabled(on) {
+            pluginOn = !!on;
+            const item = document.querySelector('.settings-nav-item[data-settings-section="sync"]');
+            if (item) item.hidden = !pluginOn;
+            applyState();
+        },
+        openSettings() {
+            $('settings-button').click();
+            document.querySelector('.settings-nav-item[data-settings-section="sync"]').click();
+        }
+    });
 });

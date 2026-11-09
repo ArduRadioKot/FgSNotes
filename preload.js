@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld(
     getThemesList: () => ipcRenderer.invoke('get-themes-list'),
     getPlugins: () => ipcRenderer.invoke('plugins-list'),
     readPlugin: (file) => ipcRenderer.invoke('plugin-read', file),
+    readBuiltinPlugin: (file) => ipcRenderer.invoke('plugin-read-builtin', file),
     installPlugins: () => ipcRenderer.invoke('plugin-install'),
     removePlugin: (file) => ipcRenderer.invoke('plugin-remove', file),
     openPluginsFolder: () => ipcRenderer.invoke('plugins-open'),
@@ -60,6 +61,17 @@ contextBridge.exposeInMainWorld(
     onAiPull: (listener) => { pullListeners.add(listener); return () => pullListeners.delete(listener); },
     aiAbort: (id) => ipcRenderer.send('ai-abort', id),
     onAiChunk: (listener) => { aiListeners.add(listener); return () => aiListeners.delete(listener); },
+    // Google Calendar
+    google: {
+      status: () => ipcRenderer.invoke('google-status'),
+      connect: (credentials) => ipcRenderer.invoke('google-connect', credentials),
+      disconnect: () => ipcRenderer.invoke('google-disconnect'),
+      calendars: () => ipcRenderer.invoke('google-calendars'),
+      events: (request) => ipcRenderer.invoke('google-events', request),
+      save: (request) => ipcRenderer.invoke('google-save', request),
+      remove: (request) => ipcRenderer.invoke('google-remove', request)
+    },
+    fetchCalendarIcs: (address) => ipcRenderer.invoke('calendar-fetch-ics', address),
     // Sync over the local network
     syncStart: (identity) => ipcRenderer.invoke('sync-start', identity),
     syncStop: () => ipcRenderer.invoke('sync-stop'),

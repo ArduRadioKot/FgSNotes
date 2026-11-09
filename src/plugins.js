@@ -2,6 +2,7 @@
 // "Установить плагин" button copies a file there; on a phone (no such folder) the file is kept in the app's storage.
 // A .css plugin is simply added to the page. A .js plugin is a function body that receives one argument, `fgs` (the API below).
 // Plugins start switched off when they were put into the folder by hand, and on when they were installed with the button.
+// The standard plugins ship with the app (src/builtin-plugins): they start on, can be switched off, and cannot be removed.
 //
 //   // ==FgsPlugin==
 //   // @name        Insert date
@@ -19,8 +20,11 @@
 
     const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } };
     const write = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full or unavailable */ } };
+    const BUILTIN = ['sync.js', 'calendar.js', 'exildraw.js'];
+    const isBuiltin = file => BUILTIN.includes(file);
     const enabledMap = () => read(ENABLED, {});
-    const setEnabled = (file, on) => { const all = enabledMap(); if (on) all[file] = true; else delete all[file]; write(ENABLED, all); };
+    const isOn = (file, all = enabledMap()) => (isBuiltin(file) ? all[file] !== false : !!all[file]);
+    const setEnabled = (file, on) => { const all = enabledMap(); if (on) all[file] = true; else if (isBuiltin(file)) all[file] = false; else delete all[file]; write(ENABLED, all); };
     const safeName = name => String(name).replace(/[\\/:*?"<>|\0]/g, '_').slice(0, 120);
     const changed = () => listeners.forEach(listener => listener());
 
@@ -31,11 +35,20 @@
     }
 
     // --- files ---------------------------------------------------------------------------------------------------------------
+    // A copy of a standard plugin installed earlier from the store is left alone and ignored: the bundled one runs.
     async function files() {
-        if (desktop) { try { return (await window.electron.getPlugins()).map(item => item.file); } catch { return []; } }
-        return Object.keys(read(STORED, {}));
+        let installed = [];
+        if (desktop) { try { installed = (await window.electron.getPlugins()).map(item => item.file); } catch { installed = []; } }
+        else installed = Object.keys(read(STORED, {}));
+        return [...BUILTIN, ...installed.filter(file => !isBuiltin(file))];
     }
     async function source(file) {
+        if (isBuiltin(file)) {
+            if (desktop) return window.electron.readBuiltinPlugin(file);
+            const response = await fetch(`builtin-plugins/${file}`);
+            if (!response.ok) throw new Error(tr('Файл плагина не найден'));
+            return response.text();
+        }
         if (desktop) return window.electron.readPlugin(file);
         const text = read(STORED, {})[file];
         if (text === undefined) throw new Error(tr('Файл плагина не найден'));
@@ -60,6 +73,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = className + ' plugin-tool';
+        button.dataset.plugin = entry.file || '';
         button.title = entry.title;
         button.setAttribute('aria-label', entry.title);
         button.innerHTML = iconMarkup(entry.icon);
@@ -336,7 +350,6 @@
     let armed = null;
     async function draw(host) {
         const names = await files();
-        const on = enabledMap();
         const rows = await Promise.all(names.map(async file => {
             let info = { name: file, version: '', description: '' };
             try { info = meta(await source(file), file); } catch { /* unreadable file: listed by its name */ }
@@ -348,8 +361,8 @@
                     <div class="setting-desc">${escapeHtml(info.description || file)}</div>${error}
                 </div>
                 <div class="setting-control plugin-actions">
-                    <button type="button" class="button-secondary" data-act="remove">${armed === file ? tr('Точно удалить?') : tr('Удалить')}</button>
-                    <label class="setting-toggle"><input type="checkbox" data-act="toggle" ${on[file] ? 'checked' : ''} aria-label="${tr('Включить плагин {name}', { name: escapeHtml(info.name) })}"><span class="setting-toggle-track" aria-hidden="true"></span></label>
+                    ${isBuiltin(file) ? '' : `<button type="button" class="button-secondary" data-act="remove">${armed === file ? tr('Точно удалить?') : tr('Удалить')}</button>`}
+                    <label class="setting-toggle"><input type="checkbox" data-act="toggle" ${isOn(file) ? 'checked' : ''} aria-label="${tr('Включить плагин {name}', { name: escapeHtml(info.name) })}"><span class="setting-toggle-track" aria-hidden="true"></span></label>
                 </div>
             </div>`;
         }));
@@ -393,12 +406,11 @@
     }
 
     async function init() {
-        const on = enabledMap();
-        for (const file of await files()) if (on[file]) await start(file);
+        for (const file of await files()) if (isOn(file)) await start(file);
         const host = document.getElementById('plugin-manager');
         if (host) mount(host);
     }
-    window.FgsPlugins = { emit, install, remove, toggle, files, running: () => [...running.keys()], onChange: fn => { listeners.add(fn); return () => listeners.delete(fn); }, parseMeta: meta };
+    window.FgsPlugins = { emit, install, remove, toggle, files, buttons: () => [...buttons], iconMarkup, running: () => [...running.keys()], onChange: fn => { listeners.add(fn); return () => listeners.delete(fn); }, parseMeta: meta };
     window.addEventListener('fgs-language', () => {
         const host = document.getElementById('plugin-manager');
         if (!host || !host.dataset.bound) return;

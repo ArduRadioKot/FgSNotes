@@ -7,6 +7,7 @@ const agents = require('./agents');
 const { createKeystore } = require('./keystore');
 const updater = require('./updater');
 const { createSyncTransport } = require('./sync-server');
+const { createGoogleCalendar, isGoogleIcsUrl } = require('./google-calendar');
 const i18n = require('./src/i18n');
 
 function useLanguage(code) {
@@ -118,6 +119,26 @@ ipcMain.handle('sync-peers', () => lanSync.peers());
 ipcMain.handle('sync-send', (event, { address, body }) => lanSync.send(address, String(body)));
 app.on('will-quit', () => lanSync.stop());
 
+// Google Calendar (the standard Calendar plugin). Tokens stay here; see google-calendar.js.
+let googleCalendar = null;
+const google = () => googleCalendar || (googleCalendar = createGoogleCalendar({
+  keystore: createKeystore(path.join(app.getPath('userData'), 'google-calendar.json'), safeStorage),
+  openBrowser: url => shell.openExternal(url)
+}));
+ipcMain.handle('google-status', () => google().status());
+ipcMain.handle('google-connect', (event, credentials) => google().connect(credentials));
+ipcMain.handle('google-disconnect', () => google().disconnect());
+ipcMain.handle('google-calendars', () => google().calendars());
+ipcMain.handle('google-events', (event, request) => google().events(request));
+ipcMain.handle('google-save', (event, request) => google().save(request));
+ipcMain.handle('google-remove', (event, request) => google().remove(request));
+ipcMain.handle('calendar-fetch-ics', async (event, address) => {
+  if (!isGoogleIcsUrl(address)) throw new Error('bad address');
+  const response = await fetch(address, { signal: AbortSignal.timeout(30000) });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  return response.text();
+});
+
 const fallbackConfig = {
   'theme': 'dark',
   'font-size': 'medium',
@@ -168,8 +189,12 @@ function pluginsDir() {
   return dir;
 }
 function registerPluginHandlers() {
-  for (const channel of ['plugins-list', 'plugin-read', 'plugin-install', 'plugin-remove', 'plugins-open', 'plugins-path']) ipcMain.removeHandler(channel);
+  for (const channel of ['plugin-read-builtin', 'plugins-list', 'plugin-read', 'plugin-install', 'plugin-remove', 'plugins-open', 'plugins-path']) ipcMain.removeHandler(channel);
   ipcMain.handle('plugins-path', () => pluginsDir());
+  ipcMain.handle('plugin-read-builtin', (event, file) => {
+    if (!pluginName.test(String(file))) throw new Error(i18n.t('Неверное имя плагина'));
+    return fs.readFileSync(path.join(__dirname, 'src', 'builtin-plugins', path.basename(file)), 'utf-8');
+  });
   ipcMain.handle('plugins-list', () => {
     try {
       return fs.readdirSync(pluginsDir()).filter(name => pluginName.test(name) && !name.startsWith('.'))

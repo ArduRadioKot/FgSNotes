@@ -54,6 +54,7 @@
             <div class="m-grabber" aria-hidden="true"></div>
             <button type="button" class="m-row m-row-close" data-sheet="close">${icon('close')}<span>Закрыть</span></button>
             <div class="m-group">${row('view', 'eye', 'Режим чтения')}</div>
+            <div class="m-group m-group-plugins" hidden></div>
             <div class="m-group">${row('new', 'plus', 'Новая заметка')}${row('open', 'folder', 'Открыть файл')}${row('save', 'save', 'Сохранить файл')}</div>
             <div class="m-group m-group-ai">${row('ai', 'sparkles', 'Чат')}${row('theme', 'palette', 'Тема оформления')}${row('settings', 'settings', 'Настройки')}</div>`;
         document.body.append(sheetBackdrop, sheet);
@@ -100,6 +101,17 @@
             viewRow.classList.toggle('is-on', reading);
             viewRow.setAttribute('aria-pressed', String(reading));
             sheet.querySelector('.m-group-ai').querySelector('[data-sheet="ai"]').hidden = root.dataset.aiAvailable !== 'on';
+            // Plugins live in the formatting bar, which shows only while typing; here they are always one tap away.
+            const entries = window.FgsPlugins ? window.FgsPlugins.buttons() : [];
+            const group = sheet.querySelector('.m-group-plugins');
+            group.hidden = !entries.length;
+            group.replaceChildren(...entries.map(entry => {
+                const item = el('button', 'm-row', `${window.FgsPlugins.iconMarkup(entry.icon)}<span></span>`);
+                item.type = 'button';
+                item.querySelector('span').textContent = entry.title;
+                item.addEventListener('click', () => { setSheet(false); setTimeout(entry.run, 200); });
+                return item;
+            }));
         };
         moreButton.addEventListener('click', () => setSheet(!root.classList.contains('m-sheet-open')));
         sheetBackdrop.addEventListener('click', () => setSheet(false));

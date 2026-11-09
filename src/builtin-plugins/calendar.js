@@ -1,7 +1,7 @@
 // ==FgsPlugin==
 // @name        Календарь
-// @version     2.0
-// @description Календарь в стиле Apple Calendar на отдельной вкладке: день, неделя и месяц, свои события, даты и задачи из заметки, импорт и экспорт .ics.
+// @version     3.0
+// @description Календарь в стиле Apple Calendar на отдельной вкладке: день, неделя и месяц, свои события, даты и задачи из заметки, Google Календарь, импорт и экспорт .ics.
 // @author      FgSNotes
 // ==/FgsPlugin==
 // В заметке ищутся даты ГГГГ-ММ-ДД: задача «- [ ] 2026-10-20 Отчёт» появится в календаре красным цветом.
@@ -28,59 +28,109 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const sameDay = (a, b) => iso(a) === iso(b);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+// A wall-clock time in a named zone, as a moment.
+function zoned(y, mo, d, h, mi, zone) {
+    const guess = Date.UTC(y, mo - 1, d, h, mi);
+    try {
+        const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(guess));
+        const part = name => +parts.find(p => p.type === name).value;
+        return new Date(guess - (Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute')) - guess));
+    } catch { return new Date(y, mo - 1, d, h, mi); }
+}
+
 // --- .ics ------------------------------------------------------------------------------------------------------------------------
 function parseIcs(text) {
     const lines = text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
     const events = [];
+    const moved = [];          // single occurrences of a series that were cancelled
     let cur = null;
     const when = (value, params) => {
         const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(value);
         if (!m) return null;
         if (!m[4]) return { date: `${m[1]}-${m[2]}-${m[3]}`, time: '' };
-        const d = m[7] ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+        const zone = /;TZID=([^;:]+)/.exec(params || '');
+        const d = m[7] ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : zone ? zoned(+m[1], +m[2], +m[3], +m[4], +m[5], zone[1].replace(/"/g, '')) : new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
         return { date: iso(d), time: `${pad(d.getHours())}:${pad(d.getMinutes())}` };
     };
     for (const line of lines) {
-        if (line === 'BEGIN:VEVENT') cur = { rrule: '' };
-        else if (line === 'END:VEVENT') { if (cur && cur.date) events.push(cur); cur = null; }
+        if (line === 'BEGIN:VEVENT') cur = { rrule: '', exdates: [] };
+        else if (line === 'END:VEVENT') { if (cur && cur.date && cur.status !== 'CANCELLED') events.push(cur); else if (cur && cur.recurrence) moved.push(cur); cur = null; }
         else if (cur) {
             const m = /^([A-Z-]+)((?:;[^:]*)?):(.*)$/.exec(line);
             if (!m) continue;
             const [, name, params, value] = m;
-            if (name === 'SUMMARY') cur.title = value.replace(/\\,/g, ',').replace(/\;/g, ';').replace(/\\n/gi, ' ');
+            if (name === 'SUMMARY') cur.title = value.replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\n/gi, ' ');
             else if (name === 'DESCRIPTION') cur.notes = value.replace(/\\n/gi, '\n').replace(/\\,/g, ',');
             else if (name === 'RRULE') cur.rrule = value;
+            else if (name === 'UID') cur.uid = value;
+            else if (name === 'STATUS') cur.status = value;
+            else if (name === 'EXDATE') { for (const part of value.split(',')) { const w = when(part, params); if (w) cur.exdates.push(w.date); } }
+            else if (name === 'RECURRENCE-ID') { const w = when(value, params); if (w) cur.recurrence = w.date; }
             else if (name === 'DTSTART') { const w = when(value, params); if (w) { cur.date = w.date; cur.start = w.time; cur.allDay = !w.time; } }
             else if (name === 'DTEND') { const w = when(value, params); if (w) { cur.endDate = w.date; cur.end = w.time; } }
         }
     }
+    // An occurrence changed or cancelled on its own replaces that date of the series.
+    for (const single of [...events, ...moved]) {
+        if (!single.recurrence) continue;
+        const series = events.find(e => e.uid === single.uid && e.rrule);
+        if (series) series.exdates.push(single.recurrence);
+    }
     return events.map(e => {
-        const out = { id: uid(), title: e.title || 'Без названия', date: e.date, allDay: !!e.allDay, start: e.start || '', end: e.end || '', notes: e.notes || '', calendar: 'import', rrule: e.rrule };
+        const out = { id: uid(), title: e.title || 'Без названия', date: e.date, allDay: !!e.allDay, start: e.start || '', end: e.end || '', notes: e.notes || '', calendar: 'import', rrule: e.rrule, exdates: e.exdates };
         // all-day DTEND is exclusive in iCalendar
         if (e.endDate && e.allDay) { const last = iso(addDays(fromIso(e.endDate), -1)); if (last > e.date) out.endDate = last; }
         else if (e.endDate && e.endDate > e.date) out.endDate = e.endDate;
         return out;
     });
 }
-// Simple repeating rules (daily, weekly, monthly, yearly with COUNT or UNTIL) become separate events for up to three years.
+// Repeating rules become separate events, from a year ago to three years ahead: a series started long ago still shows up today.
+const JS_DAY = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+// The occurrence dates of one rule, passed to emit(date) in order until it returns false.
+function occurrences(e, rule, emit) {
+    const start = fromIso(e.date), every = Math.max(1, parseInt(rule.INTERVAL, 10) || 1);
+    const days = rule.BYDAY ? rule.BYDAY.split(',').map(part => /^(-?\d)?([A-Z]{2})$/.exec(part)).filter(Boolean) : [];
+    for (let n = 0; n < 20000; n++) {
+        let batch;
+        if (rule.FREQ === 'DAILY') batch = [addDays(start, n * every)];
+        else if (rule.FREQ === 'WEEKLY') {
+            const week = addDays(weekStart(start), n * every * 7);
+            batch = days.length ? days.map(m => addDays(week, (JS_DAY[m[2]] + 6) % 7)).sort((a, b) => a - b) : [addDays(start, n * every * 7)];
+        } else if (rule.FREQ === 'MONTHLY' && days.length && days[0][1]) {
+            // "the second Tuesday", "the last Friday"
+            const y = start.getFullYear(), m = start.getMonth() + n * every, wanted = JS_DAY[days[0][2]], order = Number(days[0][1]);
+            let d;
+            if (order > 0) { const first = new Date(y, m, 1); d = new Date(y, m, 1 + (wanted - first.getDay() + 7) % 7 + (order - 1) * 7); if (d.getMonth() !== first.getMonth()) d = null; }
+            else { const last = new Date(y, m + 1, 0); d = new Date(y, m + 1, (wanted - last.getDay() - 7) % 7 + 1 + (order + 1) * 7 - 1); }
+            batch = d ? [d] : [];
+        } else {
+            // A monthly or yearly date that does not exist that time (the 31st, 29 February) is skipped.
+            const d = rule.FREQ === 'MONTHLY' ? new Date(start.getFullYear(), start.getMonth() + n * every, start.getDate()) : new Date(start.getFullYear() + n * every, start.getMonth(), start.getDate());
+            batch = d.getDate() === start.getDate() ? [d] : [];
+        }
+        for (const d of batch) if (d >= start && emit(d) === false) return;
+    }
+}
 function expand(events) {
     const out = [];
-    const limit = addDays(new Date(), 365 * 3);
+    const from = addDays(new Date(), -400), limit = addDays(new Date(), 365 * 3);
     for (const e of events) {
-        out.push(e);
         const rule = Object.fromEntries((e.rrule || '').split(';').map(p => p.split('=')));
-        if (!rule.FREQ) continue;
-        const step = { DAILY: d => addDays(d, 1), WEEKLY: d => addDays(d, 7), MONTHLY: d => new Date(d.getFullYear(), d.getMonth() + 1, d.getDate()), YEARLY: d => new Date(d.getFullYear() + 1, d.getMonth(), d.getDate()) }[rule.FREQ];
-        if (!step) continue;
-        const every = Math.max(1, parseInt(rule.INTERVAL, 10) || 1), count = parseInt(rule.COUNT, 10) || 400;
+        if (!['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(rule.FREQ)) { out.push(e); continue; }
+        const count = parseInt(rule.COUNT, 10) || Infinity;
         const until = rule.UNTIL ? fromIso(`${rule.UNTIL.slice(0, 4)}-${rule.UNTIL.slice(4, 6)}-${rule.UNTIL.slice(6, 8)}`) : limit;
-        let d = fromIso(e.date);
-        for (let n = 1; n < count; n++) {
-            for (let k = 0; k < every; k++) d = step(d);
-            if (d > until || d > limit) break;
-            const shift = Math.round((d - fromIso(e.date)) / 864e5);
-            out.push({ ...e, id: e.id + '#' + n, date: iso(d), endDate: e.endDate ? iso(addDays(fromIso(e.endDate), shift)) : '' });
-        }
+        const skip = new Set(e.exdates || []), first = fromIso(e.date);
+        let n = 0;
+        occurrences(e, rule, d => {
+            if (n >= count || d > until || d > limit) return false;
+            const key = iso(d);
+            if (d >= from && !skip.has(key)) {
+                const shift = Math.round((d - first) / 864e5);
+                out.push(n ? { ...e, id: e.id + '#' + n, date: key, endDate: e.endDate ? iso(addDays(fromIso(e.endDate), shift)) : '' } : e);
+            }
+            n++;
+            return true;
+        });
     }
     return out;
 }
@@ -110,6 +160,22 @@ function noteEvents() {
     });
     return out;
 }
+
+// --- Google Calendar -------------------------------------------------------------------------------------------------------------
+// Two ways in. A signed-in account (desktop) reads and writes events. The secret iCal address works on every device, read-only.
+const google = window.electron && window.electron.google;
+const isGoogle = id => String(id).startsWith('g:');
+const ICS_CALENDAR = 'ics-google';
+async function fetchIcs(address) {
+    if (window.electron) return window.electron.fetchCalendarIcs(address);
+    const http = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+    if (!http) throw new Error('В браузере подключение недоступно');
+    const response = await http.request({ url: address, method: 'GET', responseType: 'text', connectTimeout: 15000, readTimeout: 30000 });
+    if (response.status !== 200) throw new Error('HTTP ' + response.status);
+    return response.data;
+}
+const validIcsAddress = address => /^https:\/\/calendar\.google\.com\/calendar\/ical\/.+\.ics$/.test(address);
+const message = error => String((error && error.message) || error).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
 fgs.addStyle(`
 .cal { --cal-line: color-mix(in srgb, var(--text-color) 12%, transparent); --cal-red: #ff3b30; display: grid; grid-template-columns: 236px minmax(0, 1fr); height: 100%; min-height: 0; color: var(--text-color); font-size: 13px; user-select: none; position: relative; }
@@ -208,6 +274,9 @@ fgs.addStyle(`
 .cal-sheet button { height: 30px; padding: 0 14px; border: 0; border-radius: 7px; background: var(--active-bg); }
 .cal-sheet button.primary { background: var(--accent-color); color: var(--accent-text); }
 .cal-sheet button.danger { color: var(--cal-red); }
+.cal-sheet h5 { margin: 6px 0 0; font-size: 13px; font-weight: 600; }
+.cal-sheet p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+.cal-sheet input[type="password"] { width: 100%; padding: 7px 9px; border: 1px solid var(--cal-line); border-radius: 7px; background: var(--code-bg); color: inherit; font: inherit; }
 .cal-menu { position: absolute; z-index: 9; right: 18px; top: 52px; min-width: 200px; padding: 5px; border-radius: 10px; background: var(--card-bg); box-shadow: 0 12px 32px var(--shadow-color), inset 0 0 0 1px var(--cal-line); display: grid; }
 .cal-menu button { height: 30px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; }
 .cal-menu button:hover { background: var(--hover-color); }
@@ -228,11 +297,39 @@ function build(root, tab) {
     let events = [];
     let timer = 0;
 
-    const calendarOf = id => CALENDARS.find(c => c.id === id) || CALENDARS[1];
+    let remote = [], remoteCalendars = [], lastFetch = 0, fetching = null;
+    const allCalendars = () => [...CALENDARS, ...remoteCalendars];
+    const calendarOf = id => allCalendars().find(c => c.id === id) || CALENDARS[1];
     const save = () => { fgs.storage.set('events', stored); };
     function collect() {
-        events = [...noteEvents(), ...expand(stored)].filter(e => !hidden.has(e.calendar));
+        events = [...noteEvents(), ...expand(stored), ...expand(remote)].filter(e => !hidden.has(e.calendar));
     }
+    // Remote events are kept in memory: a year of them could crowd the notes out of the app's storage.
+    function refreshRemote(force) {
+        if (fetching) return fetching;
+        if (!force && Date.now() - lastFetch < 5 * 60000) return Promise.resolve();
+        fetching = (async () => {
+            const nextEvents = [], nextCalendars = [];
+            const address = fgs.storage.get('icsUrl', '');
+            if (address) {
+                nextCalendars.push({ id: ICS_CALENDAR, name: 'Google (по ссылке)', color: '#4285f4', readonly: true });
+                nextEvents.push(...parseIcs(await fetchIcs(address)).map(e => ({ ...e, calendar: ICS_CALENDAR, remote: true })));
+            }
+            if (google && (await google.status()).connected) {
+                const timeMin = addDays(new Date(), -365).toISOString(), timeMax = addDays(new Date(), 365 * 2).toISOString();
+                const list = await google.calendars();
+                for (const c of list) nextCalendars.push({ id: 'g:' + c.id, gid: c.id, name: c.name, color: c.color, readonly: !c.writable });
+                const fetched = await Promise.all(list.map(c => google.events({ calendarId: c.id, timeMin, timeMax })));
+                for (const part of fetched) nextEvents.push(...part);
+            }
+            remote = nextEvents;
+            remoteCalendars = nextCalendars;
+            lastFetch = Date.now();
+        })().catch(error => { fgs.notify('Google Календарь: ' + message(error)); }).finally(() => { fetching = null; redraw(); });
+        return fetching;
+    }
+    // An open event sheet must not be wiped by a background redraw.
+    const redraw = () => { if (root.isConnected && root.offsetParent && !root.querySelector('.cal-veil, .cal-menu')) draw(); };
     const eventsOn = key => events.filter(e => e.date <= key && key <= (e.endDate || e.date))
         .sort((a, b) => (b.allDay - a.allDay) || (a.start || '').localeCompare(b.start || '') || a.title.localeCompare(b.title));
 
@@ -307,37 +404,67 @@ function build(root, tab) {
     // --- event sheet ---
     function sheet(initial) {
         const e = { title: '', date: selected, endDate: '', allDay: false, start: '09:00', end: '10:00', calendar: 'my', notes: '', ...initial };
-        const isNew = !stored.some(s => s.id === e.id);
+        const isNew = !e.id;
+        const readonly = calendarOf(e.calendar).readonly && !isNew;
         const veil = document.createElement('div');
         veil.className = 'cal-veil';
         veil.innerHTML = `<div class="cal-sheet" role="dialog" aria-label="Событие">
             <input type="text" class="title" placeholder="Новое событие" value="${esc(e.title)}">
-            <div class="row"><label>Календарь</label><select id="cs-cal">${CALENDARS.filter(c => !c.readonly).map(c => `<option value="${c.id}" ${c.id === e.calendar ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+            <div class="row"><label>Календарь</label><select id="cs-cal">${allCalendars().filter(c => !c.readonly || c.id === e.calendar).map(c => `<option value="${esc(c.id)}" ${c.id === e.calendar ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
             <div class="row"><label>Весь день</label><input type="checkbox" id="cs-all" ${e.allDay ? 'checked' : ''} style="flex:none"></div>
             <div class="row"><label>Начало</label><input type="date" id="cs-date" value="${e.date}"><input type="time" id="cs-start" value="${e.start || '09:00'}"></div>
             <div class="row"><label>Конец</label><input type="date" id="cs-end-date" value="${e.endDate || e.date}"><input type="time" id="cs-end" value="${e.end || '10:00'}"></div>
             <textarea id="cs-notes" placeholder="Заметки">${esc(e.notes || '')}</textarea>
-            <div class="acts">${isNew ? '' : '<button type="button" class="danger" data-s="del">Удалить</button>'}<button type="button" data-s="insert" title="Вставить дату в заметку">Дата в заметку</button><span class="spacer"></span><button type="button" data-s="cancel">Отмена</button><button type="button" class="primary" data-s="save">Сохранить</button></div></div>`;
+            <div class="acts">${isNew || readonly ? '' : '<button type="button" class="danger" data-s="del">Удалить</button>'}<button type="button" data-s="insert" title="Вставить дату в заметку">Дата в заметку</button><span class="spacer"></span><button type="button" data-s="cancel">${readonly ? 'Закрыть' : 'Отмена'}</button>${readonly ? '' : '<button type="button" class="primary" data-s="save">Сохранить</button>'}</div></div>`;
         root.querySelector('.cal').append(veil);
         const q = s => veil.querySelector(s);
+        if (readonly) veil.querySelectorAll('input, select, textarea').forEach(field => { field.disabled = true; });
         const sync = () => { q('#cs-start').style.visibility = q('#cs-end').style.visibility = q('#cs-all').checked ? 'hidden' : ''; };
         q('#cs-all').addEventListener('change', sync); sync();
         setTimeout(() => q('.title').focus(), 0);
         const close = () => veil.remove();
         veil.addEventListener('mousedown', ev => { if (ev.target === veil) close(); });
-        veil.addEventListener('keydown', ev => { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } else if (ev.key === 'Enter' && ev.target.matches('input')) q('[data-s="save"]').click(); });
+        veil.addEventListener('keydown', ev => { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } else if (ev.key === 'Enter' && ev.target.matches('input') && q('[data-s="save"]')) q('[data-s="save"]').click(); });
+        // Saving or deleting on Google takes a moment and can fail; the sheet stays open until it has worked.
+        const remotely = async work => {
+            veil.querySelectorAll('button').forEach(button => { button.disabled = true; });
+            try { await work(); await refreshRemote(true); close(); draw(); }
+            catch (error) { fgs.notify('Google Календарь: ' + message(error)); veil.querySelectorAll('button').forEach(button => { button.disabled = false; }); }
+        };
+        const gidOf = id => calendarOf(id).gid;
         veil.addEventListener('click', ev => {
             const b = ev.target.closest('[data-s]');
             if (!b) return;
             if (b.dataset.s === 'cancel') close();
+            else if (b.dataset.s === 'del' && isGoogle(e.calendar)) remotely(() => google.remove({ calendarId: gidOf(e.calendar), eventId: e.gid }));
             else if (b.dataset.s === 'del') { stored = stored.filter(s => s.id !== e.id); save(); close(); draw(); }
             else if (b.dataset.s === 'insert') { tab.backToNote(); fgs.editor.insert(q('#cs-date').value); close(); }
             else {
                 const next = { ...e, title: q('.title').value.trim() || 'Новое событие', calendar: q('#cs-cal').value, allDay: q('#cs-all').checked, date: q('#cs-date').value || e.date, start: q('#cs-start').value, end: q('#cs-end').value, notes: q('#cs-notes').value, endDate: q('#cs-end-date').value };
                 if (next.endDate <= next.date) next.endDate = '';
                 if (!next.allDay && next.endDate && next.endDate === next.date) next.endDate = '';
-                stored = isNew ? [...stored, { ...next, id: next.id || uid() }] : stored.map(s => (s.id === e.id ? next : s));
-                save(); close(); selected = next.date; cursor = fromIso(next.date); draw();
+                selected = next.date; cursor = fromIso(next.date);
+                const wasGoogle = !isNew && isGoogle(e.calendar);
+                if (isGoogle(next.calendar)) {
+                    remotely(async () => {
+                        const same = wasGoogle && e.calendar === next.calendar;
+                        await google.save({ calendarId: gidOf(next.calendar), eventId: same ? e.gid : '', event: next });
+                        if (wasGoogle && !same) await google.remove({ calendarId: gidOf(e.calendar), eventId: e.gid });
+                        if (!isNew && !wasGoogle) { stored = stored.filter(s => s.id !== e.id); save(); }
+                    });
+                    return;
+                }
+                if (wasGoogle) {           // moved from Google to a local calendar
+                    remotely(async () => {
+                        await google.remove({ calendarId: gidOf(e.calendar), eventId: e.gid });
+                        const { gid, remote: _, ...local } = next;
+                        stored = [...stored, { ...local, id: uid() }];
+                        save();
+                    });
+                    return;
+                }
+                stored = isNew ? [...stored, { ...next, id: uid() }] : stored.map(s => (s.id === e.id ? next : s));
+                save(); close(); draw();
             }
         });
     }
@@ -349,8 +476,48 @@ function build(root, tab) {
             setTimeout(() => { const area = document.getElementById('markdown-editor'); const offset = area.value.split('\n').slice(0, found.line).join('\n').length + (found.line ? 1 : 0); area.focus(); area.setSelectionRange(offset, offset); }, 60);
             return;
         }
+        if (found.remote) return sheet(found);
         const base = id.includes('#') ? id.split('#')[0] : id;
         sheet(stored.find(s => s.id === base) || found);
+    }
+
+    // --- connecting Google ---
+    async function googleSheet() {
+        const state = google ? await google.status() : null;
+        const address = fgs.storage.get('icsUrl', '');
+        const veil = document.createElement('div');
+        veil.className = 'cal-veil';
+        const account = !google ? '' : state.connected
+            ? `<h5>Аккаунт Google</h5><p>Вход выполнен. События можно смотреть, создавать, менять и удалять.</p><div class="acts"><button type="button" data-g="disconnect">Выйти</button></div>`
+            : `<h5>Аккаунт Google</h5><p>Чтение и запись событий. Нужен OAuth-клиент типа «Приложение для компьютера» из Google Cloud Console с включённым Google Calendar API.</p>
+               <input type="text" id="cg-id" placeholder="Client ID" autocomplete="off" spellcheck="false" value="${esc(state.clientId)}"><input type="password" id="cg-secret" placeholder="Client secret" autocomplete="off">
+               <div class="acts"><button type="button" class="primary" data-g="connect">Войти через Google</button></div>`;
+        veil.innerHTML = `<div class="cal-sheet" role="dialog" aria-label="Google Календарь"><div class="title">Google Календарь</div>${account}
+            <h5>Секретная ссылка</h5><p>Работает и на телефоне, только чтение. Google Календарь в браузере → настройки календаря → «Интеграция календаря» → «Секретный адрес в формате iCal».</p>
+            <input type="text" id="cg-ics" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" autocomplete="off" spellcheck="false" value="${esc(address)}">
+            <div class="acts"><span class="spacer"></span><button type="button" data-g="close">Закрыть</button><button type="button" class="primary" data-g="ics">Сохранить ссылку</button></div></div>`;
+        root.querySelector('.cal').append(veil);
+        const q = s => veil.querySelector(s);
+        const done = async () => { veil.remove(); await refreshRemote(true); draw(); };
+        veil.addEventListener('mousedown', ev => { if (ev.target === veil) veil.remove(); });
+        veil.addEventListener('keydown', ev => { if (ev.key === 'Escape') { ev.stopPropagation(); veil.remove(); } });
+        veil.addEventListener('click', async ev => {
+            const b = ev.target.closest('[data-g]');
+            if (!b) return;
+            const act = b.dataset.g;
+            if (act === 'close') return veil.remove();
+            if (act === 'ics') {
+                const next = q('#cg-ics').value.trim().replace(/^webcal:/, 'https:');
+                if (next && !validIcsAddress(next)) { fgs.notify('Нужна секретная ссылка Google в формате iCal, она заканчивается на .ics'); return; }
+                fgs.storage.set('icsUrl', next);
+                return done();
+            }
+            if (act === 'disconnect') { await google.disconnect(); return done(); }
+            b.disabled = true;
+            b.textContent = 'Ждём вход в браузере…';
+            try { await google.connect({ clientId: q('#cg-id').value, clientSecret: q('#cg-secret').value }); await done(); }
+            catch (error) { fgs.notify('Вход в Google: ' + message(error)); b.disabled = false; b.textContent = 'Войти через Google'; }
+        });
     }
 
     // --- drawing ---
@@ -360,7 +527,7 @@ function build(root, tab) {
         root.innerHTML = `<div class="cal">
             <aside class="cal-side">
                 <div>${miniMonth()}</div>
-                <div><h4>Календари</h4><div class="cal-list">${CALENDARS.map(c => `<label class="cal-check ${hidden.has(c.id) ? 'off' : ''}" style="--c:${c.color}" data-cal="${c.id}"><i></i><span>${c.name}</span></label>`).join('')}</div></div>
+                <div><h4>Календари</h4><div class="cal-list">${allCalendars().map(c => `<label class="cal-check ${hidden.has(c.id) ? 'off' : ''}" style="--c:${esc(c.color)}" data-cal="${esc(c.id)}"><i></i><span>${esc(c.name)}</span></label>`).join('')}</div></div>
                 <div><h4>Ближайшие</h4><div class="cal-up">${upcoming()}</div></div>
             </aside>
             <section class="cal-main">
@@ -368,7 +535,7 @@ function build(root, tab) {
                     <div class="cal-seg" role="group" aria-label="Вид">${[['day', 'День'], ['week', 'Неделя'], ['month', 'Месяц']].map(([id, n]) => `<button data-calview="${id}" class="${view === id ? 'on' : ''}">${n}</button>`).join('')}</div>
                     <div class="cal-nav"><button data-a="prev" aria-label="Назад">‹</button><button class="today-btn" data-a="today">Сегодня</button><button data-a="next" aria-label="Вперёд">›</button></div>
                     <button class="cal-plus" data-a="new" aria-label="Новое событие" title="Новое событие">+</button>
-                    <button class="cal-plus" data-a="menu" aria-label="Ещё" title="Импорт и экспорт">…</button>
+                    <button class="cal-plus" data-a="menu" aria-label="Ещё" title="Google Календарь, импорт и экспорт">…</button>
                 </div>
                 <div class="cal-view">${view === 'month' ? monthView() : view === 'week' ? timeGrid(Array.from({ length: 7 }, (_, i) => addDays(weekStart(cursor), i))) : timeGrid([cursor])}</div>
             </section></div>`;
@@ -400,7 +567,7 @@ function build(root, tab) {
             else if (a === 'menu') {
                 const menu = document.createElement('div');
                 menu.className = 'cal-menu';
-                menu.innerHTML = '<button data-m="import">Импортировать .ics…</button><button data-m="export">Экспортировать мои события (.ics)</button><button data-m="insert">Вставить выбранную дату в заметку</button>';
+                menu.innerHTML = '<button data-m="google">Google Календарь…</button><button data-m="import">Импортировать .ics…</button><button data-m="export">Экспортировать мои события (.ics)</button><button data-m="insert">Вставить выбранную дату в заметку</button>';
                 root.querySelector('.cal').append(menu);
                 setTimeout(() => document.addEventListener('mousedown', function off(ev) { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', off); } }), 0);
             }
@@ -408,7 +575,8 @@ function build(root, tab) {
         }
         if ((el = t.closest('[data-m]'))) {
             el.closest('.cal-menu').remove();
-            if (el.dataset.m === 'import') {
+            if (el.dataset.m === 'google') googleSheet();
+            else if (el.dataset.m === 'import') {
                 const file = await fgs.pickFile({ accept: '.ics,text/calendar' });
                 if (!file) return;
                 const imported = parseIcs(file.data);
@@ -432,11 +600,12 @@ function build(root, tab) {
         }
     });
     // keep the red "now" line and the note's dates current
-    timer = setInterval(() => { if (root.isConnected && root.offsetParent) draw(); }, 60000);
+    timer = setInterval(redraw, 60000);
     tab.element.nbRefresh = draw;
-    tab.element.addEventListener('plugin-view-show', draw);     // the note may have changed while another tab was in front
+    tab.element.addEventListener('plugin-view-show', () => { draw(); refreshRemote(); });     // the note may have changed while another tab was in front
     fgs.onUnload(() => clearInterval(timer));
     draw();
+    refreshRemote();
 }
 
 fgs.addButton({ title: 'Календарь', icon: 'calendar', run: open });

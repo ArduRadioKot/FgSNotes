@@ -166,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let removedNotes = [];
     const newUid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
     const noteChanged = () => window.dispatchEvent(new CustomEvent('fgs-notes-changed'));
+    const nextVersion = ver => (window.FgsSync ? window.FgsSync.bump(ver) : ver || {});
 
     function updateCursor() {
         const lines = editor.value.slice(0, editor.selectionStart).split('\n');
@@ -211,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function saveCurrentDocument() {
         const doc = documents[activeDocumentIndex];
-        if (doc && !isView(doc) && doc.content !== editor.value) { doc.content = editor.value; doc.updatedAt = Date.now(); }
+        if (doc && !isView(doc) && doc.content !== editor.value) { doc.content = editor.value; doc.updatedAt = Date.now(); doc.ver = nextVersion(doc.ver); }
     }
     function loadDocument(index) {
         const shown = documents[index];
@@ -237,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addNewTab() {
         saveCurrentDocument();
         const id = nextDocumentId++;
-        activeDocumentIndex = insertNote({ id, uid: newUid(), updatedAt: Date.now(), title: t('Документ {n}', { n: id }), content: '' });
+        activeDocumentIndex = insertNote({ id, uid: newUid(), updatedAt: Date.now(), ver: nextVersion(), title: t('Документ {n}', { n: id }), content: '' });
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
@@ -266,8 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isView(closing)) { closing.element.remove(); if (closing.onClose) try { closing.onClose(); } catch (error) { console.error(error); } }
         else {
             if (window.FgsNotebook) window.FgsNotebook.forget(closing.id);
-            const known = window.FgsSync ? window.FgsSync.stamp([closing])[0].hist : closing.hist;
-            removedNotes = removedNotes.filter(note => note.uid !== closing.uid).concat({ uid: closing.uid, deleted: true, updatedAt: Date.now(), hist: known || [] });
+            removedNotes = removedNotes.filter(note => note.uid !== closing.uid).concat({ uid: closing.uid, deleted: true, updatedAt: Date.now(), ver: nextVersion(closing.ver) });
         }
         documents.splice(index, 1);
         if (index < activeDocumentIndex) activeDocumentIndex--;
@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // A file from the picker or dropped on the window becomes a new tab.
     function openText(name, content) {
         saveCurrentDocument();
-        activeDocumentIndex = insertNote({ id: nextDocumentId++, uid: newUid(), updatedAt: Date.now(), title: name, content: String(content).replace(/\r\n?/g, '\n') });
+        activeDocumentIndex = insertNote({ id: nextDocumentId++, uid: newUid(), updatedAt: Date.now(), ver: nextVersion(), title: name, content: String(content).replace(/\r\n?/g, '\n') });
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // For sync.js: every note and tombstone, and a merged list to adopt. Views (plugin tabs) are never synced.
         syncNotes: () => {
             saveCurrentDocument();
-            return [...notesOnly().map(({ uid, title, content, updatedAt, hist }) => ({ uid, title, content, updatedAt: updatedAt || 0, hist: hist || [] })), ...removedNotes];
+            return [...notesOnly().map(({ uid, title, content, updatedAt, ver }) => ({ uid, title, content, updatedAt: updatedAt || 0, ver: ver || {} })), ...removedNotes];
         },
         applySyncNotes: notes => applySyncNotes(notes),
         canFormat: () => workspace.dataset.view !== 'preview',
@@ -467,12 +467,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (doc.title !== next.title) tabsChanged = true;
             if (doc.content !== next.content && doc === active) activeChanged = true;
-            Object.assign(doc, { title: next.title, content: next.content, updatedAt: next.updatedAt, hist: next.hist });
+            Object.assign(doc, { title: next.title, content: next.content, updatedAt: next.updatedAt, ver: next.ver });
         }
         const known = new Set(documents.map(doc => doc.uid));
         for (const note of notes) {
             if (note.deleted || known.has(note.uid)) continue;
-            insertNote({ id: nextDocumentId++, uid: note.uid, title: note.title, content: note.content, updatedAt: note.updatedAt, hist: note.hist });
+            insertNote({ id: nextDocumentId++, uid: note.uid, title: note.title, content: note.content, updatedAt: note.updatedAt, ver: note.ver });
             tabsChanged = true;
         }
         const still = documents.indexOf(active);
@@ -598,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
-    documents.forEach(doc => { if (!doc.uid) doc.uid = newUid(); if (!doc.updatedAt) doc.updatedAt = 0; });
+    documents.forEach(doc => { if (!doc.uid) doc.uid = newUid(); if (!doc.updatedAt) doc.updatedAt = 0; delete doc.hist; });
     if (!documents.length) {
         const intro = [
             '# Хорошие идеи начинаются с заметки',
