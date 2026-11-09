@@ -423,6 +423,9 @@ body.resizing { cursor: col-resize; user-select: none; }
 [data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window.lg {
     background: color-mix(in srgb, var(--window-bg) calc(var(--sg-opacity, .78) * 85%), transparent);
 }
+/* No highlights on the dialog itself: no lit rim, no reflections, no inner glow. Only the drop shadow stays. */
+.settings-window.lg { box-shadow: 0 24px 64px var(--shadow-color); }
+.settings-window.lg::before, .settings-window.lg::after { display: none; }
 [data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-nav,
 [data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-main {
     background: color-mix(in srgb, var(--card-bg) calc(var(--sg-opacity, .78) * 100%), transparent);
@@ -1237,3 +1240,4 @@ html[data-native] .native-only { display: block; }
 /* Sync settings */
 .sync-address { font: 500 13px var(--mono-font); color: var(--text-color); user-select: all; text-align: right; }
 #sync-status { color: var(--text-muted); }
+.mcp-snippet { margin: 12px 0 0; padding: 10px 12px; max-height: 180px; overflow: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--code-bg); color: var(--text-color); font: 12px/1.5 var(--mono-font); white-space: pre-wrap; word-break: break-all; user-select: text; }

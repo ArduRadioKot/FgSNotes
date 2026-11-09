@@ -8,6 +8,7 @@ const { createKeystore } = require('./keystore');
 const updater = require('./updater');
 const { createSyncTransport } = require('./sync-server');
 const { createGoogleCalendar, isGoogleIcsUrl } = require('./google-calendar');
+const { createMcpServer, connectionSnippets, newToken: newMcpToken } = require('./mcp-server');
 const i18n = require('./src/i18n');
 
 function useLanguage(code) {
@@ -118,6 +119,61 @@ ipcMain.handle('sync-info', () => lanSync.info());
 ipcMain.handle('sync-peers', () => lanSync.peers());
 ipcMain.handle('sync-send', (event, { address, body }) => lanSync.send(address, String(body)));
 app.on('will-quit', () => lanSync.stop());
+
+// Access for outside assistants (MCP). The notes live in the page, so a tool call is relayed there, like a sync request.
+const mcpReplies = new Map();
+let mcpReplyId = 0;
+const mcp = createMcpServer({
+  version: app.getVersion(),
+  log: (...args) => console.warn(...args),
+  runTool: (name, args) => new Promise((resolve, reject) => {
+    const [win] = BrowserWindow.getAllWindows();
+    if (!win || win.webContents.isDestroyed()) return reject(new Error('The FgSNotes window is closed'));
+    const id = ++mcpReplyId;
+    const timer = setTimeout(() => { mcpReplies.delete(id); reject(new Error('FgSNotes did not answer in time')); }, 20000);
+    mcpReplies.set(id, answer => {
+      clearTimeout(timer);
+      mcpReplies.delete(id);
+      if (answer && answer.ok) resolve(answer.result); else reject(new Error((answer && answer.error) || 'The tool failed'));
+    });
+    win.webContents.send('mcp-call', { id, name, args });
+  })
+});
+ipcMain.on('mcp-reply', (event, { id, ...answer }) => { const done = mcpReplies.get(id); if (done) done(answer); });
+// The port and key for the stdio relay; the relay reads this file on every request, so a new key or port just works.
+const mcpFile = () => path.join(app.getPath('userData'), 'mcp.json');
+function readMcpToken() {
+  try { const { token } = JSON.parse(fs.readFileSync(mcpFile(), 'utf8')); if (token) return token; } catch { /* first start */ }
+  return newMcpToken();
+}
+function writeMcpFile(token, port) {
+  fs.mkdirSync(path.dirname(mcpFile()), { recursive: true });
+  fs.writeFileSync(mcpFile(), JSON.stringify({ token, port }), { mode: 0o600 });
+}
+function mcpState(token) {
+  const state = mcp.info();
+  if (!state.running) return state;
+  return { ...state, snippets: connectionSnippets({ port: state.port, token, execPath: process.execPath, script: path.join(app.getAppPath(), 'mcp-stdio.js'), connectionFile: mcpFile() }) };
+}
+ipcMain.handle('mcp-start', async (event, { write }) => {
+  const token = readMcpToken();
+  const { port } = await mcp.start({ token, write });
+  writeMcpFile(token, port);
+  return mcpState(token);
+});
+ipcMain.handle('mcp-stop', () => {
+  const token = readMcpToken();
+  mcp.stop();
+  writeMcpFile(token, 0);
+  return mcpState(token);
+});
+ipcMain.handle('mcp-new-token', () => {
+  const token = newMcpToken();
+  mcp.setToken(token);
+  writeMcpFile(token, mcp.info().port);
+  return mcpState(token);
+});
+app.on('will-quit', () => { if (mcp.info().running) writeMcpFile(readMcpToken(), 0); mcp.stop(); });
 
 // Google Calendar (the standard Calendar plugin). Tokens stay here; see google-calendar.js.
 let googleCalendar = null;

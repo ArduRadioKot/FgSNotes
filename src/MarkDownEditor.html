@@ -335,6 +335,15 @@
               class="settings-nav-item desktop-only"
               role="tab"
               aria-selected="false"
+              data-settings-section="mcp"
+            >
+              Внешние ИИ
+            </button>
+            <button
+              type="button"
+              class="settings-nav-item desktop-only"
+              role="tab"
+              aria-selected="false"
               data-settings-section="shortcuts"
             >
               Горячие клавиши
@@ -806,6 +815,59 @@
               </div>
               <p class="settings-note">Синхронизируются открытые вкладки с заметками. Если одну заметку изменили на двух устройствах до встречи, обе версии сохранятся: вторая откроется отдельной вкладкой с пометкой «конфликт».</p>
             </section>
+            <section class="settings-panel" data-settings-panel="mcp" role="tabpanel" hidden>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="mcp-enabled">Доступ для внешних ИИ</label>
+                  <div class="setting-desc">Claude, ChatGPT, Cursor и другие приложения с поддержкой MCP смогут находить и читать открытые заметки</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="mcp-enabled" />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-name" for="mcp-write">Разрешить менять заметки</label>
+                  <div class="setting-desc">ИИ сможет создавать заметки, дописывать и переписывать их. В заметку может попасть чужой текст с командами для ИИ, поэтому включайте только при необходимости</div>
+                </div>
+                <div class="setting-control">
+                  <label class="setting-toggle">
+                    <input type="checkbox" id="mcp-write" />
+                    <span class="setting-toggle-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-name">Состояние</span>
+                  <div class="setting-desc" id="mcp-status" role="status" data-i18n-skip></div>
+                </div>
+                <div class="setting-control">
+                  <button class="button-secondary" id="mcp-new-key" type="button">Новый ключ</button>
+                </div>
+              </div>
+              <div class="setting-item" id="mcp-row-connect" hidden>
+                <div class="setting-info">
+                  <label class="setting-name" for="mcp-client">Подключить</label>
+                  <div class="setting-desc" id="mcp-hint" data-i18n-skip></div>
+                </div>
+                <div class="setting-control theme-control">
+                  <select id="mcp-client">
+                    <option value="claude-code">Claude Code</option>
+                    <option value="claude-desktop">Claude Desktop</option>
+                    <option value="chatgpt">ChatGPT</option>
+                    <option value="codex">Codex</option>
+                    <option value="cursor">Cursor</option>
+                  </select>
+                  <button class="button-secondary" id="mcp-copy" type="button">Копировать</button>
+                </div>
+              </div>
+              <pre class="mcp-snippet" id="mcp-snippet" data-i18n-skip hidden></pre>
+              <p class="settings-note">В тексте подключения есть ключ: с ним можно читать ваши заметки, поэтому не показывайте его другим. Кнопка «Новый ключ» отключит всех, кто уже подключён.</p>
+            </section>
             <section class="settings-panel" data-settings-panel="about" role="tabpanel" hidden>
               <div class="about">
                 <img class="about-logo" src="logo.png" alt="" width="72" height="72" />
@@ -839,6 +901,7 @@
     <script src="liquid-glass/liquid-glass.js"></script>
     <script src="settings.js"></script>
     <script src="sync.js"></script>
+    <script src="mcp.js"></script>
     <script src="plugins.js"></script>
     <script src="mobile.js"></script>
     <script src="ai/ollama-api.js"></script>

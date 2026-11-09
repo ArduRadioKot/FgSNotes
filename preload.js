@@ -10,6 +10,17 @@ try {
     if (encoded) bootConfig = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
 } catch { bootConfig = null; }
 
+// MCP: the page runs the tools an outside assistant calls.
+let mcpHandler = null;
+ipcRenderer.on('mcp-call', async (event, { id, name, args }) => {
+  try {
+    if (!mcpHandler) throw new Error('FgSNotes is still starting');
+    ipcRenderer.send('mcp-reply', { id, ok: true, result: await mcpHandler(name, args) });
+  } catch (error) {
+    ipcRenderer.send('mcp-reply', { id, ok: false, error: error.message });
+  }
+});
+
 const aiListeners = new Set();
 const pullListeners = new Set();
 ipcRenderer.on('ai-pull-progress', (event, progress) => pullListeners.forEach(listener => listener(progress)));
@@ -78,6 +89,13 @@ contextBridge.exposeInMainWorld(
     syncInfo: () => ipcRenderer.invoke('sync-info'),
     syncPeers: () => ipcRenderer.invoke('sync-peers'),
     syncSend: (address, body) => ipcRenderer.invoke('sync-send', { address, body }),
-    onSyncRequest: (handler) => { syncHandler = handler; }
+    onSyncRequest: (handler) => { syncHandler = handler; },
+    // Access for outside assistants (MCP)
+    mcp: {
+      start: (options) => ipcRenderer.invoke('mcp-start', options),
+      stop: () => ipcRenderer.invoke('mcp-stop'),
+      newToken: () => ipcRenderer.invoke('mcp-new-token'),
+      onCall: (handler) => { mcpHandler = handler; }
+    }
   }
 );
