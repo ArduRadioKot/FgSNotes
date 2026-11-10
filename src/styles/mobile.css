@@ -1,7 +1,7 @@
 /* ===== Phone shell (mobile.js): a title bar, the note on the window itself, a floating glass dock, a notes drawer and
    an actions sheet. Shapes: full for pills and round buttons, 20 for groups, 28 for the drawer and the sheet.
    Depth is a half-pixel edge, never a blurred shadow. ===== */
-.m-header, .m-drawer, .m-backdrop, .m-sheet, .m-sheet-backdrop, .m-hidden-action { display: none; }
+.m-header, .m-drawer, .m-backdrop, .m-sheet, .m-sheet-backdrop, .m-hidden-action, .m-set-back, .m-set-close, .settings-nav-item > .icon { display: none; }
 @media (max-width: 720px) {
     :root { --m-gap: 6px; --m-radius: 20px; --m-sheet: 28px; --m-open: 0; --m-edge: inset 0 0 0 .5px rgb(255 255 255 / .14); --m-ease: cubic-bezier(.2, .9, .3, 1); }
     :root[data-theme="light"] { --m-edge: inset 0 0 0 .5px rgb(28 36 64 / .12); }
@@ -111,13 +111,48 @@
     .m-row.is-on > .icon { color: var(--accent-color); }
     .ai-avatar .icon { width: 32px; height: 32px; }
 
-    /* settings: the same window as on desktop, filling the screen; fields are 16px so iOS never zooms into them */
+    /* settings: a page of sections, then one section at a time (mobile.js), in the grouped rows of the actions sheet */
     .modal { padding: 0; }
-    .settings-window { width: 100%; height: 100%; max-height: none; border-radius: 0; flex-direction: column; padding: calc(env(safe-area-inset-top) + var(--m-gap)) var(--m-gap) max(env(safe-area-inset-bottom), var(--m-gap)); }
-    .settings-nav, .settings-main { border-radius: var(--m-radius); }
-    .settings-nav-item, .settings-nav-reset { min-height: 40px; font-size: 14px; }
-    .settings-main-body { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
-    .setting-control select { font-size: 16px; height: 40px; }
+    .settings-window { width: 100%; height: 100%; max-height: none; flex-direction: column; gap: 0; padding: calc(env(safe-area-inset-top) + var(--m-gap)) calc(env(safe-area-inset-right) + var(--m-gap)) 0 calc(env(safe-area-inset-left) + var(--m-gap)); border-radius: 0; background: var(--window-bg); box-shadow: none; }
+    .settings-window[data-m-page="list"] .settings-main, .settings-window[data-m-page="detail"] .settings-nav { display: none; }
+    .m-set-back, .m-set-close { display: inline-flex; margin: 0; }
+    .m-set-back .icon { transform: rotate(180deg); }
 
-    @media (prefers-reduced-motion: reduce) { .m-sheet, .m-drawer, .m-backdrop, .m-sheet-backdrop, .m-icon, .m-view { transition: none; } }
+    .settings-nav { flex: 1; min-height: 0; width: auto; gap: 12px; padding: 0 6px calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; border-radius: 0; background: transparent; }
+    .settings-nav-header { flex: none; display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 0 2px 10px; font-size: 28px; font-weight: 700; letter-spacing: -.03em; }
+    .settings-nav-list, .settings-nav-reset { flex: none; overflow: hidden; border-radius: var(--m-radius); background: var(--card-bg); }
+    .settings-nav-list { gap: 0; }
+    .settings-nav-item, .settings-nav-reset { position: relative; width: 100%; gap: 14px; min-height: 52px; margin: 0; padding: 0 40px 0 16px; color: var(--text-color); font-size: 16px; }
+    .settings-nav-item { border-radius: 0; }
+    .settings-nav-item.is-active { background: transparent; }
+    :is(.settings-nav-item, .settings-nav-reset):active { background: var(--hover-color); }
+    .settings-nav-item > .icon { display: block; flex: none; width: 22px; height: 22px; color: var(--text-muted); }
+    .settings-nav-item::after { content: ''; position: absolute; right: 18px; top: 50%; width: 7px; height: 7px; margin-top: -4px; border: solid var(--text-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); opacity: .7; }
+    .settings-nav-item:not([hidden]) ~ .settings-nav-item::before { content: ''; position: absolute; top: 0; left: 52px; right: 0; height: 1px; background: var(--border-color); }
+    .settings-nav-reset { padding-right: 16px; color: var(--text-muted); }
+
+    .settings-main { flex: 1; min-height: 0; border-radius: 0; background: transparent; }
+    .settings-window[data-m-page="detail"] .settings-main { animation: m-set-in .22s var(--m-ease); }
+    @keyframes m-set-in { from { transform: translateX(20px); opacity: 0; } }
+    .settings-main-header { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; min-height: 52px; padding: 0 2px 6px; }
+    .settings-main-header h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
+    .settings-main-header .close-modal { width: 44px; height: 44px; border-radius: 50%; color: var(--text-color); background: color-mix(in srgb, var(--card-bg) 90%, transparent); box-shadow: inset 0 0 0 .5px var(--border-color); }
+    .settings-main-header .close-modal .icon { width: 18px; height: 18px; }
+    .settings-main-body { padding: 4px 6px calc(24px + env(safe-area-inset-bottom)); }
+    .settings-panel.is-active { padding: 2px 16px; border-radius: var(--m-radius); background: var(--card-bg); }
+    .setting-item { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 0; }
+    .setting-name { font-size: 16px; }
+    .setting-desc { font-size: 13px; }
+    .settings-note { margin: 14px 0; font-size: 13px; }
+    /* every field takes the full width of its row; a switch stays to the right of its label */
+    .setting-control { width: 100%; }
+    .setting-control select, .setting-control .setting-text { width: 100%; max-width: none; height: 40px; font-size: 16px; }
+    .setting-control .button-secondary { min-height: 40px; font-size: 14px; }
+    .setting-control > .button-secondary:only-child { width: 100%; }
+    .setting-control input[type="range"] { width: 100%; }
+    .setting-item:has(.setting-toggle) { flex-direction: row; align-items: center; gap: 16px; }
+    .setting-item:has(.setting-toggle) .setting-control { width: auto; flex: none; }
+    .sync-address { text-align: left; }
+
+    @media (prefers-reduced-motion: reduce) { .m-sheet, .m-drawer, .m-backdrop, .m-sheet-backdrop, .m-icon, .m-view { transition: none; } .settings-main { animation: none !important; } }
 }

@@ -27,23 +27,50 @@
         modal.id = 'update-modal';
         modal.className = 'update-modal';
         modal.hidden = true;
-        modal.innerHTML = '<div class="update-dialog" role="dialog" aria-modal="true"><h2></h2><p class="update-dialog-version"></p><pre class="update-dialog-notes"></pre><p class="update-dialog-status" role="status"></p><div class="update-dialog-actions"><button type="button" class="button-secondary update-later"></button><button type="button" class="button-primary update-go"></button></div></div>';
+        modal.innerHTML = `<div class="update-dialog" role="dialog" aria-modal="true">
+            <header class="update-head"><img src="logo.png" alt="" width="44" height="44"><div><h2 data-i18n-skip></h2><p class="update-dialog-version" data-i18n-skip></p></div></header>
+            <div class="release-notes update-dialog-notes" data-i18n-skip></div>
+            <div class="update-progress" hidden><div class="update-track"><span></span></div></div>
+            <p class="update-dialog-status" role="status" data-i18n-skip></p>
+            <div class="update-dialog-actions"><button type="button" class="update-skip"></button><button type="button" class="button-secondary update-later"></button><button type="button" class="button-primary update-go"></button></div>
+        </div>`;
         document.body.append(modal);
         const dialog = modal.querySelector('.update-dialog');
         const dialogVersion = modal.querySelector('.update-dialog-version');
         const dialogNotes = modal.querySelector('.update-dialog-notes');
         const dialogStatus = modal.querySelector('.update-dialog-status');
+        const progressBox = modal.querySelector('.update-progress'), progressFill = progressBox.querySelector('span');
+        let current = '';
+        if (window.electron.getAppInfo) window.electron.getAppInfo().then(info => { current = info.version; paint(); }).catch(() => {});
+
+        // Release notes come from GitHub as Markdown. Only headings, lists and paragraphs are shown, built as text
+        // nodes: nothing from the release page is ever inserted as HTML.
+        function renderNotes(host, text) {
+            const plain = line => line.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/(\*\*|__|`)/g, '').trim();
+            const nodes = [];
+            let list = null;
+            for (const raw of String(text || '').split('\n')) {
+                const line = raw.trim();
+                if (!line) { list = null; continue; }
+                const item = /^[-*+]\s+(.*)$/.exec(line), heading = /^#{1,6}\s+(.*)$/.exec(line);
+                if (item) {
+                    if (!list) { list = document.createElement('ul'); nodes.push(list); }
+                    list.append(Object.assign(document.createElement('li'), { textContent: plain(item[1]) }));
+                    continue;
+                }
+                list = null;
+                nodes.push(Object.assign(document.createElement(heading || /:$/.test(line) ? 'h3' : 'p'), { textContent: plain(heading ? heading[1] : line) }));
+            }
+            host.replaceChildren(...nodes);
+            host.hidden = !nodes.length;
+        }
 
         let release = null;
         let busy = false;
         let popup = false;
 
         function setStatus(text) { if (status) status.textContent = text; }
-        function setNotes(text) {
-            if (!notes) return;
-            notes.textContent = text || '';
-            notes.hidden = !text;
-        }
+        function setNotes(text) { if (notes) renderNotes(notes, text); }
         function dismissed() { return !!(release && localStorage.getItem(dismissedKey) === release.latest); }
         function remember() {
             if (!release || !release.available) { localStorage.removeItem(foundKey); return; }
@@ -57,23 +84,25 @@
             popup = true;
             modal.hidden = false;
             paint();
+            modal.querySelector('.update-go').focus();
         }
-        function closeModal() { popup = false; modal.hidden = true; }
+        function closeModal() { popup = false; modal.hidden = true; showBanner(); }
         function showBanner() {
-            if (!release || !release.available || dismissed()) { banner.hidden = true; return; }
+            // One invitation at a time: the bar waits while the window is open.
+            if (!release || !release.available || dismissed() || popup) { banner.hidden = true; return; }
             bannerText.textContent = tr('Доступна версия {version}', { version: release.latest });
             banner.hidden = false;
         }
         function paint() {
             banner.querySelector('.update-bar-notes').textContent = tr('Подробнее');
-            banner.querySelector('.update-bar-close').setAttribute('aria-label', tr('Скрыть'));
-            modal.querySelector('h2').textContent = tr('Доступно обновление');
+            banner.querySelector('.update-bar-close').setAttribute('aria-label', tr('Пропустить версию'));
             modal.querySelector('.update-later').textContent = tr('Позже');
+            modal.querySelector('.update-skip').textContent = tr('Пропустить версию');
             if (!release || !release.ok) return;
             if (!release.available) {
                 setStatus(tr('Установлена последняя версия'));
                 setNotes('');
-                if (button) button.textContent = tr('Проверить обновления');
+                if (button) { button.textContent = tr('Проверить обновления'); button.className = 'button-secondary'; }
                 banner.hidden = true;
                 closeModal();
                 return;
@@ -82,12 +111,14 @@
             setStatus(tr('Доступна версия {version}', { version: release.latest }) + size);
             setNotes(release.notes);
             const canInstall = !!(release.packaged && release.asset);
-            if (button) button.textContent = canInstall ? tr('Скачать и установить') : tr('Открыть страницу загрузки');
+            if (button) { button.textContent = canInstall ? tr('Скачать и установить') : tr('Открыть страницу загрузки'); button.className = 'button-primary'; }
             banner.querySelector('.update-bar-go').textContent = canInstall ? tr('Обновить') : tr('Скачать');
             modal.querySelector('.update-go').textContent = canInstall ? tr('Скачать и установить') : tr('Открыть страницу загрузки');
             dialog.setAttribute('aria-label', tr('Доступно обновление'));
-            dialogVersion.textContent = tr('Доступна версия {version}', { version: release.latest }) + size;
-            dialogNotes.textContent = release.notes || '';
+            modal.querySelector('h2').textContent = tr('Вышла версия {version}', { version: release.latest });
+            const have = release.current || current;
+            dialogVersion.textContent = [have ? tr('У вас версия {version}', { version: have }) : '', release.asset && release.asset.size ? tr('Размер загрузки: {size}', { size: formatSize(release.asset.size) }) : ''].filter(Boolean).join('. ');
+            renderNotes(dialogNotes, release.notes);
             showBanner();
             if (dismissed()) closeModal();
         }
@@ -133,8 +164,12 @@
             if (button) button.disabled = true;
             banner.querySelector('.update-bar-go').disabled = true;
             modal.querySelector('.update-go').disabled = true;
+            modal.querySelector('.update-skip').hidden = true;
+            progressBox.hidden = false;
+            progressFill.style.width = '0%';
             const off = window.electron.onUpdateProgress(progress => {
                 const label = progressLabel(progress);
+                progressFill.style.width = (progress.total ? Math.min(100, progress.received / progress.total * 100) : 100) + '%';
                 setStatus(label);
                 dialogStatus.textContent = label;
                 bannerText.textContent = tr('{label}  ·  версия {version}', { label, version: release.latest });
@@ -168,6 +203,8 @@
             } finally {
                 off();
                 busy = false;
+                progressBox.hidden = true;
+                modal.querySelector('.update-skip').hidden = false;
                 if (button) button.disabled = false;
                 banner.querySelector('.update-bar-go').disabled = false;
                 modal.querySelector('.update-go').disabled = false;
@@ -178,15 +215,17 @@
         banner.querySelector('.update-bar-go').addEventListener('click', startUpdate);
         modal.querySelector('.update-go').addEventListener('click', startUpdate);
         banner.querySelector('.update-bar-notes').addEventListener('click', () => { if (window.FgsSettings) window.FgsSettings.open('about'); });
-        banner.querySelector('.update-bar-close').addEventListener('click', () => {
-            banner.hidden = true;
+        // Skipping a version silences both the bar and the window until the next release.
+        const skip = () => {
             if (release && release.latest) localStorage.setItem(dismissedKey, release.latest);
             closeModal();
-        });
+        };
+        banner.querySelector('.update-bar-close').addEventListener('click', skip);
+        modal.querySelector('.update-skip').addEventListener('click', skip);
         modal.querySelector('.update-later').addEventListener('click', closeModal);
-        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        modal.addEventListener('click', event => { if (event.target === modal && !busy) closeModal(); });
         document.addEventListener('keydown', event => {
-            if (event.key === 'Escape' && !modal.hidden) { event.preventDefault(); closeModal(); }
+            if (event.key === 'Escape' && !modal.hidden && !busy) { event.preventDefault(); closeModal(); }
         });
         window.addEventListener('fgs-language', () => paint());
 

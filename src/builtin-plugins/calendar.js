@@ -262,7 +262,7 @@ fgs.addStyle(`
 .cal-now::before { content: ''; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--cal-red); }
 /* sheet */
 .cal-veil { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(0, 0, 0, .28); }
-.cal-sheet { width: min(380px, calc(100% - 24px)); padding: 16px; border-radius: 12px; background: var(--card-bg); box-shadow: 0 18px 48px var(--shadow-color), inset 0 0 0 1px var(--cal-line); display: grid; gap: 10px; user-select: text; }
+.cal-sheet { width: min(380px, calc(100% - 24px)); padding: 16px; border-radius: var(--radius-xl, 16px); background: var(--card-bg); box-shadow: inset 0 0 0 1px var(--border-color); display: grid; gap: 10px; user-select: text; }
 .cal-sheet input[type="text"], .cal-sheet input[type="date"], .cal-sheet input[type="time"], .cal-sheet select, .cal-sheet textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--cal-line); border-radius: 7px; background: var(--code-bg); color: inherit; font: inherit; }
 .cal-sheet textarea { min-height: 64px; resize: vertical; }
 .cal-sheet .title { font-size: 17px; font-weight: 600; }
@@ -277,7 +277,7 @@ fgs.addStyle(`
 .cal-sheet h5 { margin: 6px 0 0; font-size: 13px; font-weight: 600; }
 .cal-sheet p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
 .cal-sheet input[type="password"] { width: 100%; padding: 7px 9px; border: 1px solid var(--cal-line); border-radius: 7px; background: var(--code-bg); color: inherit; font: inherit; }
-.cal-menu { position: absolute; z-index: 9; right: 18px; top: 52px; min-width: 200px; padding: 5px; border-radius: 10px; background: var(--card-bg); box-shadow: 0 12px 32px var(--shadow-color), inset 0 0 0 1px var(--cal-line); display: grid; }
+.cal-menu { position: absolute; z-index: 9; right: 18px; top: 52px; min-width: 200px; padding: 5px; border-radius: var(--radius-lg, 12px); background: var(--card-bg); box-shadow: inset 0 0 0 1px var(--cal-line); display: grid; }
 .cal-menu button { height: 30px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; }
 .cal-menu button:hover { background: var(--hover-color); }
 @media (max-width: 860px) { .cal { grid-template-columns: 1fr; } .cal-side { display: none; } .cal-title { font-size: 18px; } }

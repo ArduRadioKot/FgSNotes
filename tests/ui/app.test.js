@@ -189,3 +189,23 @@ test('phone: the actions sheet opens from the dock, makes a note and is dragged 
     assert.deepEqual(errors, []);
     await context.close();
 });
+
+test('phone: settings open as a list of sections, a section opens its page and Back returns', async () => {
+    const { context, page, errors } = await open(phone);
+    const where = () => page.evaluate(() => document.querySelector('.settings-window').dataset.mPage);
+    await page.tap('#settings-button');
+    assert.equal(await where(), 'list');
+    assert.equal(await page.isVisible('.settings-main'), false);
+    await page.tap('.settings-nav-item[data-settings-section="editor"]');
+    assert.equal(await where(), 'detail');
+    assert.equal(await page.textContent('#settings-panel-title'), 'Редактор');
+    assert.equal(await page.isVisible('.settings-nav'), false);
+    await page.tap('.m-set-back');
+    assert.equal(await where(), 'list');
+    await page.tap('.m-set-close');
+    assert.equal(await page.isVisible('.settings-window'), false);
+    await page.tap('#settings-button');
+    assert.equal(await where(), 'list');        // not the section left open last time
+    assert.deepEqual(errors, []);
+    await context.close();
+});

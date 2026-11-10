@@ -1,7 +1,7 @@
 /* Settings dialog: a floating island with the same controls */
-.modal { display: none; position: fixed; inset: 0; z-index: 100; background: #0000008c; padding: 28px; }
+.modal { display: none; position: fixed; inset: 0; z-index: 100; background: var(--overlay); padding: 28px; }
 .modal.show { display: flex; }
-.modal-content { width: 540px; max-width: 100%; max-height: 100%; margin: auto; display: flex; flex-direction: column; background: var(--card-bg); border-radius: var(--radius-xl); box-shadow: 0 24px 64px var(--shadow-color); overflow: hidden; }
+.modal-content { width: 540px; max-width: 100%; max-height: 100%; margin: auto; display: flex; flex-direction: column; background: var(--card-bg); border-radius: var(--radius-xl); box-shadow: var(--edge); overflow: hidden; }
 .settings-window { width: min(920px, 100%); height: min(680px, 100%); flex-direction: row; padding: var(--gap); gap: var(--gap); background: var(--window-bg); }
 .settings-nav { width: 200px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; padding: 12px 8px; background: var(--card-bg); border-radius: var(--radius-lg); }
 .settings-nav-header { padding: 4px 10px 10px; font-size: 13px; font-weight: 600; }
@@ -35,11 +35,6 @@
 .setting-toggle input:focus-visible + .setting-toggle-track { outline: 2px solid var(--accent-color); outline-offset: 2px; }
 .settings-note { color: var(--text-muted); font-size: 12px; line-height: 1.6; margin: 18px 0 0; }
 @media (max-width: 720px) {
-    .settings-window { flex-direction: column; height: min(760px, 100%); }
-    .settings-nav { width: 100%; padding: 8px; }
-    .settings-nav-list { flex-direction: row; overflow-x: auto; flex: none; }
-    .settings-nav-item { width: auto; white-space: nowrap; }
-    .settings-nav-reset { width: auto; margin-top: 4px; }
     .setting-item { flex-direction: column; align-items: flex-start; gap: 10px; }
     .setting-control select { width: 100%; max-width: none; }
 }
@@ -98,6 +93,10 @@
 /* Sync settings */
 .sync-address { font: 500 13px var(--mono-font); color: var(--text-color); user-select: all; text-align: right; }
 #sync-status { color: var(--text-muted); }
-.sync-qr { width: 208px; margin: 4px 0 12px auto; padding: 8px; border-radius: var(--radius-md); background: #fff; line-height: 0; }
-.sync-qr svg { display: block; width: 100%; height: auto; }
+/* The QR code for a phone: centred in the page, on white so any camera reads it, the address spelled out under it. */
+.sync-qr { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0; padding: 18px 0 20px; border-bottom: 1px solid var(--border-color); }
+.sync-qr[hidden] { display: none; }
+#sync-qr { width: 196px; padding: 10px; border-radius: var(--radius-lg); background: #fff; line-height: 0; }
+#sync-qr svg { display: block; width: 100%; height: auto; }
+.sync-qr figcaption { font: 500 13px var(--mono-font); color: var(--text-muted); user-select: all; }
 .mcp-snippet { margin: 12px 0 0; padding: 10px 12px; max-height: 180px; overflow: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--code-bg); color: var(--text-color); font: 12px/1.5 var(--mono-font); white-space: pre-wrap; word-break: break-all; user-select: text; }

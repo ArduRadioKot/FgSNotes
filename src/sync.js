@@ -290,7 +290,8 @@
         const link = address && normalizeCode(settings.code) ? makeLink(info.port && info.port !== DEFAULT_PORT ? `${address}:${info.port}` : address, settings.code) : '';
         $('sync-row-qr').hidden = !link;
         if (!link) qrShown = false;
-        $('sync-qr').hidden = !qrShown;
+        $('sync-qr-box').hidden = !qrShown;
+        $('sync-qr-caption').textContent = link ? decodeURIComponent(new URL(link).searchParams.get('peer')) : '';
         $('sync-qr-toggle').textContent = t(qrShown ? 'Скрыть' : 'Показать QR-код');
         if (qrShown && $('sync-qr').dataset.link !== link) drawQr(link);
         $('sync-peer-desc').textContent = desktop

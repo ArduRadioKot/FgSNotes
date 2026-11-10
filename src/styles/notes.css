@@ -1,6 +1,6 @@
 /* ===== Notes list (notes.js): search, tags, order, pinned notes and the recently closed ones.
    In the "Все заметки" window on a computer and in the drawer on a phone. ===== */
-.notes-window { width: min(520px, 100%); height: min(640px, 100%); padding: 16px; gap: 12px; }
+.notes-window { width: min(520px, 100%); height: min(640px, 100%); padding: 20px; gap: 14px; }
 .notes-head { flex: none; display: flex; align-items: center; justify-content: space-between; }
 .notes-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .nl { --nl-surface: color-mix(in srgb, var(--text-color) 5%, var(--card-bg)); flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }

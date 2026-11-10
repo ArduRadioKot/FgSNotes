@@ -217,11 +217,41 @@
         surface.addEventListener('focusout', () => setTimeout(() => { if (!typing()) root.classList.remove('editing'); }, 120));
         $('.editor-tools').addEventListener('pointerdown', event => event.preventDefault());
 
+        // --- settings: a page of sections first, then one section at a time ---------------------
+        const settingsWindow = $('.settings-window'), closeSettings = $('.close-modal');
+        const SECTION_ICONS = { appearance: 'palette', editor: 'edit', preview: 'eye', plugins: 'code', sync: 'refresh', mcp: 'link', shortcuts: 'check-square', ai: 'sparkles', about: 'info' };
+        settingsWindow.querySelectorAll('.settings-nav-item').forEach(item => item.insertAdjacentHTML('afterbegin', icon(SECTION_ICONS[item.dataset.settingsSection] || 'settings')));
+        const setPage = page => { settingsWindow.dataset.mPage = page; };
+        const backButton = el('button', 'm-icon m-set-back', icon('chevron'));
+        backButton.type = 'button';
+        backButton.setAttribute('aria-label', 'Назад');
+        backButton.addEventListener('click', () => setPage('list'));
+        $('.settings-main-header').prepend(backButton);
+        const closeList = el('button', 'm-icon m-set-close', icon('close'));
+        closeList.type = 'button';
+        closeList.setAttribute('aria-label', 'Закрыть');
+        closeList.addEventListener('click', () => closeSettings.click());
+        $('.settings-nav-header').append(closeList);
+        setPage('list');
+        // Opening always starts from the list; choosing a section (or being sent to one) shows its page.
+        $('#settings-button').addEventListener('click', () => setPage('list'), true);
+        $('.settings-nav-list').addEventListener('click', event => {
+            if (!event.target.closest('.settings-nav-item')) return;
+            setPage('detail');
+            $('.settings-main-body').scrollTop = 0;
+        });
+        if (window.FgsSettings) {
+            const openSection = window.FgsSettings.open;
+            window.FgsSettings.open = section => { openSection(section); setPage('detail'); };
+        }
+
         // ================================== gestures ==================================
         // What an edge swipe closes before it may open the drawer: the layer on top of the note.
         function topLayer() {
-            const button = $('.plugin-modal-back .plugin-modal-head button') || $('#settings-modal.show .close-modal') || $('.ai-panel:not([hidden]) [data-head="close"]');
-            return button && button.offsetParent !== null ? () => button.click() : null;
+            // In settings the swipe goes one step back: from a section to the list, from the list out.
+            const button = ['.plugin-modal-back .plugin-modal-head button', '#settings-modal.show .m-set-back', '#settings-modal.show .m-set-close', '.ai-panel:not([hidden]) [data-head="close"]']
+                .map($).find(node => node && node.offsetParent !== null);
+            return button ? () => button.click() : null;
         }
         // The drawer follows the finger: in from the left edge, back out from anywhere while it is open.
         const reveal = (data, dx) => clamp(data.from + dx / drawer.offsetWidth, 0, 1);

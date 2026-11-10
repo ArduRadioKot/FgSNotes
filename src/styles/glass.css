@@ -62,8 +62,8 @@
 [data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window.lg {
     background: color-mix(in srgb, var(--window-bg) calc(var(--sg-opacity, .78) * 85%), transparent);
 }
-/* No highlights on the dialog itself: no lit rim, no reflections, no inner glow. Only the drop shadow stays. */
-.settings-window.lg { box-shadow: 0 24px 64px var(--shadow-color); }
+/* No highlights on the dialog itself: no lit rim, no reflections, no inner glow. The same hairline edge as every window. */
+.settings-window.lg { box-shadow: var(--edge); }
 .settings-window.lg::before, .settings-window.lg::after { display: none; }
 [data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-nav,
 [data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-main {

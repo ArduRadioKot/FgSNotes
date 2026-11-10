@@ -36,7 +36,7 @@ fgs.addStyle(`
 .exd-bar .exd-wd { width: 32px; padding: 0; display: grid; place-items: center; }
 .exd-bar .exd-wd i { display: block; width: 18px; background: currentColor; border-radius: 4px; }
 .exd-bar .exd-grow { flex: 1; }
-.exd-stage { flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: 10px; background: #f5f5f4; container-type: size; }
+.exd-stage { flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--radius-lg, 12px); background: #f5f5f4; container-type: size; }
 .exd-paper { position: relative; width: min(100cqw, calc(100cqh * ${W} / ${H})); aspect-ratio: ${W} / ${H}; background: #fff; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .exd-paper canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .exd-live { cursor: crosshair; }
