@@ -152,4 +152,4 @@ function createSyncTransport({ onRequest, log = () => {} }) {
     return { start, stop, info, peers: list, send };
 }
 
-module.exports = { createSyncTransport, localAddresses, SYNC_PORT };
+module.exports = { createSyncTransport };

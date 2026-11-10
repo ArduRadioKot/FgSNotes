@@ -1,0 +1,83 @@
+/* Liquid Glass mode (see liquid-glass/). The window itself is translucent: one glass substrate (workspace) carries
+   the whole app, the sidebar included. Islands on top are denser fills, not separate glass, so text stays readable. */
+:root[data-liquid-glass]:not([data-liquid-glass="off"]),
+:root[data-liquid-glass]:not([data-liquid-glass="off"]) body { background: transparent; }
+:root[data-liquid-glass]:not([data-liquid-glass="off"]) {
+    --lg-hover-fill: rgb(255 255 255 / .09);
+    --lg-press-fill: rgb(255 255 255 / .04);
+    --lg-selected-fill: rgb(255 255 255 / .075);
+}
+:root[data-theme="light"][data-liquid-glass]:not([data-liquid-glass="off"]) {
+    --lg-hover-fill: rgb(28 36 64 / .07);
+    --lg-press-fill: rgb(28 36 64 / .12);
+    --lg-selected-fill: rgb(28 36 64 / .07);
+}
+[data-liquid-glass]:not([data-liquid-glass="off"]) .workspace.lg::before,
+[data-liquid-glass]:not([data-liquid-glass="off"]) .workspace.lg::after { display: none; }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .workspace.lg {
+    border-radius: 0; transform: none; transition: none;
+    background: color-mix(in srgb, var(--lg-tint) calc(var(--lg-substrate) * 100%), transparent);
+    box-shadow: none;
+}
+[data-liquid-glass]:not([data-liquid-glass="off"]) .document-bar,
+[data-liquid-glass]:not([data-liquid-glass="off"]) .editor-column,
+[data-liquid-glass]:not([data-liquid-glass="off"]) .preview-column,
+[data-liquid-glass]:not([data-liquid-glass="off"]) .ai-panel {
+    background: color-mix(in srgb, var(--card-bg) calc(var(--lg-island, .68) * 100%), transparent);
+    box-shadow: inset 0 .5px 0 rgb(var(--lg-rim-rgb, 255 255 255) / .07), inset 0 0 0 .5px rgb(var(--lg-rim-rgb, 255 255 255) / .04);
+}
+[data-liquid-glass]:not([data-liquid-glass="off"]) .preview-content blockquote,
+[data-liquid-glass]:not([data-liquid-glass="off"]) .preview-content pre,
+[data-liquid-glass]:not([data-liquid-glass="off"]) .table-of-contents { background: color-mix(in srgb, var(--code-bg) 70%, transparent); }
+
+/* Glass buttons: hover is a thin lens rim, press compresses the glass and dims the specular. */
+[data-liquid-glass]:not([data-liquid-glass="off"]) :is(.icon-button, .tool-button, .sidebar-button, .view-switch button, .tab-select, .close-tab) {
+    transition: transform .38s cubic-bezier(.34, 1.5, .64, 1), background-color .18s, box-shadow .22s, color .15s;
+}
+[data-liquid-glass]:not([data-liquid-glass="off"]) :is(.icon-button, .tool-button, .sidebar-button, .view-switch button, .close-tab):hover:not(:disabled):not(:active) {
+    background: var(--lg-hover-fill);
+    box-shadow: inset 0 .5px 0 rgb(var(--lg-rim-rgb) / .4), inset 0 -.5px 0 rgb(var(--lg-shadow-rgb) / .2), inset 0 0 0 .5px rgb(var(--lg-rim-rgb) / .12), 0 1px 3px rgb(var(--lg-shadow-rgb) / .18);
+}
+[data-liquid-glass]:not([data-liquid-glass="off"]) :is(.icon-button, .tool-button, .sidebar-button, .view-switch button, .tab-select, .close-tab):active:not(:disabled) {
+    transform: scale(.93);
+    transition-duration: .08s, .08s, .08s, .08s;
+    background: var(--lg-press-fill);
+    box-shadow: inset 0 1.5px 4px rgb(var(--lg-shadow-rgb) / .32), inset 0 0 0 .5px rgb(var(--lg-rim-rgb) / .06);
+}
+[data-liquid-glass]:not([data-liquid-glass="off"]) .view-switch { background: rgb(var(--lg-shadow-rgb) / .14); box-shadow: inset 0 1px 2px rgb(var(--lg-shadow-rgb) / .2); }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .tab-item { z-index: 1; }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .tab-item.active { background: transparent; }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .tab-item:hover:not(.active) { background: var(--lg-hover-fill); }
+
+/* One glass lens that flows between tabs (positioned by editor.js, animated only on tab switches). */
+.tab-bar { position: relative; }
+.tab-glass { display: none; position: absolute; z-index: 0; left: 0; top: 0; width: 0; height: 0; border-radius: var(--radius-md); pointer-events: none; }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .tab-glass { display: block; }
+[data-liquid-glass]:not([data-liquid-glass="off"]) :is(.tab-glass, .view-glass) {
+    background: var(--lg-selected-fill);
+    box-shadow: inset 0 .5px 0 rgb(var(--lg-rim-rgb) / .24), inset 0 -.5px 0 rgb(var(--lg-shadow-rgb) / .16), inset 0 0 0 .5px rgb(var(--lg-rim-rgb) / .09), 0 1px 4px rgb(var(--lg-shadow-rgb) / .16);
+}
+
+/* Settings dialog: a light lens; --sg-opacity comes from the transparency slider. */
+[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window.lg {
+    background: color-mix(in srgb, var(--window-bg) calc(var(--sg-opacity, .78) * 85%), transparent);
+}
+/* No highlights on the dialog itself: no lit rim, no reflections, no inner glow. Only the drop shadow stays. */
+.settings-window.lg { box-shadow: 0 24px 64px var(--shadow-color); }
+.settings-window.lg::before, .settings-window.lg::after { display: none; }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-nav,
+[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-main {
+    background: color-mix(in srgb, var(--card-bg) calc(var(--sg-opacity, .78) * 100%), transparent);
+}
+.setting-control input[type="range"] { width: 150px; accent-color: var(--accent-color); margin: 0; }
+
+@media (prefers-reduced-transparency: reduce) {
+    [data-liquid-glass]:not([data-liquid-glass="off"]) .workspace.lg,
+    [data-liquid-glass]:not([data-liquid-glass="off"]) .document-bar,
+    [data-liquid-glass]:not([data-liquid-glass="off"]) .editor-column,
+    [data-liquid-glass]:not([data-liquid-glass="off"]) .preview-column { background: var(--card-bg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-liquid-glass]:not([data-liquid-glass="off"]) :is(.icon-button, .tool-button, .sidebar-button, .view-switch button, .tab-select, .close-tab) { transition: background-color .18s, box-shadow .22s; }
+    [data-liquid-glass]:not([data-liquid-glass="off"]) :is(.icon-button, .tool-button, .sidebar-button, .view-switch button, .tab-select, .close-tab):active:not(:disabled) { transform: none; }
+}

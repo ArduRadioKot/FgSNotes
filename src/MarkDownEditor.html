@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#2b2d30" />
     <title>FgSNotes - Markdown-редактор</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/settings.css" />
+    <link rel="stylesheet" href="styles/glass.css" />
+    <link rel="stylesheet" href="styles/live.css" />
+    <link rel="stylesheet" href="styles/themes.css" />
+    <link rel="stylesheet" href="styles/ai.css" />
+    <link rel="stylesheet" href="styles/plugins.css" />
+    <link rel="stylesheet" href="styles/notes.css" />
+    <link rel="stylesheet" href="styles/mobile.css" />
     <link rel="stylesheet" href="liquid-glass/liquid-glass.css" />
     <script src="i18n.js"></script>
     <script src="platform.js"></script>
@@ -39,6 +47,14 @@
             title="Сохранить файл (Ctrl / ⌘ S)"
             aria-label="Сохранить файл"
             data-icon="save"
+          ></button>
+          <button
+            class="sidebar-button icon-button"
+            id="notes-button"
+            title="Все заметки"
+            aria-label="Все заметки"
+            aria-haspopup="dialog"
+            data-icon="documents"
           ></button>
           <button
             class="sidebar-button icon-button ai-only"
@@ -795,6 +811,16 @@
                   <span class="sync-address" id="sync-address" data-i18n-skip></span>
                 </div>
               </div>
+              <div class="setting-item" id="sync-row-qr" hidden>
+                <div class="setting-info">
+                  <span class="setting-name">Подключить телефон</span>
+                  <div class="setting-desc">Наведите камеру телефона на QR-код: адрес и код синхронизации впишутся сами. В коде есть ключ к заметкам, не показывайте его другим</div>
+                </div>
+                <div class="setting-control">
+                  <button class="button-secondary" id="sync-qr-toggle" type="button" data-i18n-skip></button>
+                </div>
+              </div>
+              <div class="sync-qr" id="sync-qr" data-i18n-skip hidden></div>
               <div class="setting-item">
                 <div class="setting-info">
                   <label class="setting-name" for="sync-peer">Адрес компьютера</label>
@@ -893,6 +919,7 @@
     <script src="highlight.js"></script>
     <script src="math.js"></script>
     <script src="notebook.js"></script>
+    <script src="store.js"></script>
     <script src="editor.js"></script>
     <script src="resize.js"></script>
     <script src="liquid-glass/optics.js"></script>
@@ -903,6 +930,7 @@
     <script src="sync.js"></script>
     <script src="mcp.js"></script>
     <script src="plugins.js"></script>
+    <script src="notes.js"></script>
     <script src="mobile.js"></script>
     <script src="ai/ollama-api.js"></script>
     <script src="ai/providers.js"></script>

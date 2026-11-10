@@ -160,10 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     let nextDocumentId = 1;
     let saveTimer;
-    const storageKey = 'fgsnotes.workspace.v1';
     // For sync (sync.js): every note has a uid shared by all devices, the time of its last edit and the versions it has
     // been through; closed notes are kept for a while as tombstones so other devices close them too.
     let removedNotes = [];
+    // Closed notes with their text stay here for 30 days and can be reopened ("Недавно закрытые").
+    let trash = [];
+    const TRASH_AGE = 30 * 86400000;
+    let restored = false;               // nothing is written until the saved notes have been read
+    const toTrash = doc => { if (doc.content.trim()) trash = trash.filter(note => note.uid !== doc.uid).concat({ uid: doc.uid, title: doc.title, content: doc.content, closedAt: Date.now(), ver: doc.ver || {} }); };
+    const listChanged = () => window.dispatchEvent(new CustomEvent('fgs-list-changed'));
     const newUid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
     const noteChanged = () => window.dispatchEvent(new CustomEvent('fgs-notes-changed'));
     const nextVersion = ver => (window.FgsSync ? window.FgsSync.bump(ver) : ver || {});
@@ -200,15 +205,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function persistWorkspace() {
         clearTimeout(saveTimer);
-        try {
-            const notes = notesOnly();
-            const activeNote = isView(documents[activeDocumentIndex]) ? notes.findIndex(doc => doc.id === lastNoteId) : activeDocumentIndex;
-            localStorage.setItem(storageKey, JSON.stringify({ documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId, removed: removedNotes }));
-            document.getElementById('save-status').textContent = t('Черновик сохранён');
-        } catch (error) {
-            document.getElementById('save-status').textContent = t('Не удалось сохранить черновик');
-            console.error('Draft storage failed:', error);
-        }
+        if (!restored) return;
+        const notes = notesOnly();
+        const activeNote = isView(documents[activeDocumentIndex]) ? notes.findIndex(doc => doc.id === lastNoteId) : activeDocumentIndex;
+        const status = document.getElementById('save-status');
+        window.FgsStore.save(JSON.stringify({ savedAt: Date.now(), documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId, removed: removedNotes, trash })).then(
+            () => { status.textContent = t('Черновик сохранён'); },
+            error => { status.textContent = t('Не удалось сохранить черновик'); console.error('Draft storage failed:', error); }
+        );
     }
     function saveCurrentDocument() {
         const doc = documents[activeDocumentIndex];
@@ -267,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isView(closing)) { closing.element.remove(); if (closing.onClose) try { closing.onClose(); } catch (error) { console.error(error); } }
         else {
             if (window.FgsNotebook) window.FgsNotebook.forget(closing.id);
+            toTrash(closing);
             removedNotes = removedNotes.filter(note => note.uid !== closing.uid).concat({ uid: closing.uid, deleted: true, updatedAt: Date.now(), ver: nextVersion(closing.ver) });
         }
         documents.splice(index, 1);
@@ -275,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
-        if (!isView(closing)) noteChanged();
+        if (!isView(closing)) { noteChanged(); listChanged(); }
         tabBar.querySelector('.active .tab-select').focus();
     }
     function renderTabs() {
@@ -440,6 +445,29 @@ document.addEventListener('DOMContentLoaded', () => {
             return [...notesOnly().map(({ uid, title, content, updatedAt, ver }) => ({ uid, title, content, updatedAt: updatedAt || 0, ver: ver || {} })), ...removedNotes];
         },
         applySyncNotes: notes => applySyncNotes(notes),
+        // For the notes list (notes.js): the open notes, pinning, closing, and the recently closed ones.
+        notes: () => { saveCurrentDocument(); return notesOnly().map(doc => ({ id: doc.id, uid: doc.uid, title: doc.title, content: doc.content, updatedAt: doc.updatedAt || 0, pinned: !!doc.pinned, active: doc.id === lastNoteId })); },
+        setPinned: (id, on) => { const doc = notesOnly().find(item => item.id === id); if (doc) { doc.pinned = !!on; persistWorkspace(); listChanged(); } },
+        closeDocument: id => { const index = documents.findIndex(doc => doc.id === id); if (index >= 0) closeTab(index); },
+        canClose: () => documents.length > 1,
+        trash: () => trash.slice().reverse(),
+        restoreNote: uid => {
+            const item = trash.find(note => note.uid === uid);
+            if (!item) return;
+            saveCurrentDocument();
+            // The restored note must win over the "closed" mark other devices already have, so it continues from that mark.
+            const mark = removedNotes.find(note => note.uid === uid);
+            trash = trash.filter(note => note.uid !== uid);
+            removedNotes = removedNotes.filter(note => note.uid !== uid);
+            const open = documents.findIndex(doc => doc.uid === uid);
+            activeDocumentIndex = open >= 0 ? open : insertNote({ id: nextDocumentId++, uid, title: item.title, content: item.content, updatedAt: Date.now(), ver: nextVersion(mark ? mark.ver : item.ver) });
+            renderTabs();
+            loadDocument(activeDocumentIndex);
+            persistWorkspace();
+            noteChanged();
+            listChanged();
+        },
+        forgetNote: uid => { trash = trash.filter(note => uid !== undefined && note.uid !== uid); persistWorkspace(); listChanged(); },
         canFormat: () => workspace.dataset.view !== 'preview',
         format: name => { if (window.FgsActions.canFormat() && markdownFormats[name]) applyFormat(name); }
     };
@@ -460,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (next.deleted) {
                 if (notesOnly().length === 1) { removedNotes = removedNotes.filter(note => note.uid !== doc.uid); continue; }   // one note always stays open
                 if (window.FgsNotebook) window.FgsNotebook.forget(doc.id);
+                toTrash(doc);
                 documents.splice(i, 1);
                 if (doc === active) activeChanged = true;
                 tabsChanged = true;
@@ -576,99 +605,17 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         shiftLines(event.shiftKey);
     });
-    window.addEventListener('beforeunload', () => { saveCurrentDocument(); persistWorkspace(); });
+    // On the way out the newest text is also written where it lands at once (see store.js). A phone app is not closed,
+    // it is hidden and may be dropped later, so the same happens whenever it leaves the screen.
+    const saveNow = () => { saveCurrentDocument(); persistWorkspace(); window.FgsStore.flush(); };
+    window.addEventListener('beforeunload', saveNow);
+    window.addEventListener('pagehide', saveNow);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
     newTabButton.addEventListener('click', addNewTab);
     document.getElementById('new-file-button').addEventListener('click', addNewTab);
     document.getElementById('open-file-button').addEventListener('click', openFile);
     document.getElementById('save-file-button').addEventListener('click', saveFile);
 
-    try {
-        const saved = JSON.parse(localStorage.getItem(storageKey));
-        if (saved && Array.isArray(saved.documents)) {
-            documents = saved.documents.filter(doc => Number.isFinite(doc.id) && typeof doc.title === 'string' && typeof doc.content === 'string');
-            activeDocumentIndex = Math.max(0, Math.min(Number(saved.activeDocumentIndex) || 0, documents.length - 1));
-            if (Array.isArray(saved.removed)) removedNotes = saved.removed.filter(note => note && typeof note.uid === 'string' && note.deleted);
-        }
-    } catch (error) { console.error('Could not restore workspace:', error); }
-    if (!documents.length) {
-        // Recover all legacy drafts, including gaps left by closed tabs.
-        Object.keys(localStorage).filter(key => /^editorContent_doc\d+$/.test(key)).sort((a, b) => Number(a.replace('editorContent_doc', '')) - Number(b.replace('editorContent_doc', ''))).forEach(key => {
-            const id = Number(key.replace('editorContent_doc', ''));
-            documents.push({ id, title: t('Документ {n}', { n: id }), content: localStorage.getItem(key) });
-        });
-    }
-    nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
-    documents.forEach(doc => { if (!doc.uid) doc.uid = newUid(); if (!doc.updatedAt) doc.updatedAt = 0; delete doc.hist; });
-    if (!documents.length) {
-        const intro = [
-            '# Хорошие идеи начинаются с заметки',
-            '',
-            'Пишите слева, а оформление появляется справа. Ниже то, что умеет FgSNotes, на живых примерах. Меняйте их прямо здесь.',
-            '',
-            '## Разметка',
-            '',
-            'Выделите слово и нажмите **Ctrl / ⌘ B**, получится **жирный**, а **Ctrl / ⌘ I** даст *курсив*. Ещё есть ~~зачёркнутый~~ текст, `код в строке` и [ссылки](https://github.com/ArduRadioKot/FgSNotes).',
-            '',
-            '- Одна вкладка, одна идея',
-            '- Вложенные списки работают:',
-            '  - так',
-            '  - и так',
-            '',
-            '1. Первый шаг',
-            '2. Второй шаг',
-            '',
-            '> Не обязательно сразу писать идеально. Важно начать.',
-            '',
-            '## Задачи',
-            '',
-            '- [x] Открыть FgSNotes',
-            '- [ ] Записать первую мысль',
-            '- [ ] Превратить её в план',
-            '',
-            '## Таблицы и код',
-            '',
-            '| Режим | Что делает |',
-            '| --- | --- |',
-            '| Редактор | Только текст |',
-            '| Живой | Оформление прямо в тексте |',
-            '| Рядом | Текст и предпросмотр |',
-            '',
-            '```js',
-            'const greeting = "Привет, FgSNotes!";',
-            'console.log(greeting);',
-            '```',
-            '',
-            '## Формулы',
-            '',
-            'В строке: $E = mc^2$. Отдельным блоком:',
-            '',
-            '$$',
-            '\\int_0^1 x^2\\,dx = \\frac{1}{3}',
-            '$$',
-            '',
-            '## Чат с ИИ',
-            '',
-            'Выделите абзац и нажмите **Ctrl / ⌘ J**: чат исправит ошибки, сократит, переведёт или продолжит текст. Он работает на вашем компьютере через Ollama, заметки никуда не уходят. Попробуйте на этой строке: *этот тект написан с ашибками*.',
-            '',
-            '## Сочетания клавиш',
-            '',
-            '**Ctrl / ⌘ F**: поиск по заметке  ',
-            '**Ctrl / ⌘ N**: новая вкладка  ',
-            '**Ctrl / ⌘ S**: сохранить файл  ',
-            '**Ctrl / ⌘ J**: чат с ИИ',
-            '',
-            'Черновики открытых вкладок сохраняются на этом устройстве автоматически.'
-        ].map(line => t(line)).join('\n');
-        // The same uid on every device, so the welcome note does not multiply when they sync.
-        documents.push({ id: nextDocumentId++, uid: 'welcome-' + ((window.FgsI18n && window.FgsI18n.language) || 'ru'), updatedAt: 0, title: t('Начните здесь.md'), content: intro });
-    }
-    renderTabs();
-    lastNoteId = documents[activeDocumentIndex].id;
-    editor.value = documents[activeDocumentIndex].content;
-    editor.setSelectionRange(0, 0);
-    editor.scrollTop = 0;
-    document.title = `${documents[activeDocumentIndex].title} - FgSNotes`;
-    setView(localStorage.getItem('editorView') || 'split');
     window.addEventListener('fgs-language', () => {
         updatePreview();
         renderTabs();
@@ -676,11 +623,106 @@ document.addEventListener('DOMContentLoaded', () => {
         const status = document.getElementById('save-status');
         if (status) status.textContent = t('Черновик сохранён');
     });
-    // Preview, highlighting and math wait a tick so the window can paint before the heavy first render.
-    setTimeout(() => {
-        preview.scrollTop = 0;
-        updatePreview();
-    }, 0);
+    // The saved notes come from storage a moment after the page is built (store.js); until then there are no tabs.
+    function restore(text) {
+        try {
+            const saved = text ? JSON.parse(text) : null;
+            if (saved && Array.isArray(saved.documents)) {
+                documents = saved.documents.filter(doc => Number.isFinite(doc.id) && typeof doc.title === 'string' && typeof doc.content === 'string');
+                activeDocumentIndex = Math.max(0, Math.min(Number(saved.activeDocumentIndex) || 0, documents.length - 1));
+                if (Array.isArray(saved.removed)) removedNotes = saved.removed.filter(note => note && typeof note.uid === 'string' && note.deleted);
+                if (Array.isArray(saved.trash)) trash = saved.trash.filter(note => note && typeof note.uid === 'string' && typeof note.content === 'string' && Date.now() - note.closedAt < TRASH_AGE);
+            }
+        } catch (error) { console.error('Could not restore workspace:', error); }
+        if (!documents.length) {
+            // Recover all legacy drafts, including gaps left by closed tabs.
+            Object.keys(localStorage).filter(key => /^editorContent_doc\d+$/.test(key)).sort((a, b) => Number(a.replace('editorContent_doc', '')) - Number(b.replace('editorContent_doc', ''))).forEach(key => {
+                const id = Number(key.replace('editorContent_doc', ''));
+                documents.push({ id, title: t('Документ {n}', { n: id }), content: localStorage.getItem(key) });
+            });
+        }
+        nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
+        documents.forEach(doc => { if (!doc.uid) doc.uid = newUid(); if (!doc.updatedAt) doc.updatedAt = 0; delete doc.hist; });
+        if (!documents.length) {
+            const intro = [
+                '# Хорошие идеи начинаются с заметки',
+                '',
+                'Пишите слева, а оформление появляется справа. Ниже то, что умеет FgSNotes, на живых примерах. Меняйте их прямо здесь.',
+                '',
+                '## Разметка',
+                '',
+                'Выделите слово и нажмите **Ctrl / ⌘ B**, получится **жирный**, а **Ctrl / ⌘ I** даст *курсив*. Ещё есть ~~зачёркнутый~~ текст, `код в строке` и [ссылки](https://github.com/ArduRadioKot/FgSNotes).',
+                '',
+                '- Одна вкладка, одна идея',
+                '- Вложенные списки работают:',
+                '  - так',
+                '  - и так',
+                '',
+                '1. Первый шаг',
+                '2. Второй шаг',
+                '',
+                '> Не обязательно сразу писать идеально. Важно начать.',
+                '',
+                '## Задачи',
+                '',
+                '- [x] Открыть FgSNotes',
+                '- [ ] Записать первую мысль',
+                '- [ ] Превратить её в план',
+                '',
+                '## Таблицы и код',
+                '',
+                '| Режим | Что делает |',
+                '| --- | --- |',
+                '| Редактор | Только текст |',
+                '| Живой | Оформление прямо в тексте |',
+                '| Рядом | Текст и предпросмотр |',
+                '',
+                '```js',
+                'const greeting = "Привет, FgSNotes!";',
+                'console.log(greeting);',
+                '```',
+                '',
+                '## Формулы',
+                '',
+                'В строке: $E = mc^2$. Отдельным блоком:',
+                '',
+                '$$',
+                '\\int_0^1 x^2\\,dx = \\frac{1}{3}',
+                '$$',
+                '',
+                '## Чат с ИИ',
+                '',
+                'Выделите абзац и нажмите **Ctrl / ⌘ J**: чат исправит ошибки, сократит, переведёт или продолжит текст. Он работает на вашем компьютере через Ollama, заметки никуда не уходят. Попробуйте на этой строке: *этот тект написан с ашибками*.',
+                '',
+                '## Сочетания клавиш',
+                '',
+                '**Ctrl / ⌘ F**: поиск по заметке  ',
+                '**Ctrl / ⌘ N**: новая вкладка  ',
+                '**Ctrl / ⌘ S**: сохранить файл  ',
+                '**Ctrl / ⌘ J**: чат с ИИ',
+                '',
+                'Черновики открытых вкладок сохраняются на этом устройстве автоматически.'
+            ].map(line => t(line)).join('\n');
+            // The same uid on every device, so the welcome note does not multiply when they sync.
+            documents.push({ id: nextDocumentId++, uid: 'welcome-' + ((window.FgsI18n && window.FgsI18n.language) || 'ru'), updatedAt: 0, title: t('Начните здесь.md'), content: intro });
+        }
+        renderTabs();
+        lastNoteId = documents[activeDocumentIndex].id;
+        editor.value = documents[activeDocumentIndex].content;
+        editor.setSelectionRange(0, 0);
+        editor.scrollTop = 0;
+        document.title = `${documents[activeDocumentIndex].title} - FgSNotes`;
+        setView(localStorage.getItem('editorView') || 'split');
+        // Preview, highlighting and math wait a tick so the window can paint before the heavy first render.
+        setTimeout(() => {
+            preview.scrollTop = 0;
+            updatePreview();
+        }, 0);
+        restored = true;
+        window.FgsStore.markRestored();
+        listChanged();
+    }
+    window.FgsStore.load().then(restore);
 });
 function applyFormat(name) {
     const spec = markdownFormats[name];

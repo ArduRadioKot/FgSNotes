@@ -86,7 +86,6 @@ contextBridge.exposeInMainWorld(
     // Sync over the local network
     syncStart: (identity) => ipcRenderer.invoke('sync-start', identity),
     syncStop: () => ipcRenderer.invoke('sync-stop'),
-    syncInfo: () => ipcRenderer.invoke('sync-info'),
     syncPeers: () => ipcRenderer.invoke('sync-peers'),
     syncSend: (address, body) => ipcRenderer.invoke('sync-send', { address, body }),
     onSyncRequest: (handler) => { syncHandler = handler; },

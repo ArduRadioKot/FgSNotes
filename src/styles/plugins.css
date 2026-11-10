@@ -1,0 +1,91 @@
+/* Notebook cells (```js-cell): an input block with the output block stuck right under it, as in Jupyter */
+.preview-content .nb-cell { margin: 1em 0; }
+.preview-content .nb-cell :is(pre, textarea) { margin: 0; padding: 0; border-radius: 0; background: transparent; font: inherit; font-family: var(--mono-font); font-size: .87em; line-height: 1.6; }
+.nb-in, .nb-out { position: relative; display: flex; align-items: flex-start; gap: 4px; background: var(--code-bg); }
+.nb-in { padding: 10px 12px 10px 6px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.nb-out { padding: 8px 12px 10px 6px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); border-top: 1px solid var(--border-color, rgba(128, 128, 128, .22)); }
+.nb-cell:not(:has(.nb-out:not([hidden]))) .nb-in { border-radius: var(--radius-lg); }
+.nb-gutter { flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text-muted, #8a8d94); font: .75em var(--mono-font); }
+.nb-gutter-out { padding-top: 2px; }
+.nb-run { width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--accent-color); cursor: pointer; }
+.nb-run:hover { background: color-mix(in srgb, var(--accent-color) 16%, transparent); }
+.nb-run .icon { width: 15px; height: 15px; fill: currentColor; }
+.nb-cell.is-running .nb-run { color: var(--text-color); }
+.nb-body { position: relative; flex: 1; min-width: 0; }
+.preview-content .nb-mirror { position: relative; white-space: pre-wrap; overflow-wrap: anywhere; pointer-events: none; overflow: visible; min-height: 1.6em; }
+.preview-content .nb-editor { position: absolute; inset: 0; width: 100%; height: 100%; resize: none; border: 0; outline: 0; overflow: hidden; color: transparent; -webkit-text-fill-color: transparent; caret-color: var(--text-color); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.nb-body.marks-aligned .nb-editor::selection { background: transparent; color: transparent; -webkit-text-fill-color: transparent; }
+.nb-mirror .hl-selection { background: var(--selection); border-radius: 2px; }
+.nb-tools { flex: none; display: flex; gap: 2px; opacity: 0; transition: opacity .12s; }
+.nb-cell:hover .nb-tools, .nb-cell:focus-within .nb-tools { opacity: 1; }
+.nb-tool { padding: 2px 8px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-muted, #8a8d94); font: inherit; font-size: .75em; cursor: pointer; white-space: nowrap; }
+.nb-tool:hover { background: color-mix(in srgb, var(--text-color) 10%, transparent); color: var(--text-color); }
+.nb-result { flex: 1; min-width: 0; }
+.preview-content .nb-line { white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.preview-content .nb-line.is-warn { color: #d9a33c; }
+.preview-content .nb-line.is-error { color: #e5645d; }
+.preview-content .nb-line.is-value { color: var(--accent-color); }
+.preview-content .nb-line.is-empty { color: var(--text-muted, #8a8d94); font-style: italic; }
+@media (max-width: 720px) { .nb-tools { opacity: 1; flex-direction: column; } .nb-gutter { width: 36px; } }
+
+/* Cells in the live editor: run bar on the opening fence, output block right under the closing one */
+.live-host .cm-cellline-last { border-radius: 0; }
+.live-host .cm-cellbar { display: inline-flex; gap: 4px; margin-left: 12px; vertical-align: middle; font-family: var(--ui-font); font-size: 12px; line-height: 1; }
+.live-host .cm-cellbar button { display: inline-flex; align-items: center; justify-content: center; height: 22px; padding: 0 8px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-muted); font: inherit; cursor: pointer; }
+.live-host .cm-cellbar button:hover { background: color-mix(in srgb, var(--text-color) 10%, transparent); color: var(--text-color); }
+.live-host .cm-cellbar .cm-cellrun { width: 24px; padding: 0; border-radius: 50%; color: var(--accent-color); }
+.live-host .cm-cellbar .cm-cellrun .icon { width: 14px; height: 14px; fill: currentColor; }
+.live-host .cm-cellbar .cm-cellauto.is-on { color: var(--accent-color); }
+.live-host .cm-celloutput { margin: 0 0 10px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.live-host .cm-celloutput.nb-out { display: flex; padding: 8px 28px 10px 28px; border-top: 1px solid var(--border-color); background: var(--code-bg); font-family: var(--mono-font); font-size: .88em; line-height: 1.6; }
+.live-host .cm-celloutput .nb-line { margin: 0; padding: 0; background: transparent; border-radius: 0; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.live-host .cm-celloutput .nb-line.is-warn { color: #d9a33c; }
+.live-host .cm-celloutput .nb-line.is-error { color: #e5645d; }
+.live-host .cm-celloutput .nb-line.is-value { color: var(--accent-color); }
+.live-host .cm-celloutput .nb-line.is-empty { color: var(--text-muted); font-style: italic; }
+.nb-out.is-stale .nb-result { opacity: .55; }
+.nb-tool.is-on { color: var(--accent-color); }
+.nb-tool.is-on:hover { color: var(--accent-color); }
+.nb-out[hidden] { display: none; }
+
+/* Plugin manager (Settings → Плагины) */
+.plugin-manager { display: contents; }
+.plugin-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.plugin-version { margin-left: 6px; color: var(--text-muted); font-size: .85em; font-weight: 400; }
+.plugin-error { display: block; margin-top: 4px; color: #e5645d; font-size: .85em; overflow-wrap: anywhere; }
+.plugin-empty .setting-desc { margin: 0; }
+.tool-button.plugin-tool .icon { width: 16px; height: 16px; }
+
+/* Plugin buttons on the left rail; what does not fit goes into the "…" menu */
+.sidebar-plugin-buttons { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 6px; overflow: hidden; }
+.sidebar-plugin-buttons::before { content: ''; flex: none; width: 20px; height: 1px; margin-bottom: 5px; background: var(--border-color); }
+.sidebar-plugin-buttons[hidden] { display: none; }
+.sidebar-plugin-buttons .sidebar-button { flex: none; width: 36px; height: 36px; border-radius: var(--radius-lg); }
+.plugin-menu { bottom: auto; }
+.plugin-menu .check { color: var(--text-muted); }
+.plugin-menu .check .icon { width: 16px; height: 16px; }
+@media (max-width: 720px) { .sidebar-plugin-buttons { display: none; } }
+
+/* fgs.modal(): the dialog plugins use */
+.plugin-modal-back { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .5); }
+.plugin-modal { display: flex; flex-direction: column; max-height: 100%; border-radius: 14px; background: var(--card-bg); color: var(--text-color); box-shadow: 0 24px 64px var(--shadow-color); overflow: hidden; }
+.plugin-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 12px 8px 18px; }
+.plugin-modal-body { padding: 4px 18px 18px; overflow: auto; min-height: 0; }
+.plugin-modal-body :is(input[type="text"], input[type="search"], input[type="date"], textarea, select) { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--code-bg); color: inherit; font: inherit; }
+.plugin-modal-body button.pm-btn { height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-md); background: var(--active-bg); color: inherit; font: inherit; cursor: pointer; }
+.plugin-modal-body button.pm-btn:hover { background: var(--hover-color); }
+.plugin-modal-body button.pm-btn.primary { background: var(--accent-color); color: var(--accent-text); }
+.plugin-modal-body .pm-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.plugin-modal-body .pm-muted { color: var(--text-muted); font-size: 13px; }
+
+/* Plugin tabs: one element drawn by a plugin instead of the two text panes */
+.plugin-view { flex: 1; min-height: 0; min-width: 0; overflow: auto; border-radius: var(--radius-lg); background: var(--card-bg); }
+.plugin-view[hidden] { display: none; }
+.plugin-view-body { min-height: 100%; display: flex; flex-direction: column; }
+.workspace[data-plugin-view] .editor-wrapper, .workspace[data-plugin-view] .tools-dock, .workspace[data-plugin-view] .view-switch { display: none; }
+
+/* Plugin icons are one size wherever they appear, whatever the SVG says */
+.plugin-tool svg.icon { flex: none; width: 16px !important; height: 16px !important; }
+.sidebar-plugin-buttons .plugin-tool svg.icon { width: 20px !important; height: 20px !important; }
+.plugin-menu .check { flex: none; width: 20px; display: grid; place-items: center; }
+.plugin-menu .check svg.icon { width: 16px !important; height: 16px !important; }

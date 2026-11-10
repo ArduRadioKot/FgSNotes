@@ -1,0 +1,123 @@
+/* ===== Phone shell (mobile.js): a title bar, the note on the window itself, a floating glass dock, a notes drawer and
+   an actions sheet. Shapes: full for pills and round buttons, 20 for groups, 28 for the drawer and the sheet.
+   Depth is a half-pixel edge, never a blurred shadow. ===== */
+.m-header, .m-drawer, .m-backdrop, .m-sheet, .m-sheet-backdrop, .m-hidden-action { display: none; }
+@media (max-width: 720px) {
+    :root { --m-gap: 6px; --m-radius: 20px; --m-sheet: 28px; --m-open: 0; --m-edge: inset 0 0 0 .5px rgb(255 255 255 / .14); --m-ease: cubic-bezier(.2, .9, .3, 1); }
+    :root[data-theme="light"] { --m-edge: inset 0 0 0 .5px rgb(28 36 64 / .12); }
+    html.m-drawer-open { --m-open: 1; }
+    .workspace { position: relative; flex-direction: column; gap: var(--m-gap); padding: calc(env(safe-area-inset-top) + var(--m-gap)) calc(env(safe-area-inset-right) + var(--m-gap)) 0 calc(env(safe-area-inset-left) + var(--m-gap)); background: var(--window-bg); }
+    .editor-container { order: 1; flex: 1; min-height: 0; gap: 0; padding-bottom: max(env(safe-area-inset-bottom), var(--m-gap)); }
+    .document-bar, .editor-label, .panel-divider, .status-bar, .sidebar-toolbar .logo, .sidebar-main-buttons, .sidebar-bottom-buttons { display: none; }
+    .m-hidden-action { display: none !important; }
+
+    /* top: two round buttons and a quiet title between them */
+    .m-header { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; flex: none; height: 52px; margin-bottom: 2px; }
+    .m-icon { width: 44px; height: 44px; margin: 0 2px; border-radius: 50%; color: var(--text-color); background: color-mix(in srgb, var(--card-bg) 90%, transparent); box-shadow: inset 0 0 0 .5px var(--border-color); transition: transform .15s; }
+    .m-icon .icon { width: 22px; height: 22px; }
+    .m-icon:active { background: var(--hover-color); transform: scale(.92); }
+    .m-heading { display: grid; justify-items: center; min-width: 0; line-height: 1.2; }
+    .m-title { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
+    .m-sub { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+    /* the note is the page: no island behind it. --m-font follows a pinch (mobile.js) */
+    .editor-wrapper { gap: 0; border-radius: 0; background: transparent; }
+    .editor-column, .preview-column { border-radius: 0; background: transparent; }
+    #markdown-editor { padding: 10px 24px calc(96px + env(safe-area-inset-bottom)); font-size: var(--m-font, 17px) !important; line-height: 1.6 !important; }
+    .preview-content { padding: 10px 24px calc(104px + env(safe-area-inset-bottom)); font-size: var(--m-font, 17px) !important; }
+    .live-host .cm-scroller { padding-inline: 24px; }
+
+    /* bottom: a glass pill and a round glass button floating over the note; the text fades out under them */
+    .workspace::after { content: ''; position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: calc(84px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--window-bg) 82%); pointer-events: none; }
+    html.editing .workspace::after, html.kb-open .workspace::after, .workspace[data-plugin-view]::after { display: none; }
+    .sidebar-toolbar { position: absolute; z-index: 6; order: 2; left: calc(env(safe-area-inset-left) + var(--m-gap)); right: calc(env(safe-area-inset-right) + var(--m-gap)); bottom: 0; flex: none; width: auto; height: auto; flex-direction: row; align-items: center; justify-content: center; gap: 8px; padding: 0 0 max(env(safe-area-inset-bottom), 8px); background: transparent; border: 0; pointer-events: none; }
+    .sidebar-toolbar > * { pointer-events: auto; }
+    html.editing .sidebar-toolbar, html.kb-open .sidebar-toolbar { display: none; }
+    .m-pill, .m-view { background: color-mix(in srgb, var(--card-bg) 12%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.9); backdrop-filter: blur(18px) saturate(1.9); box-shadow: var(--m-edge); }
+    :root[data-theme="light"] :is(.m-pill, .m-view) { background: color-mix(in srgb, var(--card-bg) 22%, transparent); }
+    .m-pill { flex: none; display: flex; align-items: center; gap: 2px; height: 48px; padding: 0 4px; border-radius: 24px; }
+    .m-pill .sidebar-button { flex: none; width: 44px; height: 40px; max-width: none; border-radius: 20px; color: var(--text-color); }
+    .m-pill .sidebar-button .icon { width: 21px; height: 21px; }
+    .m-pill #ai-button .icon { width: 24px; height: 24px; }
+    .m-pill .sidebar-button:active { background: var(--hover-color); transform: scale(.94); }
+    .m-view { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: var(--text-color); transition: transform .15s; }
+    .m-view .icon { width: 21px; height: 21px; }
+    .m-view:active { transform: scale(.92); }
+
+    /* formatting toolbar: only while typing, a pill above the keyboard */
+    .tools-dock { position: static; padding: 0; display: none; }
+    html.editing .tools-dock, html.kb-open .tools-dock { display: block; padding-bottom: var(--m-gap); }
+    .editor-tools { width: 100%; gap: 2px; padding: 5px 8px; border: 0; border-radius: 26px; background: var(--card-bg); box-shadow: var(--m-edge); }
+    .tool-button { width: 44px; height: 42px; border-radius: 14px; }
+    .tool-group { padding: 0 2px; }
+
+    /* the notes drawer: revealed with clip-path so nothing sits outside the screen; --m-open follows the finger */
+    .m-backdrop, .m-sheet-backdrop { display: block; position: fixed; inset: 0; background: #0009; opacity: 0; visibility: hidden; transition: opacity .25s, visibility 0s linear .25s; }
+    .m-backdrop { z-index: 90; opacity: var(--m-open); }
+    .m-drawer { display: flex; flex-direction: column; position: fixed; z-index: 91; top: calc(env(safe-area-inset-top) + var(--m-gap)); bottom: max(env(safe-area-inset-bottom), var(--m-gap)); left: calc(env(safe-area-inset-left) + var(--m-gap)); width: min(86vw, 340px); overflow: hidden; border-radius: var(--m-sheet); background: var(--window-bg); box-shadow: inset 0 0 0 .5px var(--border-color); clip-path: inset(0 calc((1 - var(--m-open)) * 100%) 0 0 round var(--m-sheet)); visibility: hidden; transition: clip-path .34s var(--m-ease), visibility 0s linear .34s; }
+    html:is(.m-drawer-open, .m-dragging) :is(.m-backdrop, .m-drawer) { visibility: visible; transition-delay: 0s; }
+    html.m-dragging :is(.m-backdrop, .m-drawer, .m-sheet) { transition: none; }
+    html.m-drawer-open body { overflow: hidden; }
+    .m-drawer-head { display: flex; align-items: center; gap: 10px; padding: 18px 20px 10px; }
+    .m-drawer-head img { flex: none; border-radius: 8px; }
+    .m-drawer-head strong { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+    .m-count { margin-left: auto; padding: 2px 9px; border-radius: 999px; background: var(--hover-color); color: var(--text-muted); font-size: 12px; font-weight: 500; }
+    /* the notes list in the drawer: finger-sized rows; the pin button shows on pinned notes, a long press pins the rest */
+    .m-notes { margin: 0 12px; }
+    .nl { --nl-surface: var(--card-bg); }
+    .nl-search { height: 40px; border-radius: 20px; box-shadow: var(--m-edge); }
+    .nl-search .icon { width: 17px; height: 17px; }
+    .nl-search input { font-size: 16px; }
+    .nl-tag, .nl-sort, .nl-restore, .nl-clear { height: 32px; padding: 0 13px; border-radius: 16px; font-size: 13px; }
+    .nl-list { border-radius: var(--m-radius); }
+    .nl-open { min-height: 48px; padding: 9px 8px 9px 16px; }
+    .nl-item + .nl-item::before { left: 16px; }
+    .nl-title { font-size: 15px; letter-spacing: -.005em; }
+    .nl-snippet { flex-basis: 38%; opacity: .85; }
+    .nl-pin, .nl-close { width: 36px; height: 36px; }
+    .nl-item:not(.is-pinned) .nl-pin { display: none; }
+    :is(.nl-open, .nl-pin, .nl-close, .nl-tag, .nl-sort, .nl-restore, .nl-clear):active { background: var(--hover-color); }
+    .nl-empty { font-size: 14px; }
+    .m-drawer-foot { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 12px; }
+    .m-drawer-new, .m-drawer-round { height: 52px; border-radius: 26px; background: var(--card-bg); color: var(--text-color); box-shadow: var(--m-edge); }
+    .m-drawer-new { flex: 1; justify-content: flex-start; gap: 10px; padding: 0 18px; font-size: 15px; font-weight: 500; }
+    .m-drawer-round { flex: none; width: 52px; }
+    :is(.m-drawer-new, .m-drawer-round) .icon { width: 21px; height: 21px; }
+    :is(.m-drawer-new, .m-drawer-round):active { background: var(--hover-color); }
+
+    /* the actions sheet: three tiles for files, then grouped rows; it follows the finger when dragged down */
+    .m-sheet-backdrop { z-index: 92; }
+    html.m-sheet-open .m-sheet-backdrop { opacity: 1; visibility: visible; transition-delay: 0s; }
+    .m-sheet { display: flex; flex-direction: column; gap: 10px; position: fixed; z-index: 93; left: calc(env(safe-area-inset-left) + var(--m-gap)); right: calc(env(safe-area-inset-right) + var(--m-gap)); bottom: max(env(safe-area-inset-bottom), var(--m-gap)); max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; padding: 0 10px 12px; border-radius: var(--m-sheet); background: var(--window-bg); box-shadow: inset 0 0 0 .5px var(--border-color); transform: translateY(calc(100% + 40px)); visibility: hidden; transition: transform .32s var(--m-ease), visibility 0s linear .32s; }
+    html.m-sheet-open .m-sheet { transform: none; visibility: visible; transition-delay: 0s; }
+    .m-sheet-head { flex: none; position: relative; display: grid; place-items: center; height: 40px; margin-bottom: -6px; }
+    .m-grabber { width: 38px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-color) 28%, transparent); }
+    .m-sheet-close { position: absolute; right: 0; top: 6px; width: 30px; height: 30px; border-radius: 50%; background: var(--card-bg); color: var(--text-muted); }
+    .m-sheet-close .icon { width: 13px; height: 13px; }
+    .m-tiles { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .m-tile { flex-direction: column; justify-content: flex-start; gap: 8px; min-height: 76px; padding: 12px 6px 10px; border-radius: var(--m-radius); background: var(--card-bg); color: var(--text-color); font-size: 13px; line-height: 1.2; text-align: center; }
+    .m-tile .icon { width: 23px; height: 23px; color: var(--accent-color); }
+    .m-tile:active, .m-sheet-close:active { background: var(--hover-color); }
+    .m-group { flex: none; overflow: hidden; border-radius: var(--m-radius); background: var(--card-bg); }
+    .m-row { position: relative; width: 100%; justify-content: flex-start; gap: 16px; min-height: 52px; padding: 0 18px; background: transparent; color: var(--text-color); font-size: 16px; text-align: left; }
+    .m-row > .icon { flex: none; width: 22px; height: 22px; color: var(--text-muted); }
+    .m-row[data-sheet="ai"] > .icon { width: 26px; height: 26px; margin: -2px; }
+    .m-row span { flex: 1; min-width: 0; }
+    .m-row:not([hidden]) ~ .m-row::before { content: ''; position: absolute; top: 0; left: 56px; right: 0; height: 1px; background: var(--border-color); }
+    .m-row:active { background: var(--hover-color); }
+    .m-check { display: none; }
+    .m-check .icon { width: 20px; height: 20px; color: var(--accent-color); }
+    .m-row.is-on .m-check { display: block; }
+    .m-row.is-on > .icon { color: var(--accent-color); }
+    .ai-avatar .icon { width: 32px; height: 32px; }
+
+    /* settings: the same window as on desktop, filling the screen; fields are 16px so iOS never zooms into them */
+    .modal { padding: 0; }
+    .settings-window { width: 100%; height: 100%; max-height: none; border-radius: 0; flex-direction: column; padding: calc(env(safe-area-inset-top) + var(--m-gap)) var(--m-gap) max(env(safe-area-inset-bottom), var(--m-gap)); }
+    .settings-nav, .settings-main { border-radius: var(--m-radius); }
+    .settings-nav-item, .settings-nav-reset { min-height: 40px; font-size: 14px; }
+    .settings-main-body { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+    .setting-control select { font-size: 16px; height: 40px; }
+
+    @media (prefers-reduced-motion: reduce) { .m-sheet, .m-drawer, .m-backdrop, .m-sheet-backdrop, .m-icon, .m-view { transition: none; } }
+}

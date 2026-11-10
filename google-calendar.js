@@ -176,4 +176,4 @@ function isGoogleIcsUrl(address) {
     } catch { return false; }
 }
 
-module.exports = { createGoogleCalendar, fromGoogle, toGoogle, isGoogleIcsUrl, SCOPE };
+module.exports = { createGoogleCalendar, fromGoogle, toGoogle, isGoogleIcsUrl };

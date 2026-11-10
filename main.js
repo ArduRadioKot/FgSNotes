@@ -115,7 +115,6 @@ const lanSync = createSyncTransport({
 ipcMain.on('sync-reply', (event, { id, body }) => { const done = syncReplies.get(id); if (done) done(typeof body === 'string' ? body : null); });
 ipcMain.handle('sync-start', (event, identity) => lanSync.start(identity));
 ipcMain.handle('sync-stop', () => { lanSync.stop(); return lanSync.info(); });
-ipcMain.handle('sync-info', () => lanSync.info());
 ipcMain.handle('sync-peers', () => lanSync.peers());
 ipcMain.handle('sync-send', (event, { address, body }) => lanSync.send(address, String(body)));
 app.on('will-quit', () => lanSync.stop());
@@ -245,8 +244,7 @@ function pluginsDir() {
   return dir;
 }
 function registerPluginHandlers() {
-  for (const channel of ['plugin-read-builtin', 'plugins-list', 'plugin-read', 'plugin-install', 'plugin-remove', 'plugins-open', 'plugins-path']) ipcMain.removeHandler(channel);
-  ipcMain.handle('plugins-path', () => pluginsDir());
+  for (const channel of ['plugin-read-builtin', 'plugins-list', 'plugin-read', 'plugin-install', 'plugin-remove', 'plugins-open']) ipcMain.removeHandler(channel);
   ipcMain.handle('plugin-read-builtin', (event, file) => {
     if (!pluginName.test(String(file))) throw new Error(i18n.t('Неверное имя плагина'));
     return fs.readFileSync(path.join(__dirname, 'src', 'builtin-plugins', path.basename(file)), 'utf-8');

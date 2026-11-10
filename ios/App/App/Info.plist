@@ -66,6 +66,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.frogeesoft.fgsnotes.sync</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fgsnotes</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>FgSNotes connects to your computer on the local network to sync notes and to reach a local AI model.</string>
 	<key>NSAppTransportSecurity</key>

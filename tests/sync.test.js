@@ -73,3 +73,14 @@ test('a note closed on one device closes on the other unless it was edited there
 test('old tombstones are dropped', () => {
     assert.equal(merge([{ uid: 'gone', deleted: true, updatedAt: Date.now() - 40 * 86400000, ver: {} }], []).length, 0);
 });
+
+test('the QR link carries the address and the code, and odd links are refused', () => {
+    const { makeLink, parseLink } = require('../src/sync');
+    const link = makeLink('192.168.1.20:47391', 'ABCD-EFGH-JKLM-NPQR');
+    assert.deepEqual(parseLink(link), { peer: '192.168.1.20:47391', code: 'ABCD-EFGH-JKLM-NPQR' });
+    assert.equal(parseLink('fgsnotes://sync?peer=192.168.1.20&code=short'), null);
+    assert.equal(parseLink('fgsnotes://sync?peer=evil.example/path&code=ABCDEFGH'), null);
+    assert.equal(parseLink('fgsnotes://other?peer=192.168.1.20&code=ABCDEFGH'), null);
+    assert.equal(parseLink('https://sync?peer=192.168.1.20&code=ABCDEFGH'), null);
+    assert.equal(parseLink('not a link'), null);
+});

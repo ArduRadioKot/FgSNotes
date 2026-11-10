@@ -1,7 +1,14 @@
-# Builds the desktop apps and publishes them as a GitHub release when a version tag is pushed:
+# Builds the desktop apps and the Android app and publishes them as a GitHub release when a version tag is pushed:
 #   git tag v2.8.0 && git push origin v2.8.0
 # The tag must match "version" in package.json. A tag with a suffix (v2.8.0-beta) becomes a prerelease, which the
 # in-app updater does not offer. Running this by hand from the Actions tab only builds: the files stay in the run.
+#
+# Android needs a signing key, or the APK could not be installed over the previous one. Add these repository secrets
+# (Settings, Secrets and variables, Actions); without them the Android step is skipped and the release has no APK:
+#   ANDROID_KEYSTORE           the keystore file in base64:  base64 -i release.jks | pbcopy
+#   ANDROID_KEYSTORE_PASSWORD  its password
+#   ANDROID_KEY_ALIAS          the key name inside it
+#   ANDROID_KEY_PASSWORD       the password of that key
 name: Release
 
 on:
@@ -33,6 +40,10 @@ jobs:
             exit 1
           fi
       - run: npm test
+      # The same app in a real browser: storage, the notes list, phone gestures.
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
 
   build:
     needs: test
@@ -67,8 +78,63 @@ jobs:
             dist/*.AppImage
             dist/*.tar.gz
 
+  android:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Look for the signing key
+        id: key
+        run: |
+          if [ -n "$ANDROID_KEYSTORE" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No ANDROID_KEYSTORE secret, so the Android app is not built"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.key.outputs.present
+      - uses: actions/setup-node@v7
+        if: steps.key.outputs.present
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v6
+        if: steps.key.outputs.present
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Build the signed APK
+        if: steps.key.outputs.present
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run web:build
+          node scripts/sync-version.js
+          npx cap sync android
+          echo "$ANDROID_KEYSTORE" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          cd android
+          # GitHub masks the secret values wherever they would show up in the log.
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.jks" \
+            -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
+          rm "$RUNNER_TEMP/release.jks"
+          version=$(node -p "require('../package.json').version")
+          mkdir -p ../dist
+          cp app/build/outputs/apk/release/app-release.apk "../dist/FgSNotes-$version.apk"
+      - uses: actions/upload-artifact@v7
+        if: steps.key.outputs.present
+        with:
+          name: android
+          retention-days: 7
+          if-no-files-found: error
+          path: dist/*.apk
+
   release:
-    needs: build
+    needs: [build, android]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:

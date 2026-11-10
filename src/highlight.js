@@ -1,5 +1,5 @@
 // Offline syntax highlighting: a small tokenizer for code blocks plus a Markdown highlighter for the editor.
-// Output is escaped HTML with <span class="tok-*"> wrappers, coloured by the theme tokens in styles.css.
+// Output is escaped HTML with <span class="tok-*"> wrappers, coloured by the theme tokens in styles/base.css.
 (function (root) {
     const escapeHTML = text => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const words = list => `\\b(?:${list.split(' ').join('|')})\\b`;

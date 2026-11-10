@@ -79,7 +79,18 @@
         return [...result.values()].filter(note => !note.deleted || (note.updatedAt || 0) > cutoff);
     }
 
-    const api = { merge, compareVersions, hashNote, hashText };
+    // The link a computer shows as a QR code so a phone can join without typing: fgsnotes://sync?peer=...&code=...
+    const makeLink = (peer, code) => `fgsnotes://sync?peer=${encodeURIComponent(peer)}&code=${encodeURIComponent(code)}`;
+    function parseLink(link) {
+        let url;
+        try { url = new URL(String(link)); } catch { return null; }
+        if (url.protocol !== 'fgsnotes:' || url.hostname !== 'sync') return null;
+        const peer = (url.searchParams.get('peer') || '').trim(), code = (url.searchParams.get('code') || '').trim().toUpperCase();
+        if (!/^[0-9a-z.:[\]-]{3,80}$/i.test(peer) || code.replace(/[^A-Z0-9]/g, '').length < 8 || code.length > 64) return null;
+        return { peer, code };
+    }
+
+    const api = { merge, compareVersions, hashNote, hashText, makeLink, parseLink };
     if (typeof window === 'undefined' || typeof document === 'undefined') return api;
 
     // ---------- in the app ----------
@@ -274,6 +285,14 @@
         if (desktop) $('sync-address').textContent = info && info.addresses && info.addresses.length
             ? info.addresses.map(address => (info.port && info.port !== DEFAULT_PORT ? `${address}:${info.port}` : address)).join(', ')
             : (settings.enabled ? t('Нет подключения к сети') : t('Появится, когда синхронизация включена'));
+        // The QR code for a phone: this computer's address and the sync code in one link.
+        const address = desktop && info && info.addresses && info.addresses[0];
+        const link = address && normalizeCode(settings.code) ? makeLink(info.port && info.port !== DEFAULT_PORT ? `${address}:${info.port}` : address, settings.code) : '';
+        $('sync-row-qr').hidden = !link;
+        if (!link) qrShown = false;
+        $('sync-qr').hidden = !qrShown;
+        $('sync-qr-toggle').textContent = t(qrShown ? 'Скрыть' : 'Показать QR-код');
+        if (qrShown && $('sync-qr').dataset.link !== link) drawQr(link);
         $('sync-peer-desc').textContent = desktop
             ? t('Необязательно. Компьютеры в одной сети находят друг друга сами')
             : t('Адрес виден в настройках FgSNotes на компьютере, в разделе «Синхронизация»');
@@ -293,8 +312,37 @@
         $('sync-copy').disabled = !normalizeCode(settings.code);
     }
 
+    let qrShown = false, qrLoading = null;
+    function drawQr(link) {
+        if (!qrLoading) qrLoading = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'vendor/qrcode/qrcode.js';
+            script.onload = resolve;
+            script.onerror = () => { qrLoading = null; reject(new Error('qrcode.js failed to load')); };
+            document.head.appendChild(script);
+        });
+        qrLoading.then(() => {
+            const code = window.qrcode(0, 'M');
+            code.addData(link);
+            code.make();
+            $('sync-qr').innerHTML = code.createSvgTag({ cellSize: 4, margin: 4, scalable: true });
+            $('sync-qr').dataset.link = link;
+        }, () => {});
+    }
+    // Phone: the link from the QR code opens the app. Joining sends the notes to that computer, so the person confirms.
+    function adoptLink(link) {
+        const found = parseLink(link);
+        if (!found || !window.confirm(t('Синхронизировать заметки с компьютером {address}?', { address: found.peer }))) return;
+        settings = { ...settings, enabled: true, code: found.code, peer: found.peer };
+        lastError = ''; seen.clear();
+        saveSettings();
+        applyState();
+        if (pluginOn) api.openSettings();
+    }
+
     function bindPanel() {
         if (!$('sync-status')) return;
+        $('sync-qr-toggle').addEventListener('click', () => { qrShown = !qrShown; render(); });
         $('sync-enabled').addEventListener('change', event => {
             settings.enabled = event.target.checked;
             if (settings.enabled && !normalizeCode(settings.code)) settings.code = newCode();
@@ -332,8 +380,14 @@
 
     function start() {
         if (desktop) window.electron.onSyncRequest(answer);
+        const app = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+        if (app && platform().native) {
+            app.addListener('appUrlOpen', event => window.FgsStore.restored.then(() => adoptLink(event.url)));
+            app.getLaunchUrl().then(launch => { if (launch && launch.url) window.FgsStore.restored.then(() => adoptLink(launch.url)); }).catch(() => {});
+        }
         bindPanel();
-        applyState();
+        render();
+        window.FgsStore.restored.then(applyState);        // not before the saved notes are in place
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();

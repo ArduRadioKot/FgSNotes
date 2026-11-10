@@ -1,0 +1,61 @@
+/* Accent colour picker */
+.accent-picker { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: 280px; }
+.accent-swatch, .accent-custom { position: relative; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; transition: transform .15s; }
+.accent-swatch { background: var(--c, var(--accent-base, #22b0c4)); }
+.accent-default { background: conic-gradient(from 45deg, var(--accent-base, #22b0c4) 0 50%, color-mix(in srgb, var(--text-color) 22%, var(--card-bg)) 50% 100%); }
+.accent-custom { display: block; overflow: hidden; background: conic-gradient(#e5534b, #f0883e, #e9c346, #4cb35f, #21aabe, #3574f0, #8b5cf6, #e5538f, #e5534b); }
+.accent-custom input { position: absolute; inset: -6px; width: 40px; height: 40px; opacity: 0; cursor: pointer; }
+.accent-swatch:active, .accent-custom:active { transform: scale(.9); }
+.accent-swatch.is-active, .accent-custom.is-active { box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--text-color); }
+.accent-swatch:focus-visible, .accent-custom:focus-within { outline: 2px solid var(--accent-color); outline-offset: 3px; }
+@media (max-width: 720px) {
+    .setting-item.accent-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .accent-picker { justify-content: flex-start; max-width: none; gap: 12px; }
+    .accent-swatch, .accent-custom { width: 36px; height: 36px; }
+}
+
+/* Custom themes: the list and its two buttons share a row; the glass note is for phones only */
+.theme-control { gap: 8px; }
+.theme-control .button-secondary { min-height: 30px; padding: 4px 12px; }
+.native-only { display: none; }
+html[data-native] .native-only { display: block; }
+@media (max-width: 720px) {
+    .theme-control { flex-wrap: wrap; justify-content: flex-end; }
+    .theme-control .button-secondary { min-height: 40px; font-size: 14px; }
+}
+[hidden] { display: none !important; }
+@media (max-width: 720px) {
+    .setting-control.theme-control { width: 100%; }
+    .theme-control select { flex: 1 1 100%; max-width: none; }
+    .theme-control .button-secondary { flex: 1; }
+}
+
+/* Old-format themes paint #markdown-editor with a solid background, which would hide the highlight layer under the text. */
+.editor-surface #markdown-editor { background: transparent !important; }
+.editor-surface.is-highlighted #markdown-editor { color: transparent !important; -webkit-text-fill-color: transparent !important; }
+
+/* Quick theme menu: opened from the palette button (desktop stripe) or the drawer (phone) */
+.theme-menu { position: fixed; z-index: 120; left: 54px; bottom: 44px; width: 260px; max-height: min(70vh, 520px); overflow-y: auto; padding: 6px; background: var(--card-bg); border-radius: 14px; box-shadow: 0 16px 48px var(--shadow-color), inset 0 0 0 1px var(--border-color); scrollbar-width: thin; }
+.theme-menu[hidden] { display: none; }
+.theme-menu-title { padding: 10px 10px 4px; font-size: 12px; font-weight: 500; color: var(--text-muted); }
+.theme-menu button { width: 100%; justify-content: flex-start; gap: 8px; min-height: 34px; padding: 0 10px 0 6px; border-radius: 8px; background: transparent; color: var(--text-color); font-size: 13px; text-align: left; }
+.theme-menu button:hover, .theme-menu button:focus-visible { background: var(--hover-color); }
+.theme-menu button[aria-checked="true"] { background: var(--active-bg); }
+.theme-menu .check { flex: none; width: 18px; display: grid; place-items: center; color: var(--accent-color); }
+.theme-menu .check .icon { width: 14px; height: 14px; }
+.theme-menu .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.theme-menu .theme-menu-more { margin-top: 4px; padding-left: 12px; color: var(--text-muted); }
+@media (max-width: 720px) {
+    .theme-menu { left: 8px; right: 8px; width: auto; bottom: calc(env(safe-area-inset-bottom) + 8px); max-height: 62vh; padding: 8px; border-radius: 22px; }
+    .theme-menu button { min-height: 46px; font-size: 16px; border-radius: 12px; }
+    .theme-menu-title { padding: 12px 12px 6px; font-size: 13px; }
+    #theme-button { display: none; }
+}
+
+/* LaTeX (KaTeX) in the preview */
+.math-block { margin: 1em 0; padding: 4px 0; overflow-x: auto; overflow-y: hidden; text-align: center; }
+.math:not(.math-done), .math-block:not(.math-done) { font-family: var(--font-mono, ui-monospace, monospace); font-size: .92em; color: var(--text-muted); }
+.math-block:not(.math-done) { white-space: pre-wrap; text-align: left; }
+.math.math-error, .math-block.math-error { color: var(--danger-color, #e5534b); }
+.math .katex { font-size: 1.06em; }
+.math-block .katex-display { margin: 0; }

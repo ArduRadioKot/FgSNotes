@@ -123,7 +123,7 @@
             $('mcp-status').textContent = t('Ключ заменён. Подключите ассистентов заново');
         });
         window.addEventListener('fgs-language', render);
-        apply();
+        window.FgsStore.restored.then(apply);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();

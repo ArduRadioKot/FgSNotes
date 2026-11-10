@@ -54,5 +54,11 @@
     // Editing never scrolls the page itself (the editor scrolls inside), so any offset left by the keyboard is a glitch.
     if (native) window.addEventListener('scroll', () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });
 
-    window.fgsPlatform = { native, name, saveText, isMobile: () => 'mobile' in root.dataset };
+    // A short tap of the vibration motor under a gesture: 'light', 'medium' or 'heavy'. Nothing happens off a phone.
+    function haptic(kind = 'light') {
+        const motor = plugin('Haptics');
+        if (motor) motor.impact({ style: kind.toUpperCase() }).catch(() => {});
+    }
+
+    window.fgsPlatform = { native, name, saveText, haptic, isMobile: () => 'mobile' in root.dataset };
 })();

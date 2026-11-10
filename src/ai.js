@@ -61,7 +61,6 @@
     const format = number => number.toLocaleString('ru-RU');
     // Some models put their reasoning inline as <think>…</think>: split it from the answer.
     const splitInline = raw => { let thinking = ''; const answer = raw.replace(/<think>([\s\S]*?)(?:<\/think>|$)\s*/g, (all, thought) => { thinking += thought; return ''; }).replace(/^\s+/, ''); return { thinking, answer }; };
-    const stripThinking = text => text.replace(/<think>[\s\S]*?<\/think>\s*/g, '').replace(/<think>[\s\S]*$/, '').replace(/^\s+/, '');
     // Answers are rendered from model output: images are dropped so a prompt-injected reply cannot make the app load remote URLs.
 const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g, '$1');
     const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);

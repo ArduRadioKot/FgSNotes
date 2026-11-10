@@ -1,0 +1,42 @@
+/* ===== Notes list (notes.js): search, tags, order, pinned notes and the recently closed ones.
+   In the "Все заметки" window on a computer and in the drawer on a phone. ===== */
+.notes-window { width: min(520px, 100%); height: min(640px, 100%); padding: 16px; gap: 12px; }
+.notes-head { flex: none; display: flex; align-items: center; justify-content: space-between; }
+.notes-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.nl { --nl-surface: color-mix(in srgb, var(--text-color) 5%, var(--card-bg)); flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.nl-search { flex: none; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 17px; background: var(--nl-surface); color: var(--text-muted); }
+.nl-search .icon { flex: none; width: 15px; height: 15px; }
+.nl-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text-color); font: inherit; font-size: 14px; -webkit-appearance: none; appearance: none; -webkit-user-select: text; user-select: text; }
+.nl-search input::placeholder { color: var(--text-muted); }
+.nl-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.nl-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent-color); }
+.nl-bar { flex: none; display: flex; align-items: center; gap: 8px; }
+.nl-tags { flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.nl-tags::-webkit-scrollbar { display: none; }
+.nl-tag, .nl-sort, .nl-restore, .nl-clear { flex: none; height: 28px; padding: 0 11px; border-radius: 14px; background: var(--nl-surface); color: var(--text-muted); font-size: 12.5px; white-space: nowrap; }
+.nl-tag.is-on { background: color-mix(in srgb, var(--accent-color) 18%, transparent); color: var(--text-color); }
+.nl-sort { margin-left: auto; }
+:is(.nl-tag, .nl-sort, .nl-restore, .nl-clear):hover { color: var(--text-color); }
+.nl-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scrollbar-width: thin; }
+.nl-list { flex: none; margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--radius-lg); background: var(--nl-surface); }
+.nl-empty { margin: 24px 0; text-align: center; color: var(--text-muted); font-size: 13px; }
+.nl-item { position: relative; display: flex; align-items: center; min-width: 0; padding-right: 4px; }
+.nl-item + .nl-item::before { content: ''; position: absolute; top: 0; left: 14px; right: 0; height: 1px; background: var(--border-color); }
+.nl-item.is-active { background: color-mix(in srgb, var(--accent-color) 14%, transparent); }
+.nl-open { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-start; gap: 10px; min-height: 40px; padding: 6px 8px 6px 14px; border-radius: 0; background: transparent; color: var(--text-color); text-align: left; }
+button.nl-open:hover { background: var(--hover-color); }
+.nl-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
+.nl-snippet { flex: 0 1 40%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; text-align: right; color: var(--text-muted); }
+.nl-pin, .nl-close { flex: none; width: 30px; height: 30px; border-radius: 50%; background: transparent; color: var(--text-muted); }
+:is(.nl-pin, .nl-close):hover { background: var(--hover-color); color: var(--text-color); }
+:is(.nl-pin, .nl-close) .icon { width: 14px; height: 14px; }
+.nl-item.is-pinned .nl-pin { color: var(--accent-color); }
+.nl-item.is-pinned .nl-pin .icon { fill: currentColor; }
+.nl-close:disabled { opacity: 0; pointer-events: none; }
+.nl-trash > summary { display: flex; align-items: center; gap: 8px; padding: 6px 4px; cursor: pointer; list-style: none; color: var(--text-muted); font-size: 12.5px; font-weight: 500; }
+.nl-trash > summary::-webkit-details-marker { display: none; }
+.nl-trash > summary::before { content: ''; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
+.nl-trash[open] > summary::before { transform: rotate(45deg); }
+.nl-count { margin-left: auto; font-style: normal; font-variant-numeric: tabular-nums; }
+.nl-note { margin: 8px 4px; color: var(--text-muted); font-size: 12px; }
+.nl-restore { margin-right: 2px; color: var(--text-color); }

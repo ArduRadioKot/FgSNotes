@@ -152,7 +152,7 @@ src/math.js             LaTeX formulas (KaTeX, src/vendor/katex)
 src/ai.js               AI assistant panel and its settings
 src/shortcuts.js        Keyboard shortcuts: actions, defaults, the settings editor
 src/about.js            About page, external links
-src/styles.css          Application styles
+src/styles/            Application styles, one file per area
 tests/                  Automated tests
 ```
 

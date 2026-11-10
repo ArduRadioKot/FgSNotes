@@ -179,4 +179,4 @@ function connectionSnippets({ port, token, execPath, script, connectionFile }) {
     };
 }
 
-module.exports = { createMcpServer, connectionSnippets, newToken, allowedOrigin, TOOLS, VERSIONS, MCP_PORT };
+module.exports = { createMcpServer, connectionSnippets, newToken, allowedOrigin, TOOLS, VERSIONS };

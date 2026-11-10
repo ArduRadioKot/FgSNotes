@@ -401,6 +401,6 @@ async function chat(options, onDelta, signal, onThinking) {
 }
 
 module.exports = {
-    SUGGESTIONS, PROGRAMS, safeModel, argumentsFor, buildPrompt, cleanError, unknownFlag,
+    safeModel, argumentsFor, buildPrompt,
     createClaudeParser, createCodexParser, findIn, listModels, chat, fallbacks
 };
