@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         select.dispatchEvent(new Event('change', { bubbles: true }));
         if (kind === 'theme') removeThemeButton.hidden = !String(select.value).startsWith('custom:');
         // On a phone the menu is a bottom sheet: close it after a choice. On desktop it stays open to compare themes.
-        if (matchMedia('(max-width: 720px)').matches) { closeThemeMenu(); return; }
+        if (window.fgsPlatform.touchShell.matches) { closeThemeMenu(); return; }
         renderThemeMenu();
         themeMenu.querySelector(`[data-kind="${kind}"][data-value="${CSS.escape(value)}"]`)?.focus({ preventScroll: true });
     });

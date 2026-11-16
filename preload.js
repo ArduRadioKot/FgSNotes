@@ -95,6 +95,11 @@ contextBridge.exposeInMainWorld(
       stop: () => ipcRenderer.invoke('mcp-stop'),
       newToken: () => ipcRenderer.invoke('mcp-new-token'),
       onCall: (handler) => { mcpHandler = handler; }
+    },
+    tuiCommand: {
+      status: () => ipcRenderer.invoke('tui-command-status'),
+      install: () => ipcRenderer.invoke('tui-command-install'),
+      remove: () => ipcRenderer.invoke('tui-command-remove')
     }
   }
 );

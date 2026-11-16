@@ -64,7 +64,7 @@
 .plugin-menu { bottom: auto; }
 .plugin-menu .check { color: var(--text-muted); }
 .plugin-menu .check .icon { width: 16px; height: 16px; }
-@media (max-width: 720px) { .sidebar-plugin-buttons { display: none; } }
+@media (max-width: 720px), ((hover: none) and (pointer: coarse)) { .sidebar-plugin-buttons { display: none; } }
 
 /* fgs.modal(): the dialog plugins use */
 .plugin-modal-back { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 16px; background: var(--overlay); }

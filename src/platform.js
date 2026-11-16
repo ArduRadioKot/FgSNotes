@@ -11,11 +11,22 @@
     if (native) root.dataset.native = '';
     // Desktop: does the system blur what is behind the window? (decided by the main process)
     if (window.electron) root.dataset.nativeBlur = window.electron.nativeBlur ? 'on' : 'off';
-    // Phone layout: any native shell, or a small touch screen in a browser.
-    const mobileQuery = matchMedia('(max-width: 720px) and (pointer: coarse)');
-    const syncMobile = () => { if (native || mobileQuery.matches) root.dataset.mobile = ''; else delete root.dataset.mobile; };
+    // Phone shell: a narrow window, or a screen that only has a finger (a tablet). A mouse stays on the desktop layout.
+    // The installed iPad app reports a fine pointer, so `native` counts as the shell even when the query does not match.
+    const touchQuery = matchMedia('(max-width: 720px), ((hover: none) and (pointer: coarse))');
+    const touchShell = {
+        get matches() { return native || touchQuery.matches; },
+        addEventListener: (type, fn, opts) => touchQuery.addEventListener(type, fn, opts),
+        removeEventListener: (type, fn, opts) => touchQuery.removeEventListener(type, fn, opts)
+    };
+    const syncMobile = () => {
+        if (native || (touchQuery.matches && matchMedia('(pointer: coarse)').matches)) root.dataset.mobile = '';
+        else delete root.dataset.mobile;
+    };
     syncMobile();
-    mobileQuery.addEventListener('change', syncMobile);
+    touchQuery.addEventListener('change', syncMobile);
+    // The shell stylesheet is a media query. On a native tablet that query misses, so the same rules are applied directly.
+    if (native && !touchQuery.matches) liftTouchShell();
 
     // Saving: WebViews cannot download blobs, so write a file and hand it to the system share sheet ("Save to Files" etc.).
     async function saveText(fileName, text) {
@@ -60,5 +71,23 @@
         if (motor) motor.impact({ style: kind.toUpperCase() }).catch(() => {});
     }
 
-    window.fgsPlatform = { native, name, saveText, haptic, isMobile: () => 'mobile' in root.dataset };
+    window.fgsPlatform = { native, name, saveText, haptic, touchShell, isMobile: () => 'mobile' in root.dataset };
+
+    // Copies the touch-shell rules out of their media query so a native tablet follows them.
+    function liftTouchShell() {
+        const blocks = [];
+        for (const sheet of document.styleSheets) {
+            let rules;
+            try { rules = sheet.cssRules; } catch { continue; }
+            for (const rule of rules) {
+                const text = rule.conditionText || '';
+                if (!text.includes('720px') || !text.includes('pointer: coarse') || rule.matches) continue;
+                blocks.push([...rule.cssRules].map(item => item.cssText).join('\n'));
+            }
+        }
+        if (!blocks.length) return;
+        const tag = document.createElement('style');
+        tag.textContent = blocks.join('\n');
+        document.head.appendChild(tag);
+    }
 })();

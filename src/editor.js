@@ -139,6 +139,34 @@ document.addEventListener('DOMContentLoaded', () => {
     new MutationObserver(syncMirror).observe(editor, { attributes: true, attributeFilter: ['style'] });
     new MutationObserver(() => { renderHighlight(); updatePreview(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-code-highlight'] });
     editor.addEventListener('scroll', syncMirror);
+    const editorColumn = document.querySelector('.editor-column');
+    let scrollLock = false;
+    // The pane that actually scrolls: the textarea, or the live editor's scroller when that one is on.
+    function activeEditor() {
+        const live = document.querySelector('.live-host .cm-scroller');
+        return document.documentElement.dataset.live !== undefined && live ? live : editor;
+    }
+    function scrollFraction(el) {
+        const span = el.scrollHeight - el.clientHeight;
+        return span > 0 ? el.scrollTop / span : 0;
+    }
+    function copyScroll(from, to) {
+        const span = to.scrollHeight - to.clientHeight;
+        const next = span > 0 ? scrollFraction(from) * span : 0;
+        if (Math.abs(to.scrollTop - next) < 1) return;
+        to.scrollTop = next;
+    }
+    function syncSplitScroll(from, to) {
+        if (scrollLock || workspace.dataset.view !== 'split' || !from || !to) return;
+        scrollLock = true;
+        copyScroll(from, to);
+        scrollLock = false;
+    }
+    editorColumn.addEventListener('scroll', event => {
+        const source = activeEditor();
+        if (event.target === source) syncSplitScroll(source, preview);
+    }, true);
+    preview.addEventListener('scroll', () => syncSplitScroll(preview, activeEditor()));
 
     const tabBar = document.querySelector('.tab-bar');
     const newTabButton = document.querySelector('.new-tab-button');
@@ -183,19 +211,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function updatePreview() {
         // Typing inside a notebook cell already updated the note; rebuilding would throw away the cell being edited.
-        const keepCells = window.FgsNotebook && window.FgsNotebook.takeSkip();
-        if (!keepCells) {
-            preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>${t('Здесь оживут ваши идеи')}</h2><p>${t('Начните писать в редакторе, и результат появится здесь.')}</p></div>`;
-            if (document.documentElement.dataset.codeHighlight !== 'off') {
-                preview.querySelectorAll('pre code').forEach(block => {
-                    block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
-                });
+        const linked = workspace.dataset.view === 'split';
+        if (linked) scrollLock = true;
+        try {
+            const keepCells = window.FgsNotebook && window.FgsNotebook.takeSkip();
+            if (!keepCells) {
+                preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>${t('Здесь оживут ваши идеи')}</h2><p>${t('Начните писать в редакторе, и результат появится здесь.')}</p></div>`;
+                if (document.documentElement.dataset.codeHighlight !== 'off') {
+                    preview.querySelectorAll('pre code').forEach(block => {
+                        block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
+                    });
+                }
+                if (window.renderMath) window.renderMath(preview);
+                if (window.FgsNotebook && documents[activeDocumentIndex]) window.FgsNotebook.render(preview, documents[activeDocumentIndex].id);
             }
-            if (window.renderMath) window.renderMath(preview);
-            if (window.FgsNotebook && documents[activeDocumentIndex]) window.FgsNotebook.render(preview, documents[activeDocumentIndex].id);
-        }
-        if (window.FgsPlugins) { window.FgsPlugins.emit('preview', preview); window.FgsPlugins.emit('change', editor.value); }
-        renderHighlight();
+            if (window.FgsPlugins) { window.FgsPlugins.emit('preview', preview); window.FgsPlugins.emit('change', editor.value); }
+            renderHighlight();
+            if (linked) copyScroll(activeEditor(), preview);
+        } finally { if (linked) scrollLock = false; }
         const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
         const characters = Array.from(editor.value).length;
         const countWord = (value, forms) => (window.FgsI18n && window.FgsI18n.language === 'en' ? t(value === 1 ? forms[0] : forms[2]) : plural(value, forms));
@@ -283,6 +316,84 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isView(closing)) { noteChanged(); listChanged(); }
         tabBar.querySelector('.active .tab-select').focus();
     }
+    let ignoreTabClick = false;
+    function clearDropMarks() {
+        tabBar.querySelectorAll('.is-drop-before, .is-drop-after').forEach(node => node.classList.remove('is-drop-before', 'is-drop-after'));
+    }
+    // Index in the current row where a tab dragged to clientX should be inserted (after the last one when past the end).
+    function dropIndex(clientX) {
+        const tabs = [...tabBar.querySelectorAll('.tab-item')];
+        for (let i = 0; i < tabs.length; i++) {
+            const rect = tabs[i].getBoundingClientRect();
+            if (clientX < rect.left + rect.width / 2) return i;
+        }
+        return tabs.length;
+    }
+    // Notes stay ahead of plugin views, the same way a new note is inserted.
+    function clampDest(from, to) {
+        const dest = from < to ? to - 1 : to;
+        const firstView = documents.findIndex(isView);
+        if (firstView < 0) return dest;
+        return isView(documents[from]) ? Math.max(dest, firstView) : Math.min(dest, firstView - 1);
+    }
+    function markDrop(from, clientX) {
+        clearDropMarks();
+        const dest = clampDest(from, dropIndex(clientX));
+        if (dest === from || dest < 0) return;
+        const tabs = [...tabBar.querySelectorAll('.tab-item')];
+        const gap = dest < from ? dest : dest + 1;
+        if (gap >= tabs.length) tabs[tabs.length - 1].classList.add('is-drop-after');
+        else tabs[gap].classList.add('is-drop-before');
+    }
+    function moveTab(from, dest) {
+        if (dest === from || dest < 0 || dest >= documents.length) return;
+        saveCurrentDocument();
+        const [doc] = documents.splice(from, 1);
+        documents.splice(dest, 0, doc);
+        if (activeDocumentIndex === from) activeDocumentIndex = dest;
+        else if (from < activeDocumentIndex && dest >= activeDocumentIndex) activeDocumentIndex--;
+        else if (from > activeDocumentIndex && dest <= activeDocumentIndex) activeDocumentIndex++;
+        renderTabs();
+        persistWorkspace();
+        listChanged();
+    }
+    function bindTabDrag(tab, index) {
+        tab.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || event.target.closest('.close-tab')) return;
+            const startX = event.clientX, startY = event.clientY, from = index;
+            let dragging = false;
+            const onMove = move => {
+                if (!dragging) {
+                    if (Math.hypot(move.clientX - startX, move.clientY - startY) < 6) return;
+                    dragging = true;
+                    tab.classList.add('is-dragging');
+                    tabBar.classList.add('is-reordering');
+                    try { tab.setPointerCapture(move.pointerId); } catch { /* the pointer is already gone */ }
+                }
+                markDrop(from, move.clientX);
+                const bar = tabBar.getBoundingClientRect();
+                if (move.clientX < bar.left + 28) tabBar.scrollLeft -= 14;
+                else if (move.clientX > bar.right - 28) tabBar.scrollLeft += 14;
+            };
+            const finish = up => {
+                tab.removeEventListener('pointermove', onMove);
+                tab.removeEventListener('pointerup', finish);
+                tab.removeEventListener('pointercancel', finish);
+                clearDropMarks();
+                tab.classList.remove('is-dragging');
+                tabBar.classList.remove('is-reordering');
+                if (!dragging) return;
+                const dest = clampDest(from, dropIndex(up.clientX));
+                if (dest === from || dest < 0) return;
+                ignoreTabClick = true;
+                moveTab(from, dest);
+                setTimeout(() => { ignoreTabClick = false; }, 0);
+            };
+            tab.addEventListener('pointermove', onMove);
+            tab.addEventListener('pointerup', finish);
+            tab.addEventListener('pointercancel', finish);
+        });
+    }
     function renderTabs() {
         tabBar.replaceChildren(tabGlass);
         documents.forEach((doc, index) => {
@@ -297,7 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
             title.className = 'tab-title';
             title.textContent = doc.title;
             select.append(title);
-            select.addEventListener('click', () => switchTab(index));
+            select.addEventListener('click', () => { if (ignoreTabClick) { ignoreTabClick = false; return; } switchTab(index); });
+            bindTabDrag(tab, index);
             select.addEventListener('keydown', event => {
                 if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
                 event.preventDefault();
@@ -386,6 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewLens.place(from);
         document.querySelectorAll('[data-format]').forEach(button => { button.disabled = view === 'preview'; });
         localStorage.setItem('editorView', view);
+        if (workspace.dataset.view === 'split') syncSplitScroll(activeEditor(), preview);
     }
     document.querySelectorAll('.view-switch button').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
     document.querySelectorAll('[data-format]').forEach(button => {

@@ -90,7 +90,7 @@ button:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 
 .editor-container { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--gap); }
 .sidebar-toolbar { width: 40px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 4px 0; }
 .logo { display: flex; align-items: center; justify-content: center; }
-.logo-icon { display: block; width: 28px; height: 28px; object-fit: cover; border-radius: var(--radius-md); }
+.logo-icon { display: block; width: 28px; height: 22px; object-fit: contain; }
 .sidebar-main-buttons, .sidebar-bottom-buttons { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .sidebar-bottom-buttons { margin-top: auto; }
 .sidebar-toolbar .sidebar-button { width: 36px; height: 36px; border-radius: var(--radius-lg); }
@@ -105,21 +105,26 @@ button:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 
 .button-secondary { background: transparent; border: 1px solid var(--border-color); }
 .button-secondary:hover { background: var(--hover-color); }
 
-/* Island: tab strip */
-.document-bar { gap: 8px; padding: 0 8px 0 4px; display: flex; align-items: center; min-width: 0; flex-shrink: 0; height: 40px; background: var(--header-bg); border-radius: var(--radius-lg); }
+/* Tab row sits on the window, like the status bar. Only the open tab and the mode switch carry a surface. */
+.document-bar { gap: 8px; padding: 0 4px; display: flex; align-items: center; min-width: 0; flex-shrink: 0; height: 40px; background: transparent; }
 .tab-bar { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; height: 100%; overflow-x: auto; scrollbar-width: none; padding: 0 4px; }
 .tab-bar::-webkit-scrollbar { display: none; }
-.tab-item { flex: 0 0 auto; display: flex; align-items: center; position: relative; max-width: 230px; height: 30px; border-radius: var(--radius-md); color: var(--text-muted); }
+.tab-item { flex: 0 0 auto; display: flex; align-items: center; position: relative; max-width: 230px; height: 30px; border-radius: var(--radius-md); color: var(--text-muted); cursor: grab; touch-action: pan-y; }
+.tab-item.is-dragging { opacity: .45; z-index: 2; }
+.tab-bar.is-reordering, .tab-bar.is-reordering .tab-item { cursor: grabbing; }
+.tab-item.is-drop-before::before, .tab-item.is-drop-after::after { content: ''; position: absolute; top: 5px; bottom: 5px; width: 2px; border-radius: 1px; background: var(--accent-color); pointer-events: none; }
+.tab-item.is-drop-before::before { left: -2px; }
+.tab-item.is-drop-after::after { right: -2px; }
 .tab-item:hover { background: var(--hover-color); color: var(--text-color); }
-.tab-item.active { background: var(--active-bg); color: var(--text-color); }
+.tab-item.active { background: var(--card-bg); color: var(--text-color); }
 .tab-select { height: 100%; min-width: 0; padding: 0 4px 0 10px; background: transparent; font-size: 13px; }
 .tab-select .icon { width: 16px; height: 16px; color: var(--text-muted); }
 .tab-title { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.close-tab { width: 20px; height: 20px; margin-right: 5px; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); padding: 4px; }
+.close-tab { width: 20px; height: 20px; margin-right: 5px; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); padding: 4px; cursor: pointer; }
 .close-tab .icon { width: 12px; height: 12px; }
 .close-tab:hover { background: var(--border-color); color: var(--text-color); }
 .new-tab-button { align-self: center; margin: 0 2px; }
-.view-switch { display: flex; align-items: center; flex-shrink: 0; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--code-bg); }
+.view-switch { display: flex; align-items: center; flex-shrink: 0; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--card-bg); }
 .view-switch button { height: 26px; background: transparent; border-radius: var(--radius-sm); color: var(--text-muted); padding: 0 10px; font-size: 12px; white-space: nowrap; gap: 6px; }
 .view-switch .icon { width: 14px; height: 14px; }
 .view-switch button:hover { color: var(--text-color); background: var(--hover-color); }
@@ -263,7 +268,7 @@ body.resizing { cursor: col-resize; user-select: none; }
 .update-modal[hidden] { display: none; }
 .update-dialog { width: min(460px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 16px; padding: 20px; border-radius: var(--radius-xl); background: var(--card-bg); color: var(--text-color); box-shadow: var(--edge); }
 .update-head { flex: none; display: flex; align-items: center; gap: 14px; }
-.update-head img { flex: none; border-radius: var(--radius-lg); }
+.update-head img { flex: none; width: 44px; height: 32px; object-fit: contain; }
 .update-head h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
 .update-dialog-version { margin: 3px 0 0; color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .update-dialog-version:empty, .update-dialog-status:empty { display: none; }

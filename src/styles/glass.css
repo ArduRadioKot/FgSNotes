@@ -19,7 +19,6 @@
     background: color-mix(in srgb, var(--lg-tint) calc(var(--lg-substrate) * 100%), transparent);
     box-shadow: none;
 }
-[data-liquid-glass]:not([data-liquid-glass="off"]) .document-bar,
 [data-liquid-glass]:not([data-liquid-glass="off"]) .editor-column,
 [data-liquid-glass]:not([data-liquid-glass="off"]) .preview-column,
 [data-liquid-glass]:not([data-liquid-glass="off"]) .ai-panel {
@@ -73,7 +72,6 @@
 
 @media (prefers-reduced-transparency: reduce) {
     [data-liquid-glass]:not([data-liquid-glass="off"]) .workspace.lg,
-    [data-liquid-glass]:not([data-liquid-glass="off"]) .document-bar,
     [data-liquid-glass]:not([data-liquid-glass="off"]) .editor-column,
     [data-liquid-glass]:not([data-liquid-glass="off"]) .preview-column { background: var(--card-bg); }
 }

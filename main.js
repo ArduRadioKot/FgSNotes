@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, nativeTheme, shell, safeStorage, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const { execFileSync } = require('child_process');
 const ollama = require('./ollama');
 const providers = require('./providers');
 const agents = require('./agents');
@@ -10,6 +12,7 @@ const { createSyncTransport } = require('./sync-server');
 const { createGoogleCalendar, isGoogleIcsUrl } = require('./google-calendar');
 const { createMcpServer, connectionSnippets, newToken: newMcpToken } = require('./mcp-server');
 const i18n = require('./src/i18n');
+const tuiCommand = require('./tui-command');
 
 function useLanguage(code) {
   const lang = code === 'en' || code === 'ru' ? code : (/^ru/i.test(app.getLocale() || '') ? 'ru' : 'en');
@@ -45,6 +48,41 @@ ipcMain.handle('get-app-info', () => ({
   platform: `${process.platform} ${process.arch}`,
   nativeBlur
 }));
+
+function tuiEditorPath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'tui.js')
+    : path.join(app.getAppPath(), 'tui.js');
+}
+function tuiPathEnv() {
+  if (process.platform !== 'win32') return process.env.PATH || '';
+  try {
+    const out = execFileSync('reg', ['query', 'HKCU\\Environment', '/v', 'Path'], { encoding: 'utf8' });
+    const line = out.split(/\r?\n/).find(item => /Path\s+REG_/i.test(item));
+    return line ? line.replace(/^.*REG_\w+\s+/, '').trim() : '';
+  } catch { return ''; }
+}
+function tuiOptions() {
+  return {
+    fs,
+    platform: process.platform,
+    home: os.homedir(),
+    envPath: tuiPathEnv(),
+    execPath: process.execPath,
+    tuiPath: tuiEditorPath(),
+    tmpFile: path.join(os.tmpdir(), 'fgsnotes-command'),
+    elevate: process.platform === 'darwin' ? command => {
+      execFileSync('osascript', ['-e', `do shell script ${JSON.stringify(command)} with administrator privileges`]);
+    } : null,
+    setPath: process.platform === 'win32' ? value => {
+      execFileSync('reg', ['add', 'HKCU\\Environment', '/v', 'Path', '/t', 'REG_EXPAND_SZ', '/d', value, '/f']);
+    } : null
+  };
+}
+ipcMain.handle('tui-command-status', () => tuiCommand.status(tuiOptions()));
+ipcMain.handle('tui-command-install', () => tuiCommand.install(tuiOptions()));
+ipcMain.handle('tui-command-remove', () => tuiCommand.remove(tuiOptions()));
+
 ipcMain.on('open-external', (event, url) => {
   let parsed;
   try { parsed = new URL(String(url)); } catch { return; }

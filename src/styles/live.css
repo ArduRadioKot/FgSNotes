@@ -55,9 +55,12 @@ html[data-live-preview="off"] .view-switch button[data-view="live"] { display: n
 
 /* Phone: the page must never zoom or shift. iOS zooms into fields smaller than 16px and keeps the zoom, so every field is 16px. */
 html { touch-action: manipulation; }
-@media (max-width: 720px) {
+@media (max-width: 720px), ((hover: none) and (pointer: coarse)) {
     select, input, textarea, .cm-content { font-size: max(16px, 1em); }
     .live-host .cm-content { font-size: inherit; }
 }
-html[data-native], html[data-native] body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+/* Only the body is fixed. Fixing <html> too makes iPad drop taps on the menu buttons. */
+html[data-native] { height: 100%; overflow: hidden; }
+html[data-native] body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }
 html[data-native] .workspace { height: 100%; }
+html[data-native] :is(button, a, label, summary, select, [role="button"], [role="tab"]) { -webkit-user-select: auto; user-select: auto; }

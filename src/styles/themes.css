@@ -45,7 +45,7 @@ html[data-native] .native-only { display: block; }
 .theme-menu .check .icon { width: 14px; height: 14px; }
 .theme-menu .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .theme-menu .theme-menu-more { margin-top: 4px; padding-left: 12px; color: var(--text-muted); }
-@media (max-width: 720px) {
+@media (max-width: 720px), ((hover: none) and (pointer: coarse)) {
     .theme-menu { left: 8px; right: 8px; width: auto; bottom: calc(env(safe-area-inset-bottom) + 8px); max-height: 62vh; padding: 8px; border-radius: 22px; }
     .theme-menu button { min-height: 46px; font-size: 16px; border-radius: 12px; }
     .theme-menu-title { padding: 12px 12px 6px; font-size: 13px; }

@@ -209,3 +209,56 @@ test('phone: settings open as a list of sections, a section opens its page and B
     assert.deepEqual(errors, []);
     await context.close();
 });
+
+test('NotebookLM note: the dialog lists formats and the open note, then closes', async () => {
+    const { context, page, errors } = await open();
+    await page.click('#lm-button');
+    await page.waitForSelector('.lm-window');
+    assert.equal(await page.locator('.lm-format').count(), 6);
+    assert.equal(await page.getAttribute('.lm-format.is-on', 'data-kind'), 'briefing');
+    assert.equal(await page.locator('.lm-source input:checked').count(), 1);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.isVisible('.lm-window'), false);
+    assert.deepEqual(errors, []);
+    await context.close();
+});
+
+test('split view scrolls the note and the preview together', async () => {
+    const { context, page, errors } = await open();
+    await page.click('.view-switch button[data-view="split"]');
+    const lines = ['START', ...Array.from({ length: 80 }, (_, index) => 'line ' + index), 'END'];
+    await page.fill('#markdown-editor', lines.join('\n'));
+    await page.waitForFunction(() => document.getElementById('preview').textContent.includes('END'));
+    const tops = () => page.evaluate(() => {
+        const editor = document.getElementById('markdown-editor');
+        const preview = document.getElementById('preview');
+        const live = document.querySelector('.live-host .cm-scroller');
+        const source = document.documentElement.dataset.live !== undefined && live ? live : editor;
+        return {
+            editor: source.scrollTop,
+            preview: preview.scrollTop,
+            editorMax: source.scrollHeight - source.clientHeight,
+            previewMax: preview.scrollHeight - preview.clientHeight
+        };
+    });
+    let at = await tops();
+    assert.ok(at.editorMax > 50 && at.previewMax > 50);
+    await page.evaluate(() => { document.getElementById('markdown-editor').scrollTop = document.getElementById('markdown-editor').scrollHeight; });
+    at = await tops();
+    assert.ok(at.editor > at.editorMax - 2);
+    assert.ok(at.preview > at.previewMax * 0.9);
+    await page.evaluate(() => { document.getElementById('preview').scrollTop = 0; });
+    at = await tops();
+    assert.ok(at.preview < 2 && at.editor < 2);
+    await page.evaluate(() => { document.documentElement.dataset.livePreview = 'on'; });
+    await page.waitForSelector('.live-host .cm-scroller');
+    await page.evaluate(() => { document.querySelector('.live-host .cm-scroller').scrollTop = document.querySelector('.live-host .cm-scroller').scrollHeight; });
+    at = await tops();
+    assert.ok(at.editor > at.editorMax * 0.9);
+    assert.ok(at.preview > at.previewMax * 0.9);
+    await page.evaluate(() => { document.getElementById('preview').scrollTop = 0; });
+    at = await tops();
+    assert.ok(at.preview < 2 && at.editor < 2);
+    assert.deepEqual(errors, []);
+    await context.close();
+});

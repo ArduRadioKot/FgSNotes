@@ -446,6 +446,36 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
         return model;
     }
 
+    // One answer outside the chat, for the NotebookLM note. Chunks stay on their own id, so a chat can run after this finishes.
+    let noteRun = false;
+    async function complete({ system, user, onDelta }) {
+        if (running) throw new Error(tr('Дождитесь ответа чата или остановите его.'));
+        const id = uid();
+        noteRun = true;
+        if (panel) setRunning(id); else running = id;
+        let raw = '';
+        const off = api.onAiChunk(chunk => {
+            if (chunk.id !== id || !chunk.delta) return;
+            raw += chunk.delta;
+            if (onDelta) onDelta(splitInline(raw).answer);
+        });
+        try {
+            const model = await ensureModel();
+            const result = await api.aiChat({
+                id, provider: providerId(), url: serverUrl(), model, think: false,
+                messages: [{ role: 'system', content: system }, { role: 'user', content: user }]
+            });
+            if (result && result.aborted) { const error = new Error(tr('Остановлено')); error.aborted = true; throw error; }
+            if (!result || !result.ok) throw new Error((result && result.error) || tr('Модель ничего не вернула.'));
+            return splitInline(raw).answer.trim();
+        } finally {
+            off();
+            noteRun = false;
+            if (running === id) { if (panel) setRunning(null); else running = null; }
+        }
+    }
+    window.FgsAi = { privacy, complete, abortNote: () => { if (noteRun && running) api.aiAbort(running); } };
+
     // --- messages -----------------------------------------------------------------------------------
     function modelMessages() {
         const history = chat.messages.filter(message => message.role === 'user' || message.content).slice(-HISTORY_LIMIT);

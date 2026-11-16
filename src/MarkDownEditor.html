@@ -58,6 +58,14 @@
           ></button>
           <button
             class="sidebar-button icon-button ai-only"
+            id="lm-button"
+            title="Заметка NotebookLM"
+            aria-label="Заметка NotebookLM"
+            aria-haspopup="dialog"
+            data-icon="book"
+          ></button>
+          <button
+            class="sidebar-button icon-button ai-only"
             id="ai-button"
             title="Чат (Ctrl / ⌘ J)"
             aria-label="Чат"
@@ -911,6 +919,13 @@
                   <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/releases/latest" data-external>Обновления</a>
                   <a class="button-secondary" href="https://github.com/ArduRadioKot/FgSNotes/issues/new" data-external>Сообщить об ошибке</a>
                 </div>
+                <div class="about-tui" id="about-tui" hidden>
+                  <p class="about-tui-status" id="about-tui-status" data-i18n-skip></p>
+                  <div class="about-links">
+                    <button type="button" class="button-secondary" id="about-tui-install" data-i18n="Поставить команду в терминал">Поставить команду в терминал</button>
+                    <button type="button" class="button-secondary" id="about-tui-remove" data-i18n="Убрать команду из терминала" hidden>Убрать команду из терминала</button>
+                  </div>
+                </div>
               </div>
             </section>
           </div>
@@ -942,6 +957,7 @@
     <script src="ai-setup.js"></script>
     <script src="ai-device.js"></script>
     <script src="ai.js"></script>
+    <script src="notebooklm.js"></script>
     <script src="about.js"></script>
     <script src="shortcuts.js"></script>
     <script src="find.js"></script>

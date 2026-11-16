@@ -57,7 +57,7 @@
 
     // --- plugin buttons: the left rail, with an overflow menu --------------------------------------------------------------------
     const buttons = [];                 // { file, title, icon, run } in the order plugins registered them
-    const phone = matchMedia('(max-width: 720px)');
+    const phone = window.fgsPlatform.touchShell;
     let rail = null, menu = null, layoutFrame = 0, resizeWatcher = null;
     // Every plugin icon ends up the same size: a custom SVG loses its own width/height, gets the app's icon class and a 16x16 grid if it has none.
     const iconMarkup = icon => {
@@ -124,11 +124,17 @@
         closeMenu();
         const bar = document.querySelector('.editor-tools');
         if (!buttons.length) { if (rail) rail.hidden = true; return; }
+        // Calendar and Exildraw sit with the top actions. The other plugins stay in the rail under them.
+        const pinned = buttons.filter(entry => entry.file === 'calendar.js' || entry.file === 'exildraw.js');
+        const rest = buttons.filter(entry => entry.file !== 'calendar.js' && entry.file !== 'exildraw.js');
         if (phone.matches) {          // the rail is a bottom pill on a phone: plugin buttons go to the formatting bar
             if (rail) rail.hidden = true;
-            if (bar) buttons.forEach(entry => bar.appendChild(railButton(entry, 'tool-button')));
+            if (bar) [...pinned, ...rest].forEach(entry => bar.appendChild(railButton(entry, 'tool-button')));
             return;
         }
+        const main = document.querySelector('.sidebar-main-buttons');
+        if (main) pinned.forEach(entry => main.appendChild(railButton(entry, 'sidebar-button icon-button')));
+        if (!rest.length) { if (rail) rail.hidden = true; return; }
         if (!rail) {
             const toolbar = document.querySelector('.sidebar-toolbar');
             if (!toolbar) return;
@@ -142,15 +148,15 @@
         rail.hidden = false;
         // 36px buttons with a 4px gap; the separator on top takes 12px.
         const capacity = Math.max(1, Math.floor((rail.clientHeight - 12 + 4) / 40));
-        const direct = buttons.length <= capacity ? buttons : buttons.slice(0, capacity - 1);
+        const direct = rest.length <= capacity ? rest : rest.slice(0, capacity - 1);
         for (const entry of direct) rail.appendChild(railButton(entry, 'sidebar-button icon-button'));
-        if (direct.length < buttons.length) {
-            const rest = buttons.slice(direct.length);
-            const more = railButton({ title: `Ещё плагины (${rest.length})`, icon: 'more', keepMenu: true, run() {} }, 'sidebar-button icon-button');
+        if (direct.length < rest.length) {
+            const overflow = rest.slice(direct.length);
+            const more = railButton({ title: `Ещё плагины (${overflow.length})`, icon: 'more', keepMenu: true, run() {} }, 'sidebar-button icon-button');
             more.classList.add('plugin-more');
             more.setAttribute('aria-haspopup', 'menu');
             more.setAttribute('aria-expanded', 'false');
-            more.addEventListener('click', event => { event.stopPropagation(); if (menu && !menu.hidden) closeMenu(); else openMenu(more, rest); });
+            more.addEventListener('click', event => { event.stopPropagation(); if (menu && !menu.hidden) closeMenu(); else openMenu(more, overflow); });
             rail.appendChild(more);
         }
     }

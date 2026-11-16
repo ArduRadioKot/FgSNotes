@@ -4,9 +4,9 @@
 // swipe the title sideways to change note, tap it to jump to the top; drag the sheet down, swipe the dock up to open it;
 // pinch the text to resize it; double-tap in reading mode to edit; swipe the formatting bar down to hide the keyboard.
 (function () {
-    const query = matchMedia('(max-width: 720px)');
+    const query = window.fgsPlatform.touchShell;
     const FONT_KEY = 'fgsnotes.mobile.font', FONT_MIN = 16, FONT_MAX = 26;      // under 16px iOS zooms into the field
-    const TARGETS = { new: '#new-file-button', open: '#open-file-button', save: '#save-file-button', settings: '#settings-button', theme: '#theme-button', ai: '#ai-button' };
+    const TARGETS = { new: '#new-file-button', open: '#open-file-button', save: '#save-file-button', settings: '#settings-button', theme: '#theme-button', ai: '#ai-button', lm: '#lm-button' };
     let built = false;
 
     function el(tag, className, html) {
@@ -67,10 +67,12 @@
         // --- title bar -------------------------------------------------------------------------
         const header = el('header', 'm-header');
         const menuButton = el('button', 'm-icon', icon('menu'));
+        menuButton.type = 'button';
         menuButton.setAttribute('aria-label', 'Документы');
         const heading = el('div', 'm-heading', '<strong class="m-title" data-i18n-skip></strong><span class="m-sub" data-i18n-skip></span>');
         const title = heading.querySelector('.m-title'), sub = heading.querySelector('.m-sub');
         const moreButton = el('button', 'm-icon', icon('more'));
+        moreButton.type = 'button';
         moreButton.setAttribute('aria-label', 'Действия');
         moreButton.setAttribute('aria-haspopup', 'dialog');
         header.append(menuButton, heading, moreButton);
@@ -101,12 +103,13 @@
             <div class="m-tiles">${tile('new', 'plus', 'Новая заметка')}${tile('open', 'folder', 'Открыть файл')}${tile('save', 'save', 'Сохранить файл')}</div>
             <div class="m-group">${row('view', 'eye', 'Режим чтения')}</div>
             <div class="m-group m-group-plugins" hidden></div>
-            <div class="m-group">${row('ai', 'sparkles', 'Чат')}${row('theme', 'palette', 'Тема оформления')}${row('settings', 'settings', 'Настройки')}</div>`;
+            <div class="m-group">${row('lm', 'book', 'Заметка NotebookLM')}${row('ai', 'sparkles', 'Чат')}${row('theme', 'palette', 'Тема оформления')}${row('settings', 'settings', 'Настройки')}</div>`;
         document.body.append(sheetBackdrop, sheet, backdrop, drawer);
 
         // --- bottom dock: a pill with the main actions and a round reading toggle ---------------
         const bar = $('.sidebar-toolbar');
         const docsButton = el('button', 'sidebar-button icon-button', icon('documents'));
+        docsButton.type = 'button';
         docsButton.setAttribute('aria-label', 'Документы');
         const newButton = $('#new-file-button');
         newButton.innerHTML = icon('plus');
@@ -160,7 +163,9 @@
             const viewRow = sheet.querySelector('[data-sheet="view"]');
             viewRow.classList.toggle('is-on', reading);
             viewRow.setAttribute('aria-pressed', String(reading));
-            sheet.querySelector('[data-sheet="ai"]').hidden = root.dataset.aiAvailable !== 'on';
+            const aiOn = root.dataset.aiAvailable === 'on';
+            sheet.querySelector('[data-sheet="ai"]').hidden = !aiOn;
+            sheet.querySelector('[data-sheet="lm"]').hidden = !aiOn;
             // Plugins live in the formatting bar, which shows only while typing; here they are always one tap away.
             const entries = window.FgsPlugins ? window.FgsPlugins.buttons() : [];
             const group = sheet.querySelector('.m-group-plugins');

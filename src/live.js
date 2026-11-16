@@ -6,7 +6,7 @@
     const textarea = document.getElementById('markdown-editor');
     const surface = document.querySelector('.editor-surface');
     if (!textarea || !surface) return;
-    const phone = matchMedia('(max-width: 720px)');
+    const phone = window.fgsPlatform.touchShell;
     let live = null, host = null, styleWatcher = null, loading = null;
 
     // The CodeMirror bundle is large and only the live view needs it, so it is fetched on first use.
