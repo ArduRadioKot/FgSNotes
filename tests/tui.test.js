@@ -167,32 +167,35 @@ test('editor opens a file, finds a word, saves and asks before quitting', () => 
     fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('tabs, formatting, commands and the frog behind an empty note', () => {
+test('tabs, formatting, commands and the frog on an empty note', () => {
     const app = createApp({ lang: 'ru' });
     const empty = app.layout(80, 24);
     assert.equal(empty.caption, 'С чего начнём?');
     assert.equal(empty.face, '(o.o)');
+    assert.equal(empty.badge, 'Редактор');
     const drawn = paint(empty, 80, 24);
-    assert.match(drawn, /38;5;156/);
+    const plain = drawn.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '');
+    assert.match(drawn, /38;5;156m/);
     assert.match(drawn, /38;5;230/);
-    assert.match(drawn, /38;5;24/);
-    assert.doesNotMatch(drawn, /2;38;5;/);
+    assert.match(plain, /[▀▄█]{8}/);
+    assert.match(plain, /С чего начнём\?/);
+    assert.match(plain, /Ctrl-O\s+открыть файл/);
+    assert.match(plain, /\(o\.o\)/);
+    assert.match(plain, /РЕДАКТОР/);
     const count = (rows, cols) => {
         let n = 0;
-        for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) if (pixel(row, col, rows, cols)) n++;
+        for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) if (pixel(row, col, rows, cols, empty.welcome)) n++;
         return n;
     };
-    const squeezed = count(12, 36);
-    const fitted = count(30, 80);
-    const stretched = count(48, 160);
-    assert.ok(squeezed < fitted && fitted < stretched);
+    assert.ok(count(6, 30) < count(12, 30) && count(12, 30) < count(24, 80));
 
     app.press({ name: 'b', ctrl: true });
     const written = app.layout(80, 24);
     assert.match(written.rows.map(row => row.text).join(''), /\*\*текст\*\*/);
-    const behind = paint(written, 80, 24);
-    assert.match(behind, /2;38;5;22/);
-    assert.doesNotMatch(behind, /38;5;156/);
+    assert.equal(written.welcome, null);
+    const behind = paint(written, 80, 24).replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '');
+    assert.doesNotMatch(behind, /[▀▄█]/);
+    assert.match(behind, /\(O\.O\)/);
 
     app.press({ name: 'n', ctrl: true });
     app.press({ name: 'x', text: 'x' });
@@ -222,6 +225,43 @@ test('tabs, formatting, commands and the frog behind an empty note', () => {
     app.press({ name: '1', text: '1' });
     app.press({ name: 'enter' });
     assert.match(app.layout(40, 12).status, /Стр 1/);
+});
+
+test('emoji, CJK and tabs keep every painted row as wide as the terminal', () => {
+    const { textWidth } = require('../tui/width');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fgs-tui-'));
+    const file = path.join(dir, 'wide.md');
+    fs.writeFileSync(file, '# Тест 🐸 эмодзи\n\n日本語のテキスト и русский\n\tтаб\n\n| A | Б |\n|---|---|\n| 🐸 | 日本 |\n');
+    const strip = text => text.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '');
+    for (const view of [[], [{ name: 'f2' }], [{ name: 'e', ctrl: true }]]) {
+        const app = createApp({ lang: 'ru', files: [file], configFile: path.join(dir, 'config.json') });
+        view.forEach(key => app.press(key));
+        app.press({ name: 'down' }); app.press({ name: 'down' }); app.press({ name: 'end' });
+        for (const cols of [70, 40]) {
+            const rows = paint(app.layout(cols, 12), cols, 12).split('\r');
+            assert.ok(rows.every(row => textWidth(strip(row)) === cols), `${cols} columns`);
+            assert.ok(rows.every(row => !row.includes('\t')));
+        }
+        if (!view.length) {
+            const row = paint(app.layout(40, 12), 40, 12).split('\r').find(line => line.includes('\x1b[7m\x1b[1m'));
+            assert.ok(row, 'the cursor stays on screen');
+        }
+    }
+    const table = previewText('| A | Б |\n|---|---|\n| 🐸 | 日本 |\n', 40).map(line => line.text).filter(line => /[│┌├└]/.test(line));
+    assert.equal(table.length, 5);
+    assert.equal(new Set(table.map(textWidth)).size, 1);
+});
+
+test('Ctrl-E jumps to the preview and back to the view it left', () => {
+    const app = createApp({ lang: 'ru' });
+    const views = [];
+    const step = key => { app.press(key); views.push(app.layout(80, 24).view); };
+    step({ name: 'e', ctrl: true });
+    step({ name: 'e', ctrl: true });
+    step({ name: 'f2' });
+    step({ name: 'e', ctrl: true });
+    step({ name: 'e', ctrl: true });
+    assert.deepEqual(views, ['preview', 'editor', 'split', 'preview', 'split']);
 });
 
 test('a selection stays on the lines it covers', () => {

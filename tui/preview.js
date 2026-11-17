@@ -2,6 +2,7 @@
 const { parseMarkdown } = require('../src/markdown');
 const { highlightCode } = require('../src/highlight');
 const { paintStyle, htmlToRuns } = require('./syntax');
+const { textWidth, clipText } = require('./width');
 
 const VOID = new Set(['input', 'img', 'br', 'hr', 'wbr']);
 const BLOCK = new Set(['p', 'pre', 'ul', 'ol', 'blockquote', 'table', 'hr', 'div', 'nav', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
@@ -121,9 +122,10 @@ function wrapRuns(runs, width, kind) {
         if (run.text === '\n') { flat.push({ br: true }); continue; }
         for (const ch of run.text) flat.push({ ch, style: run.style });
     }
-    if (!flat.some(item => item.br) && flat.length <= limit) return [runsToLine(runs, kind)];
+    if (!flat.some(item => item.br) && flat.reduce((sum, item) => sum + textWidth(item.ch), 0) <= limit) return [runsToLine(runs, kind)];
     const lines = [];
     let line = [];
+    const lineWidth = () => line.reduce((sum, item) => sum + textWidth(item.ch), 0);
     const commit = count => {
         const slice = line.slice(0, count);
         while (slice.length && slice[slice.length - 1].ch === ' ') slice.pop();
@@ -138,7 +140,7 @@ function wrapRuns(runs, width, kind) {
             continue;
         }
         line.push(item);
-        if (line.length > limit) {
+        if (line.length > 1 && lineWidth() > limit) {
             let space = -1;
             for (let i = 0; i < line.length - 1; i++) if (line[i].ch === ' ') space = i;
             if (space > 0) commit(space);
@@ -247,16 +249,16 @@ function clipRuns(runs, max) {
     const out = [];
     for (const run of runs) {
         if (left <= 0) break;
-        if (run.text.length <= left) { out.push(run); left -= run.text.length; continue; }
-        const text = run.text.slice(0, left);
-        out.push({ text: left > 1 ? text.slice(0, -1) + '…' : text, style: run.style });
+        const size = textWidth(run.text);
+        if (size <= left) { out.push(run); left -= size; continue; }
+        out.push({ text: left > 1 ? clipText(run.text, left - 1) + '…' : clipText(run.text, left), style: run.style });
         left = 0;
     }
     return out.length ? out : [{ text: '', style: '' }];
 }
 
 function padRuns(runs, width) {
-    const size = runs.reduce((sum, run) => sum + run.text.length, 0);
+    const size = runs.reduce((sum, run) => sum + textWidth(run.text), 0);
     if (size >= width) return runs;
     return runs.concat([{ text: ' '.repeat(width - size), style: '' }]);
 }
@@ -294,7 +296,7 @@ function renderTable(node, width) {
         widths[col] = 1;
         for (const row of cells) {
             const text = (row[col] || []).reduce((sum, run) => sum + run.text, '');
-            if (text.length > widths[col]) widths[col] = text.length;
+            if (textWidth(text) > widths[col]) widths[col] = textWidth(text);
         }
     }
     const overhead = cols + 1 + cols * 2;

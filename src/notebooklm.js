@@ -260,7 +260,7 @@
             <div class="lm-layout">
                 <section class="lm-col lm-sources-pane">
                     <header class="lm-col-head"><h3 class="lm-col-title" data-col="sources"></h3><span class="lm-source-count" data-i18n-skip>0</span></header>
-                    <div class="lm-drop" tabindex="0"><span class="lm-drop-mark" aria-hidden="true">${icon('plus')}</span><span class="lm-drop-label"></span></div>
+                    <div class="lm-drop" role="button" tabindex="0"><span class="lm-drop-mark" aria-hidden="true">${icon('plus')}</span><span class="lm-drop-label"></span></div>
                     <div class="lm-actions">${iconButton('files', 'plus')}${iconButton('notes', 'book')}</div>
                     <div class="lm-sources"></div>
                     <div class="lm-picker" hidden>
@@ -372,7 +372,7 @@
                 element.querySelector('h2').textContent = boardTitle();
                 tab.setTitle(boardTitle());
                 element.querySelector('.lm-lead').textContent = tr('Перетащите файлы сюда. Открытые заметки можно добавить позже: при создании вкладки они не подключаются.');
-                element.querySelector('.lm-drop-label').textContent = tr('Перетащите файлы .md и .txt');
+                element.querySelector('.lm-drop-label').textContent = tr('Перетащите файлы .md и .txt или нажмите, чтобы выбрать');
                 element.querySelector('[data-col="sources"]').textContent = tr('Источники');
                 element.querySelector('[data-col="chat"]').textContent = tr('Чат');
                 element.querySelector('[data-col="studio"]').textContent = tr('Студия');
@@ -588,7 +588,7 @@
                     return;
                 }
                 if (event.target.closest('[data-lm="model"]')) { if (window.FgsAi.openModelList) window.FgsAi.openModelList(event.target.closest('[data-lm="model"]')); }
-                else if (event.target.closest('[data-lm="files"]')) pickFiles();
+                else if (event.target.closest('[data-lm="files"], .lm-drop')) { if (!state.busy) pickFiles(); }
                 else if (event.target.closest('[data-lm="notes"]')) openPicker();
                 else if (event.target.closest('[data-lm="cancel"]')) closePicker();
                 else if (event.target.closest('[data-lm="confirm"]')) confirmNotes();
@@ -617,6 +617,11 @@
                 if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); ask(event.currentTarget.value); }
             });
             const drop = element.querySelector('.lm-drop');
+            drop.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                if (!state.busy) pickFiles();
+            });
             let depth = 0;
             element.addEventListener('dragenter', event => {
                 if (!hasFiles(event)) return;

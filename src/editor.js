@@ -226,6 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
                 if (window.renderMath) window.renderMath(preview);
+                if (document.documentElement.dataset.tasks !== 'off') {
+                    preview.querySelectorAll('.todo-item > input[type="checkbox"]').forEach((box, index) => { box.disabled = false; box.dataset.task = String(index); });
+                }
                 if (window.FgsNotebook && documents[activeDocumentIndex]) window.FgsNotebook.render(preview, documents[activeDocumentIndex].id);
             }
             if (window.FgsPlugins) { window.FgsPlugins.emit('preview', preview); window.FgsPlugins.emit('change', editor.value); }
@@ -239,6 +242,30 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('character-count').textContent = `${characters} ${countWord(characters, ['символ', 'символа', 'символов'])}`;
         updateCursor();
     }
+    // Where each "- [ ]" box sits in the note, in the order the preview draws them. Code blocks and formulas are skipped, as the preview skips them.
+    function taskMarks(text) {
+        const found = [];
+        let fence = false, math = false, at = 0;
+        for (const line of text.split('\n')) {
+            if (math) { if (line.includes('$$')) math = false; }
+            else if (/^```/.test(line)) fence = !fence;
+            else if (!fence && /^\s*\$\$/.test(line)) math = !line.replace(/^\s*\$\$/, '').includes('$$');
+            else if (!fence) {
+                const task = /^((?:\s*>)*\s*(?:[-+*]|\d+\.)\s+\[)[ xX]\]\s/.exec(line);
+                if (task) found.push(at + task[1].length);
+            }
+            at += line.length + 1;
+        }
+        return found;
+    }
+    preview.addEventListener('change', event => {
+        const box = event.target.closest && event.target.closest('.todo-item > input[data-task]');
+        if (!box) return;
+        const at = taskMarks(editor.value)[Number(box.dataset.task)];
+        if (at === undefined) return;
+        editor.setRangeText(box.checked ? 'x' : ' ', at, at + 1, 'preserve');
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     function persistWorkspace() {
         clearTimeout(saveTimer);
         if (!restored) return;

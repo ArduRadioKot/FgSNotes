@@ -11,7 +11,7 @@ html[data-live] #markdown-editor, html[data-live] .editor-highlight { display: n
 .live-host .cm-scroller { overflow: auto; font-family: var(--ui-font); line-height: inherit; padding: 6px 0 120px; scrollbar-width: thin; scrollbar-color: transparent transparent; -webkit-user-select: text; user-select: text; }
 .live-host:hover .cm-scroller { scrollbar-color: var(--active-bg) transparent; }
 .live-host .cm-content { padding: 0; caret-color: var(--accent-color); -webkit-user-select: text; user-select: text; }
-.live-host .cm-line { padding: 0 28px; }
+.live-host .cm-line { --live-pad: 28px; padding: 0 var(--live-pad); }
 .live-host .cm-cursor { border-left: 2px solid var(--accent-color); }
 .live-host .cm-selectionBackground, .live-host .cm-focused .cm-selectionBackground { background: var(--selection) !important; }
 .live-host .cm-find { background: color-mix(in srgb, var(--accent-color) 34%, transparent); border-radius: 2px; }
@@ -26,7 +26,12 @@ html[data-live] #markdown-editor, html[data-live] .editor-highlight { display: n
 .live-host .cm-strike { text-decoration: line-through; color: var(--text-muted); }
 .live-host .cm-icode { font-family: var(--mono-font); font-size: .9em; background: var(--code-bg); padding: .1em .35em; border-radius: 5px; color: var(--syn-string); }
 .live-host .cm-link { color: var(--link-color); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-.live-host .cm-quote { background: color-mix(in srgb, var(--text-color) 5%, transparent); color: var(--text-muted); font-style: italic; }
+.live-host .cm-quote { color: var(--text-muted); font-style: italic; }
+/* Quote and code plates follow the text column, not the whole pane: they are drawn behind the line, 12px wider than the text. */
+.live-host :is(.cm-quote, .cm-codeline) { position: relative; isolation: isolate; }
+.live-host :is(.cm-quote, .cm-codeline)::before { content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(var(--live-pad) - 12px); right: calc(var(--live-pad) - 12px); pointer-events: none; }
+.live-host .cm-quote::before { background: color-mix(in srgb, var(--text-color) 5%, transparent); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent-color) 55%, transparent); }
+.live-host .cm-codeline::before { background: var(--code-bg); }
 .live-host .cm-bullet { display: inline-block; width: 1.1em; color: var(--text-muted); }
 .live-host .cm-listnum { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .live-host .cm-task { display: inline-block; position: relative; width: 1.05em; height: 1.05em; margin-right: .3em; vertical-align: -.17em; border-radius: 5px; box-shadow: inset 0 0 0 1.5px var(--text-muted); cursor: pointer; }
@@ -34,21 +39,33 @@ html[data-live] #markdown-editor, html[data-live] .editor-highlight { display: n
 .live-host .cm-task-on::after { content: ''; position: absolute; left: 32%; top: 14%; width: 30%; height: 56%; border: solid var(--accent-text); border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .live-host .cm-done { color: var(--text-muted); text-decoration: line-through; }
 .live-host .cm-hr { display: block; height: 1px; margin: .9em 0; background: var(--border-color); }
-.live-host .cm-codeline { font-family: var(--mono-font); font-size: .88em; line-height: 1.6; background: var(--code-bg); }
-.live-host .cm-codeline-first { padding-top: .5em; border-radius: 8px 8px 0 0; }
-.live-host .cm-codeline-last { padding-bottom: .5em; border-radius: 0 0 8px 8px; }
+.live-host .cm-codeline { font-family: var(--mono-font); font-size: .88em; line-height: 1.6; }
+.live-host .cm-codeline-first { padding-top: .5em; }
+.live-host .cm-codeline-last { padding-bottom: .5em; }
+.live-host .cm-codeline-first::before { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+.live-host .cm-codeline-last::before { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+.live-host .cm-quote:not(.cm-quote + .cm-quote)::before { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+.live-host .cm-quote:not(:has(+ .cm-quote))::before { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
 .live-host .cm-fence-mark { color: var(--syn-mark); }
+.live-host .cm-math { cursor: text; }
+.live-host .cm-math-block { padding: .4em var(--live-pad, 28px); text-align: center; overflow-x: auto; cursor: text; }
+.live-host .cm-math-block .math-block:not(.math-done), .live-host .cm-math .math:not(.math-done) { font-family: var(--mono-font); font-size: .9em; color: var(--text-muted); }
+.live-host .cm-table.preview-content { padding: .3em var(--live-pad, 28px); overflow-x: auto; font-size: .94em; cursor: text; }
+[data-view="live"] .live-host .cm-table.preview-content { padding-left: max(32px, calc((100% - 780px) / 2)); padding-right: max(32px, calc((100% - 780px) / 2)); }
+.live-host .cm-table.preview-content table { margin: 0; }
+.live-host .math-error { color: var(--danger-color, #e5534b); }
 .live-host .cm-tableline { font-family: var(--mono-font); font-size: .9em; }
 @media (max-width: 720px) {
     html[data-live] .live-host { font-size: var(--m-font, 17px) !important; }      /* over the size live.js copies from the settings */
-    .live-host .cm-line { padding: 0 20px; }
+    .live-host .cm-line { --live-pad: 20px; }
     .live-host .cm-scroller { padding-bottom: 140px; }
 }
 
 /* "Живой" view: the live editor on its own, in a readable centred column */
 html[data-live-preview="off"] .view-switch button[data-view="live"] { display: none; }
 @media (min-width: 721px) {
-    [data-view="live"] .live-host .cm-line { padding-left: max(32px, calc((100% - 780px) / 2)); padding-right: max(32px, calc((100% - 780px) / 2)); }
+    [data-view="live"] .live-host .cm-line { --live-pad: max(32px, calc((100% - 780px) / 2)); }
+    [data-view="live"] .live-host .cm-math-block { padding-left: max(32px, calc((100% - 780px) / 2)); padding-right: max(32px, calc((100% - 780px) / 2)); }
     [data-view="live"] .live-host { font-size: 16px; }
 }
 @media (max-width: 720px) { .view-switch button[data-view="live"] { display: none; } }

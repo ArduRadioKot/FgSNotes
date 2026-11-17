@@ -127,6 +127,106 @@ const runCell = view => {
     return true;
 };
 
+// --- formulas and tables: $…$, $$…$$ (KaTeX via math.js) and GFM tables render as in the preview; the source shows near the cursor ---
+class MathWidget extends WidgetType {
+    constructor(tex, display) { super(); this.tex = tex; this.display = display; }
+    eq(other) { return other.tex === this.tex && other.display === this.display; }
+    toDOM(view) {
+        const wrap = document.createElement(this.display ? 'div' : 'span');
+        wrap.className = this.display ? 'cm-math-block' : 'cm-math';
+        const node = document.createElement(this.display ? 'div' : 'span');
+        node.className = this.display ? 'math-block' : 'math';
+        node.dataset.tex = this.tex;
+        node.textContent = this.tex;
+        wrap.append(node);
+        // math.js skips nodes that are not in the page yet.
+        Promise.resolve().then(() => { if (window.renderMath) window.renderMath(wrap); });
+        editOnClick(view, wrap);
+        return wrap;
+    }
+    ignoreEvent() { return true; }
+}
+// A click on a rendered block puts the cursor into its source, which shows it as text again.
+function editOnClick(view, node) {
+    node.addEventListener('mousedown', event => {
+        event.preventDefault();
+        const pos = view.posAtDOM(node);
+        view.dispatch({ selection: { anchor: pos } });
+        view.focus();
+    });
+}
+class TableWidget extends WidgetType {
+    constructor(source) { super(); this.source = source; }
+    eq(other) { return other.source === this.source; }
+    toDOM(view) {
+        const wrap = document.createElement('div');
+        wrap.className = 'cm-table preview-content';
+        wrap.innerHTML = typeof window.parseMarkdown === 'function' ? window.parseMarkdown(this.source) : '';
+        editOnClick(view, wrap);
+        return wrap;
+    }
+    ignoreEvent() { return true; }
+}
+const INLINE_MATH = /(?<![\\$])\$(?![\s$])((?:\\.|[^$\\\n])+?)(?<!\s)\$(?![\d$])/g;
+function inCode(state, pos) {
+    for (let node = syntaxTree(state).resolveInner(pos, 1); node; node = node.parent) {
+        if (node.name === 'FencedCode' || node.name === 'CodeBlock' || node.name === 'InlineCode') return true;
+    }
+    return false;
+}
+function mathDecorations(state) {
+    if (state.doc.length > 200000) return Decoration.none;
+    const { doc } = state;
+    const near = (from, to) => state.selection.ranges.some(range => range.from <= to && range.to >= from);
+    const ranges = [];
+    const math = document.documentElement.dataset.math !== 'off';
+    for (let n = 1; math && n <= doc.lines; n++) {
+        const line = doc.line(n);
+        if (/^\s*\$\$/.test(line.text) && !inCode(state, line.from)) {
+            const open = line.text.indexOf('$$');
+            const rest = line.text.slice(open + 2);
+            let last = line, tex;
+            if (rest.includes('$$')) tex = rest.slice(0, rest.indexOf('$$'));
+            else {
+                const parts = [rest];
+                while (last.number < doc.lines) {
+                    last = doc.line(last.number + 1);
+                    const end = last.text.indexOf('$$');
+                    if (end >= 0) { parts.push(last.text.slice(0, end)); break; }
+                    parts.push(last.text);
+                }
+                tex = parts.join('\n');
+            }
+            tex = tex.trim();
+            if (tex && !near(line.from, last.to)) ranges.push(Decoration.replace({ widget: new MathWidget(tex, true), block: true }).range(line.from, last.to));
+            n = last.number;
+            continue;
+        }
+        if (!line.text.includes('$')) continue;
+        for (const match of line.text.matchAll(INLINE_MATH)) {
+            const from = line.from + match.index, to = from + match[0].length;
+            if (near(from, to) || inCode(state, from)) continue;
+            ranges.push(Decoration.replace({ widget: new MathWidget(match[1], false) }).range(from, to));
+        }
+    }
+    if (typeof window.parseMarkdown === 'function') {
+        syntaxTree(state).iterate({
+            enter(node) {
+                if (node.name !== 'Table') return;
+                const first = doc.lineAt(node.from), last = doc.lineAt(node.to);
+                if (!near(first.from, last.to)) ranges.push(Decoration.replace({ widget: new TableWidget(doc.sliceString(first.from, last.to)), block: true }).range(first.from, last.to));
+                return false;
+            }
+        });
+    }
+    return Decoration.set(ranges, true);
+}
+const mathField = StateField.define({
+    create: mathDecorations,
+    update: (value, tr) => (tr.docChanged || tr.selection || syntaxTree(tr.startState) !== syntaxTree(tr.state) ? mathDecorations(tr.state) : value),
+    provide: field => EditorView.decorations.from(field)
+});
+
 function buildDecorations(view) {
     const { state } = view;
     const doc = state.doc;
@@ -180,7 +280,11 @@ function buildDecorations(view) {
                     if (!lineActive(node.from, node.to)) add(node.from, Math.min(doc.lineAt(node.from).to, node.to + (doc.sliceString(node.to, node.to + 1) === ' ' ? 1 : 0)), hide);
                 } else if (name === 'ListMark') {
                     const text = doc.sliceString(node.from, node.to);
-                    if (/^[-*+]$/.test(text)) { if (!lineActive(node.from, node.to)) add(node.from, node.to, Decoration.replace({ widget: new BulletWidget() })); }
+                    const next = node.node.nextSibling;
+                    if (next && next.name === 'Task' && /^[-*+]$/.test(text)) {
+                        // The checkbox is the marker of a task: the dash and its space go away.
+                        if (!lineActive(node.from, node.to)) add(node.from, Math.min(next.from, doc.lineAt(node.from).to), hide);
+                    } else if (/^[-*+]$/.test(text)) { if (!lineActive(node.from, node.to)) add(node.from, node.to, Decoration.replace({ widget: new BulletWidget() })); }
                     else add(node.from, node.to, mark('cm-listnum'));
                 } else if (name === 'TaskMarker') {
                     const checked = /x/i.test(doc.sliceString(node.from, node.to));
@@ -247,6 +351,7 @@ function attach(textarea, host) {
         liveDecorations,
         findField,
         cellField,
+        mathField,
         keymap.of([{ key: 'Shift-Enter', run: runCell }, { key: 'Mod-Enter', run: runCell }, ...keys, ...historyKeymap, indentWithTab]),
         EditorView.contentAttributes.of({ spellcheck: 'false', autocapitalize: 'sentences', 'aria-label': 'Редактор Markdown', 'aria-multiline': 'true' }),
         EditorView.updateListener.of(update => {

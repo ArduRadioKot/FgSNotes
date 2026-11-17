@@ -1,4 +1,4 @@
-// The app frog, drawn with the ASCII picture behind empty cells of a note.
+// The app frog. The original picture greets an empty note, packed into half blocks; once there is text, only its face stays, in the tab bar.
 const RAW = [
     '                      __ggggggx_              _agggggg__',
     '                    _g@@@@@@@@@@@y          a@@@@@@@@@@@b_',
@@ -30,9 +30,8 @@ const RAW = [
 const width = Math.max(...RAW.map(line => line.length));
 const FROG = RAW.map(line => line.padEnd(width));
 
-// Full mascot colours for an empty note, and the same hues pushed down once text is on screen.
-const BRIGHT = ['16', '230', '156', '71', '22', '24', '80'];
-const TONE = ['16', '58', '22', '22', '232', '17', '23'];
+// The colour of each cell of the picture, as an index into PALETTE.
+const PALETTE = ['16', '230', '156', '71', '22', '24', '80'];
 const TINT = [
     '                      2222222223              2222222222                   ',
     '                    22222222222222          22222222222223                 ',
@@ -62,106 +61,102 @@ const TINT = [
     '                       2223   2222          2221  2222                     '
 ].map(line => line.padEnd(width));
 
+const ACCENT = '\x1b[1;38;5;38m';
+const BOLD = '\x1b[1m';
+const DIM = '\x1b[2m';
+
 function face(view, dirty) {
     if (view === 'preview') return '(-.-)';
     if (view === 'split') return '(o.O)';
     return dirty ? '(O.O)' : '(o.o)';
 }
 
-// Fit the picture into the free cells: smaller windows squeeze it, larger ones stretch it.
-function fitBox(rows, cols) {
-    const srcW = FROG[0].length;
-    const srcH = FROG.length;
-    const padX = cols > 10 ? 1 : 0;
-    const padY = rows > 10 ? 2 : 0;
-    const availW = Math.max(1, cols - padX * 2);
-    const availH = Math.max(1, rows - padY);
-    const scale = Math.min(availW / srcW, availH / srcH);
-    const destW = Math.max(1, Math.min(availW, Math.round(srcW * scale)));
-    const destH = Math.max(1, Math.min(availH, Math.round(srcH * scale)));
-    return {
-        top: Math.max(0, Math.floor((rows - destH - (padY ? 1 : 0)) / 2)),
-        left: Math.max(0, Math.floor((cols - destW) / 2)),
-        destW,
-        destH,
-        srcW,
-        srcH
-    };
+// A letter of the picture is one cell wide and two pixels tall. Each pixel of the smaller picture takes the colour most of its source pixels have.
+function shrink(cols) {
+    const srcW = width;
+    const srcH = FROG.length * 2;
+    const rows = Math.max(2, Math.round(srcH * cols / srcW / 2) * 2);
+    const grid = [];
+    for (let y = 0; y < rows; y++) {
+        const line = [];
+        const y0 = Math.floor(y * srcH / rows), y1 = Math.max(y0 + 1, Math.floor((y + 1) * srcH / rows));
+        for (let x = 0; x < cols; x++) {
+            const x0 = Math.floor(x * srcW / cols), x1 = Math.max(x0 + 1, Math.floor((x + 1) * srcW / cols));
+            const votes = new Map();
+            let filled = 0, total = 0;
+            for (let sy = y0; sy < y1; sy++) {
+                for (let sx = x0; sx < x1; sx++) {
+                    total++;
+                    const tone = TINT[sy >> 1][sx];
+                    if (FROG[sy >> 1][sx] === ' ' || tone === ' ') continue;
+                    filled++;
+                    votes.set(tone, (votes.get(tone) || 0) + 1);
+                }
+            }
+            line.push(filled * 2.5 >= total ? [...votes].sort((a, b) => b[1] - a[1])[0][0] : null);
+        }
+        grid.push(line);
+    }
+    const out = [];
+    for (let y = 0; y < rows; y += 2) {
+        out.push(grid[y].map((top, x) => {
+            const bottom = grid[y + 1][x];
+            if (top === null && bottom === null) return { ch: ' ', style: '' };
+            if (bottom === null) return { ch: '▀', style: `\x1b[38;5;${PALETTE[top]}m` };
+            if (top === null) return { ch: '▄', style: `\x1b[38;5;${PALETTE[bottom]}m` };
+            if (top === bottom) return { ch: '█', style: `\x1b[38;5;${PALETTE[top]}m` };
+            return { ch: '▀', style: `\x1b[38;5;${PALETTE[top]};48;5;${PALETTE[bottom]}m` };
+        }));
+    }
+    while (out.length && out[out.length - 1].every(cell => cell.ch === ' ')) out.pop();
+    return out;
 }
 
-function sample(box, y, x) {
-    const y0 = Math.floor(y * box.srcH / box.destH);
-    const y1 = Math.min(box.srcH, Math.max(y0 + 1, Math.floor((y + 1) * box.srcH / box.destH)));
-    const x0 = Math.floor(x * box.srcW / box.destW);
-    const x1 = Math.min(box.srcW, Math.max(x0 + 1, Math.floor((x + 1) * box.srcW / box.destW)));
-    const counts = new Map();
-    const tones = new Map();
-    let best = ' ';
-    let tone = ' ';
-    let score = 0;
-    let toneScore = 0;
-    for (let sy = y0; sy < y1; sy++) {
-        const line = FROG[sy];
-        const paint = TINT[sy];
-        for (let sx = x0; sx < x1; sx++) {
-            const ch = line[sx];
-            if (!ch || ch === ' ') continue;
-            const next = (counts.get(ch) || 0) + 1;
-            counts.set(ch, next);
-            if (next > score) { score = next; best = ch; }
-            const shade = paint[sx] || ' ';
-            if (shade === ' ') continue;
-            const seen = (tones.get(shade) || 0) + 1;
-            tones.set(shade, seen);
-            if (seen > toneScore) { toneScore = seen; tone = shade; }
+const cells = (text, style) => Array.from(text).map(ch => ({ ch, style: ch === ' ' ? '' : style }));
+
+// The welcome card: the frog, the question, and a few keys to start with. The frog shrinks to the room left; the keys go first when space runs out.
+function card(welcome, rows, cols) {
+    const caption = [cells(welcome.caption || '', BOLD)];
+    const keyW = Math.max(0, ...(welcome.hints || []).map(([key]) => key.length));
+    const keys = (welcome.hints || []).map(([key, label]) => cells(key.padEnd(keyW + 2), ACCENT).concat(cells(label, DIM)));
+    const keysW = Math.max(0, ...keys.map(line => line.length));
+    const hints = keys.map(line => line.concat(cells(' '.repeat(keysW - line.length), '')));
+    const room = rows - 1;
+    const stack = (...parts) => {
+        const lines = [];
+        parts.filter(part => part.length).forEach((part, index) => { if (index) lines.push([]); lines.push(...part); });
+        return lines;
+    };
+    const tail = [caption, hints].filter(part => part.length && part[0].length);
+    for (const parts of [tail, tail.slice(0, 1)]) {
+        const used = stack(...parts).length + 1;
+        for (let w = Math.min(36, cols - 4); w >= 18; w -= 2) {
+            const frog = shrink(w);
+            if (frog.length + used <= room) return stack(frog, ...parts);
         }
     }
-    return { ch: best, tone };
+    const fallback = stack(...tail);
+    return fallback.length <= room ? fallback : stack(caption);
 }
 
 let cached = null;
 
-function scaled(rows, cols) {
-    if (cached && cached.rows === rows && cached.cols === cols) return cached;
-    const box = fitBox(rows, cols);
-    const cells = [];
-    const tones = [];
-    for (let y = 0; y < box.destH; y++) {
-        let line = '';
-        let shade = '';
-        for (let x = 0; x < box.destW; x++) {
-            const spot = sample(box, y, x);
-            line += spot.ch;
-            shade += spot.tone;
-        }
-        cells.push(line);
-        tones.push(shade);
-    }
-    cached = { rows, cols, box, cells, tones };
+function layoutCard(welcome, rows, cols) {
+    const key = JSON.stringify([welcome, rows, cols]);
+    if (cached && cached.key === key) return cached;
+    const lines = card(welcome, rows, cols);
+    const top = Math.max(0, Math.floor((rows - lines.length) * 0.42));
+    cached = { key, top, lines: lines.map(line => ({ left: Math.floor((cols - line.length) / 2), line })) };
     return cached;
 }
 
-function pixel(row, col, rows, cols, light) {
-    const art = scaled(rows, cols);
-    const y = row - art.box.top;
-    const x = col - art.box.left;
-    if (y < 0 || x < 0 || y >= art.box.destH || x >= art.box.destW) return null;
-    const ch = art.cells[y][x];
-    const tone = art.tones[y][x];
-    if (!ch || ch === ' ' || tone === ' ') return null;
-    const palette = light ? BRIGHT : TONE;
-    return { ch, style: (light ? '\x1b[38;5;' : '\x1b[2;38;5;') + palette[tone] + 'm' };
+function pixel(row, col, rows, cols, welcome) {
+    if (!welcome) return null;
+    const art = layoutCard(welcome, rows, cols);
+    const entry = art.lines[row - art.top];
+    if (!entry) return null;
+    const cell = entry.line[col - entry.left];
+    return cell && cell.ch !== ' ' ? cell : null;
 }
 
-function captionAt(row, col, rows, cols, caption) {
-    const text = Array.from(caption || '');
-    if (!text.length) return null;
-    const art = scaled(rows, cols);
-    if (row !== art.box.top + art.box.destH + 1) return null;
-    const left = Math.max(0, Math.floor((cols - text.length) / 2));
-    const x = col - left;
-    if (x < 0 || x >= text.length) return null;
-    return text[x];
-}
-
-module.exports = { FROG, face, pixel, captionAt };
+module.exports = { FROG, face, pixel, shrink };

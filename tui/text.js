@@ -1,6 +1,7 @@
 const { searchText } = require('../src/find');
 const { highlightedLines } = require('./syntax');
 const { previewText, previewRows, linkScroll } = require('./preview');
+const { textWidth: textColumns } = require('./width');
 
 function lineStarts(text) {
     const lines = text.split('\n');
@@ -19,8 +20,10 @@ function sourceRows(buffer, width, height, scroll, ranges) {
     let left = scroll.left || 0;
     if (line < top) top = line;
     if (line >= top + height) top = line - height + 1;
+    const current = lines[line] || '';
     if (col < left) left = col;
-    if (col >= left + textWidth) left = col - textWidth + 1;
+    const caret = col < current.length ? textColumns(String.fromCodePoint(current.codePointAt(col))) : 1;
+    while (left < col && textColumns(current.slice(left, col)) + caret > textWidth) left += current.codePointAt(left) > 0xffff ? 2 : 1;
     scroll.top = top;
     scroll.left = left;
     const sel = buffer.selection();

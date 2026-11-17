@@ -123,6 +123,7 @@ button:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 
 .close-tab { width: 20px; height: 20px; margin-right: 5px; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); padding: 4px; cursor: pointer; }
 .close-tab .icon { width: 12px; height: 12px; }
 .close-tab:hover { background: var(--border-color); color: var(--text-color); }
+.close-tab:disabled { visibility: hidden; }
 .new-tab-button { align-self: center; margin: 0 2px; }
 .view-switch { display: flex; align-items: center; flex-shrink: 0; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--card-bg); }
 .view-switch button { height: 26px; background: transparent; border-radius: var(--radius-sm); color: var(--text-muted); padding: 0 10px; font-size: 12px; white-space: nowrap; gap: 6px; }
@@ -192,6 +193,9 @@ body.resizing { cursor: col-resize; user-select: none; }
 .preview-content hr { margin: 2em 0; border: 0; border-top: 1px solid var(--border-color); }
 .preview-content .todo-item { list-style: none; padding: 0; }
 .todo-item input { accent-color: var(--accent-color); margin-right: 8px; }
+.todo-item input:not(:disabled) { cursor: pointer; }
+.todo-item input:disabled { opacity: 1; }
+[data-toc="off"] .preview-content .table-of-contents { display: none; }
 .todo-item input:checked + span { text-decoration: line-through; color: var(--text-muted); }
 .table-of-contents { padding: 10px 20px; background: var(--code-bg); border-radius: var(--radius-lg); }
 .table-of-contents .toc-list { list-style: none; padding: 0; }

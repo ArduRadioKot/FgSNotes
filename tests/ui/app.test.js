@@ -96,14 +96,14 @@ test('a change made right before the app closes is not lost', async () => {
     await context.close();
 });
 
-test('a closed note waits in "Недавно закрытые" and comes back with its text', async () => {
+test('a closed note waits in the trash and comes back with its text', async () => {
     const { context, page, errors } = await open();
     await page.evaluate(() => window.FgsActions.createDocument('Поход.md', 'Купить палатку'));
     await page.click('.tab-item.active .close-tab');
     assert.equal((await titles(page)).includes('Поход.md'), false);
     await page.click('#notes-button');
-    await page.click('.notes-window .nl-trash summary');
-    assert.equal(await page.textContent('.notes-window .nl-trash .nl-title'), 'Поход');
+    await page.click('.notes-window .nl-nav[data-section="trash"]');
+    assert.equal(await page.textContent('.notes-window .nl-list .nl-title'), 'Поход');
     await page.click('.notes-window .nl-restore');
     assert.equal(await page.isVisible('.notes-window'), false);
     assert.equal(await page.inputValue('#markdown-editor'), 'Купить палатку');
@@ -134,6 +134,8 @@ test('the notes window: search, tags, pinning and order', async () => {
     await page.click('.notes-window .nl-sort');
     assert.deepEqual(await rows(), ['Отпуск', 'Работа', 'Начните здесь']);
     await page.click('.notes-window .nl-item:nth-child(2) .nl-open');
+    assert.equal(await page.isVisible('.notes-window'), true);
+    await page.click('.notes-window .nl-go');
     assert.equal(await page.inputValue('#markdown-editor'), 'Отчёт к пятнице #работа');
     await reopen(page);
     assert.equal(await page.evaluate(() => window.FgsActions.notes().find(note => note.title === 'Отпуск.md').pinned), true);

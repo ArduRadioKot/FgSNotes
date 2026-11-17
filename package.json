@@ -1,6 +1,6 @@
 {
   "name": "fgsnotes",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "FgSNotes — Markdown editor",
   "main": "main.js",
   "scripts": {
@@ -20,6 +20,7 @@
     "ios": "npm run cap:sync && cap open ios",
     "android": "npm run cap:sync && cap open android",
     "editor:build": "node scripts/build-editor.js",
+    "postinstall": "node scripts/vendor-katex.js",
     "icons": "scripts/build-icons.sh",
     "device:build": "node scripts/build-device.js"
   },

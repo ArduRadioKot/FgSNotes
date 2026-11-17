@@ -22,6 +22,7 @@ const HELP = [
     ['Ctrl-F', 'поиск'],
     ['Enter и Ctrl-G', 'дальше по поиску'],
     ['Shift+F3', 'назад по поиску'],
+    ['Ctrl-E', 'просмотр и обратно'],
     ['F2', 'редактор, рядом, просмотр'],
     ['Ctrl-P', 'команды'],
     ['F4', 'список слева'],
@@ -194,6 +195,13 @@ function createApp(options = {}) {
     function cycleView() {
         view = view === 'editor' ? 'split' : view === 'split' ? 'preview' : 'editor';
     }
+    // Straight to the preview and back to where the writing was, editor or side by side.
+    let writing = 'editor';
+    function flipView() {
+        if (view === 'preview') { view = writing; return; }
+        writing = view;
+        view = 'preview';
+    }
     function formatNow(name) {
         if (view === 'preview') { flash = t('В режиме просмотра нельзя править'); return; }
         applyFormat(current().buffer, name, t);
@@ -283,6 +291,7 @@ function createApp(options = {}) {
         const extend = !!key.shift;
         if (key.name === 'f1') { mode = 'help'; return; }
         if (key.name === 'f2') return cycleView();
+        if (key.ctrl && key.name === 'e') return flipView();
         if (key.name === 'f4') return toggleSide();
         if (key.ctrl && key.name === 'p') return openMenu('commands');
         if (view === 'preview' && !key.ctrl && !key.alt && ['up', 'down', 'pageup', 'pagedown'].includes(key.name)) {
@@ -385,6 +394,7 @@ function createApp(options = {}) {
             item('Редактор', () => { view = 'editor'; }),
             item('Рядом', () => { view = 'split'; }),
             item('Просмотр', () => { view = 'preview'; }),
+            item('Просмотр и обратно', flipView),
             item('Перейти к строке', askLine),
             item('Справка', () => { mode = 'help'; }),
             item('Чат', toggleChat),
@@ -577,14 +587,18 @@ function createApp(options = {}) {
             help: mode === 'help',
             preview: view === 'preview',
             view,
-            mascot: mode !== 'help' && mode !== 'menu' && (view !== 'preview' || noteEmpty),
             caption: empty ? t('С чего начнём?') : '',
+            welcome: empty || (noteEmpty && view === 'preview' && mode === 'edit')
+                ? { caption: t('С чего начнём?'), hints: [['Ctrl-O', t('открыть файл')], ['Ctrl-P', t('команды')], ['F1', t('справка')]] }
+                : null,
             face: face(view, dirty(doc)),
+            badge: t(view === 'preview' ? 'Просмотр' : view === 'split' ? 'Рядом' : 'Редактор'),
+            flash: !!flash,
             side: listW ? sideList(t, docs, active, nameOf, dirty, page, listW, side.focus) : null,
             chat: chatW ? session.lines(chatW, page, doc.buffer, chatFocus) : null,
             split,
-            status: statusLine(t, doc, flash, view),
-            hint: `${t('Ctrl-P команды')}  ${t('F1 справка')}`,
+            status: statusLine(t, doc, flash),
+            hint: `${t(view === 'preview' ? 'Ctrl-E править' : 'Ctrl-E просмотр')}  ${t('Ctrl-P команды')}  ${t('F1 справка')}`,
             quit
         };
     }
@@ -595,13 +609,13 @@ function createApp(options = {}) {
     return { press, layout, openPath, settled: () => job, abort: () => session.abort(), get quit() { return quit; } };
 }
 
-function statusLine(t, doc, flash, view) {
+function statusLine(t, doc, flash) {
     if (flash) return flash;
     const { line, col } = doc.buffer.pos();
-    const where = doc.path || doc.title;
-    const mark = doc.buffer.text === doc.saved ? '' : `  ${t('изменён')}`;
-    const mode = view === 'preview' ? `  ${t('Просмотр')}` : view === 'split' ? `  ${t('Рядом')}` : '';
-    return `${t('Стр {line}, стлб {col}', { line: line + 1, col: col + 1 })}  ${countWord(t, words(doc.buffer.text))}  ${where}${mark}${mode}`;
+    const where = doc.path ? doc.path.replace(os.homedir(), '~') : doc.title;
+    const parts = [t('Стр {line}, стлб {col}', { line: line + 1, col: col + 1 }), countWord(t, words(doc.buffer.text)), where];
+    if (doc.buffer.text !== doc.saved) parts.push(t('изменён'));
+    return parts.join(' · ');
 }
 
 function sideList(t, docs, activeIndex, nameOf, dirty, height, width, focused) {

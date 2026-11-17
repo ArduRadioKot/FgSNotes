@@ -172,6 +172,15 @@ function applySettings(settings) {
     // Formulas are typeset by math.js (KaTeX); this flag turns it on and off.
     document.documentElement.dataset.math = settings['math-support'] === 'on' ? 'on' : 'off';
     if (window.renderMath) window.renderMath(preview);
+    document.documentElement.dataset.toc = settings['table-of-contents'] === 'off' ? 'off' : 'on';
+    const tasks = settings['todo-list'] === 'off' ? 'off' : 'on';
+    if (document.documentElement.dataset.tasks !== tasks) {
+        document.documentElement.dataset.tasks = tasks;
+        preview.querySelectorAll('.todo-item > input[type="checkbox"]').forEach((box, index) => {
+            box.disabled = tasks === 'off';
+            if (tasks === 'on') box.dataset.task = String(index); else delete box.dataset.task;
+        });
+    }
 
     document.documentElement.dataset.livePreview = ['auto', 'on', 'off'].includes(settings['live-preview']) ? settings['live-preview'] : 'auto';
     // Highlighting is built in (highlight.js module); editor.js reacts to this flag.
