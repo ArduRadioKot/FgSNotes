@@ -220,8 +220,10 @@ test('NotebookLM tab starts empty, then takes a file and a chosen note', async (
     assert.equal(await page.getAttribute('.lm-format.is-on', 'data-kind'), 'briefing');
     assert.equal(await page.locator('.lm-source').count(), 0);
     assert.match(await page.textContent('.lm-lead'), /не подключаются/);
+    const boards = () => page.locator('.tab-item', { hasText: 'Подборка' }).count();
+    assert.equal(await boards(), 1);
     await page.click('#lm-button');
-    assert.equal(await page.locator('.lm-board').count(), 2);
+    assert.equal(await boards(), 2);
     const board = page.locator('.lm-board:not([hidden])');
     await board.locator('[data-lm="notes"]').click();
     await board.locator('.lm-picker').waitFor();
@@ -230,7 +232,7 @@ test('NotebookLM tab starts empty, then takes a file and a chosen note', async (
     await board.locator('[data-lm="confirm"]').click();
     assert.equal(await board.locator('.lm-source').count(), 1);
     await page.keyboard.press('Escape');
-    assert.equal(await page.locator('.lm-board').count(), 1);
+    assert.equal(await boards(), 1);
     assert.deepEqual(errors, []);
     await context.close();
 });
@@ -254,7 +256,7 @@ test('split view scrolls the note and the preview together', async () => {
     const { context, page, errors } = await open();
     await page.click('.view-switch button[data-view="split"]');
     const lines = ['START', ...Array.from({ length: 80 }, (_, index) => 'line ' + index), 'END'];
-    await page.fill('#markdown-editor', lines.join('\n'));
+    await page.fill('#markdown-editor', lines.join('\n\n'));
     await page.waitForFunction(() => document.getElementById('preview').textContent.includes('END'));
     const tops = () => page.evaluate(() => {
         const editor = document.getElementById('markdown-editor');
@@ -268,24 +270,29 @@ test('split view scrolls the note and the preview together', async () => {
             previewMax: preview.scrollHeight - preview.clientHeight
         };
     });
-    let at = await tops();
+    // Scroll events arrive with the next frame, and the pane they move answers one frame later.
+    const scroll = async (selector, top) => {
+        await page.evaluate(([selector, top]) => new Promise(done => {
+            const pane = document.querySelector(selector);
+            pane.scrollTop = top === 'end' ? pane.scrollHeight : top;
+            requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(done)));
+        }), [selector, top]);
+        return tops();
+    };
+    await page.evaluate(() => document.getElementById('markdown-editor').setSelectionRange(0, 0));
+    let at = await scroll('#markdown-editor', 0);
     assert.ok(at.editorMax > 50 && at.previewMax > 50);
-    await page.evaluate(() => { document.getElementById('markdown-editor').scrollTop = document.getElementById('markdown-editor').scrollHeight; });
-    at = await tops();
-    assert.ok(at.editor > at.editorMax - 2);
-    assert.ok(at.preview > at.previewMax * 0.9);
-    await page.evaluate(() => { document.getElementById('preview').scrollTop = 0; });
-    at = await tops();
-    assert.ok(at.preview < 2 && at.editor < 2);
+    assert.ok(at.preview < 2, JSON.stringify(at));
+    at = await scroll('#markdown-editor', 'end');
+    assert.ok(at.editor > at.editorMax - 2 && at.preview > at.previewMax * 0.9, JSON.stringify(at));
+    at = await scroll('#preview', 0);
+    assert.ok(at.preview < 2 && at.editor < 2, JSON.stringify(at));
     await page.evaluate(() => { document.documentElement.dataset.livePreview = 'on'; });
     await page.waitForSelector('.live-host .cm-scroller');
-    await page.evaluate(() => { document.querySelector('.live-host .cm-scroller').scrollTop = document.querySelector('.live-host .cm-scroller').scrollHeight; });
-    at = await tops();
-    assert.ok(at.editor > at.editorMax * 0.9);
-    assert.ok(at.preview > at.previewMax * 0.9);
-    await page.evaluate(() => { document.getElementById('preview').scrollTop = 0; });
-    at = await tops();
-    assert.ok(at.preview < 2 && at.editor < 2);
+    at = await scroll('.live-host .cm-scroller', 'end');
+    assert.ok(at.editor > at.editorMax * 0.9 && at.preview > at.previewMax * 0.9, JSON.stringify(at));
+    at = await scroll('#preview', 0);
+    assert.ok(at.preview < 2 && at.editor < 2, JSON.stringify(at));
     assert.deepEqual(errors, []);
     await context.close();
 });
