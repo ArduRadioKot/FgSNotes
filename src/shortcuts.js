@@ -9,6 +9,7 @@
 
     const ACTIONS = [
         { id: 'newDocument', group: 'Файл', label: 'Новый документ', combo: 'Mod+KeyN', run: () => A().newDocument && A().newDocument() },
+        { id: 'newWindow', group: 'Файл', label: 'Новое окно', combo: 'Mod+Shift+KeyN', run: () => A().newWindow && A().newWindow() },
         { id: 'open', group: 'Файл', label: 'Открыть файл', combo: 'Mod+KeyO', run: () => A().open && A().open() },
         { id: 'save', group: 'Файл', label: 'Сохранить файл', combo: 'Mod+KeyS', run: () => A().save && A().save() },
         { id: 'find', group: 'Правка', label: 'Найти', combo: 'Mod+KeyF', run: () => A().find && A().find() },
@@ -45,6 +46,7 @@
         { id: 'assistant', group: 'Чат', label: 'Открыть или закрыть чат', combo: 'Mod+KeyJ', run: () => window.FgsAssistant && window.FgsAssistant.toggle(), button: '#ai-button' }
     ];
     ACTIONS.find(a => a.id === 'newDocument').button = '#new-file-button';
+    ACTIONS.find(a => a.id === 'newWindow').button = '#new-window-button';
     ACTIONS.find(a => a.id === 'open').button = '#open-file-button';
     ACTIONS.find(a => a.id === 'save').button = '#save-file-button';
 

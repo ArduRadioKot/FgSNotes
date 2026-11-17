@@ -210,15 +210,40 @@ test('phone: settings open as a list of sections, a section opens its page and B
     await context.close();
 });
 
-test('NotebookLM note: the dialog lists formats and the open note, then closes', async () => {
+test('NotebookLM tab starts empty, then takes a file and a chosen note', async () => {
     const { context, page, errors } = await open();
     await page.click('#lm-button');
-    await page.waitForSelector('.lm-window');
+    await page.waitForSelector('.lm-board');
     assert.equal(await page.locator('.lm-format').count(), 6);
     assert.equal(await page.getAttribute('.lm-format.is-on', 'data-kind'), 'briefing');
-    assert.equal(await page.locator('.lm-source input:checked').count(), 1);
+    assert.equal(await page.locator('.lm-source').count(), 0);
+    assert.match(await page.textContent('.lm-lead'), /не подключаются/);
+    await page.click('#lm-button');
+    assert.equal(await page.locator('.lm-board').count(), 2);
+    const board = page.locator('.lm-board:not([hidden])');
+    await board.locator('[data-lm="notes"]').click();
+    await board.locator('.lm-picker').waitFor();
+    assert.equal(await board.locator('.lm-picker-list input:checked').count(), 0);
+    await board.locator('.lm-picker-list input:not(:disabled)').first().check();
+    await board.locator('[data-lm="confirm"]').click();
+    assert.equal(await board.locator('.lm-source').count(), 1);
     await page.keyboard.press('Escape');
-    assert.equal(await page.isVisible('.lm-window'), false);
+    assert.equal(await page.locator('.lm-board').count(), 1);
+    assert.deepEqual(errors, []);
+    await context.close();
+});
+
+test('another window opens, and a third one after it', async () => {
+    const { context, page, errors } = await open();
+    const first = page.waitForEvent('popup');
+    await page.click('#new-window-button');
+    const second = await first;
+    await second.waitForSelector('.tab-item');
+    const next = page.waitForEvent('popup');
+    await page.click('#new-window-button');
+    const third = await next;
+    await third.waitForSelector('.tab-item');
+    assert.equal(context.pages().length, 3);
     assert.deepEqual(errors, []);
     await context.close();
 });

@@ -63,6 +63,40 @@
     const splitInline = raw => { let thinking = ''; const answer = raw.replace(/<think>([\s\S]*?)(?:<\/think>|$)\s*/g, (all, thought) => { thinking += thought; return ''; }).replace(/^\s+/, ''); return { thinking, answer }; };
     // Answers are rendered from model output: images are dropped so a prompt-injected reply cannot make the app load remote URLs.
 const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g, '$1');
+    const escChat = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const WAITING_HTML = 'Думает<span class="ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+    // One renderer for the assistant panel and the notebook chat: same bubbles, Markdown, code color and waiting dots.
+    function decorateChat(root) {
+        if (!root) return;
+        if (document.documentElement.dataset.codeHighlight !== 'off' && typeof highlightCode === 'function') {
+            root.querySelectorAll('pre code').forEach(block => {
+                block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
+            });
+        }
+        if (window.renderMath) window.renderMath(root);
+    }
+    window.FgsChat = {
+        waiting: WAITING_HTML,
+        paint(scroll, messages, { waiting = false, saveLabel = '' } = {}) {
+            scroll.innerHTML = messages.map((message, index) => {
+                const text = message.content != null ? message.content : (message.text || '');
+                const last = index === messages.length - 1;
+                if (message.role === 'user') return `<div class="ai-msg is-user"><div class="ai-bubble">${escChat(message.label || text)}</div></div>`;
+                const pending = waiting && last && !String(text).trim();
+                const body = text ? md(text) : '';
+                const save = !pending && String(text).trim() && saveLabel ? `<div class="ai-msg-actions"><button type="button" data-lm="save" data-index="${index}">${escChat(saveLabel)}</button></div>` : '';
+                return `<div class="ai-msg is-ai"><div class="ai-bubble md${pending ? ' is-waiting' : ''}">${pending ? WAITING_HTML : body}</div>${save}</div>`;
+            }).join('');
+            decorateChat(scroll);
+            scroll.scrollTop = scroll.scrollHeight;
+        },
+        sendState(button, running) {
+            if (!button) return;
+            button.innerHTML = icon(running ? 'stop' : 'send');
+            button.classList.toggle('is-stop', !!running);
+            button.setAttribute('aria-label', tr(running ? 'Остановить' : 'Спросить'));
+        }
+    };
     const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const snippetOf = (text, length = 120) => { const flat = text.replace(/\s+/g, ' ').trim(); return flat.length > length ? flat.slice(0, length) + '…' : flat; };
 
@@ -302,7 +336,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
     const escapeHtml = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
     // "Думает…" with three dots that light up one after another, side by side.
-    const WAITING = 'Думает<span class="ai-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+    const WAITING = WAITING_HTML;
     function messageHtml(message, index) {
         if (message.role === 'user') {
             if (editing === index) {
@@ -339,7 +373,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             scroll.innerHTML = `<div class="ai-empty"><h3>${tr('Чем помочь?')}</h3><p>${hint}</p><div class="ai-chips">${ACTIONS.map(action => `<button type="button" class="ai-chip" data-action="${action.id}">${tr(action.label)}</button>`).join('')}</div><p class="ai-privacy${cfg().local ? '' : ' is-cloud'}">${escapeHtml(privacy())}</p></div>`;
         } else {
             scroll.innerHTML = chat.messages.map(messageHtml).join('');
-            if (window.renderMath) window.renderMath(scroll);
+            decorateChat(scroll);
             scroll.scrollTop = scroll.scrollHeight;
         }
         renderAttach();

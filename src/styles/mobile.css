@@ -78,6 +78,9 @@
     .nl-item:not(.is-pinned) .nl-pin { display: none; }
     :is(.nl-open, .nl-pin, .nl-close, .nl-tag, .nl-sort, .nl-restore, .nl-clear):active { background: var(--hover-color); }
     .nl-empty { font-size: 14px; }
+    .nl-trash > summary { min-height: 48px; font-size: 15px; }
+    .nl-trash-mark { width: 28px; height: 28px; border-radius: 9px; }
+    .nl-trash-mark .icon { width: 15px; height: 15px; }
     .m-drawer-foot { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 12px; }
     .m-drawer-new, .m-drawer-round { height: 52px; border-radius: 26px; background: var(--card-bg); color: var(--text-color); box-shadow: var(--m-edge); }
     .m-drawer-new { flex: 1; justify-content: flex-start; gap: 10px; padding: 0 18px; font-size: 15px; font-weight: 500; }

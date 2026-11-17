@@ -44,6 +44,43 @@ test('a model reply becomes a NotebookLM note with a title, a banner and a sourc
     assert.doesNotMatch(note.markdown, /выдумано/);
 });
 
+test('notebook chat asks only about the sources handed to that tab', () => {
+    const { chatPrompt, packSources } = require('../src/notebooklm');
+    const sources = packSources([
+        { id: 1, title: 'Лекция', content: 'Клетки делятся.' },
+        { id: 2, title: 'Пусто', content: '   ' }
+    ]);
+    const { system, user } = chatPrompt('Что сказано про клетки?', sources);
+    assert.match(system, /только по источникам/);
+    assert.match(system, /Открытой заметки редактора здесь нет/);
+    assert.match(user, /ИСТОЧНИК \[1\] Лекция/);
+    assert.match(user, /Клетки делятся/);
+    assert.match(user, /Что сказано про клетки/);
+    assert.doesNotMatch(user, /Купить палатку/);
+    assert.equal(sources.length, 1);
+});
+
+test('a source tab starts empty and only keeps the files and notes that were handed to it', () => {
+    const { addFiles, addNotes } = require('../src/notebooklm');
+    const open = [
+        { id: 1, title: 'A.md', content: 'alpha' },
+        { id: 2, title: 'B.md', content: 'beta' },
+        { id: 3, title: 'Empty.md', content: '  \n' }
+    ];
+    assert.deepEqual(addNotes([], []), []);
+    const one = addNotes([], [open[1]]);
+    assert.equal(one.length, 1);
+    assert.equal(one[0].kind, 'note');
+    assert.equal(one[0].title, 'B');
+    assert.equal(one[0].text, 'beta');
+    assert.equal(addNotes(one, [open[1], open[2]]).length, 1);
+    const withFile = addFiles(one, [{ name: 'paper.txt', text: 'hello' }, { name: 'blank.md', text: '  ' }]);
+    assert.equal(withFile.length, 2);
+    assert.equal(withFile[1].kind, 'file');
+    assert.equal(withFile[1].title, 'paper');
+    assert.equal(withFile[1].text, 'hello');
+});
+
 test('thinking tags and a missing title line still leave a usable body', () => {
     const taken = takeTitle('<think>draft</think>\n\nПросто текст [1].');
     assert.equal(taken.title, '');

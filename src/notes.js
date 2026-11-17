@@ -55,14 +55,32 @@
                 <ul class="nl-list"></ul>
                 <p class="nl-empty" hidden>Ничего не найдено</p>
                 <details class="nl-trash" hidden>
-                    <summary><span>Недавно закрытые</span><i class="nl-count" data-i18n-skip></i></summary>
-                    <ul class="nl-list"></ul>
-                    <p class="nl-note">Закрытые заметки хранятся 30 дней</p>
-                    <button type="button" class="nl-clear">Очистить</button>
+                    <summary><span class="nl-trash-mark" aria-hidden="true">${icon('trash')}</span><span>Недавно закрытые</span><i class="nl-count" data-i18n-skip></i></summary>
+                    <div class="nl-bin">
+                        <div class="nl-bin-side">
+                            <label class="nl-search nl-bin-search">${icon('search')}<input type="search" placeholder="Поиск по удалённым" aria-label="Поиск по удалённым" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+                            <ul class="nl-list"></ul>
+                            <p class="nl-bin-empty" hidden></p>
+                        </div>
+                        <div class="nl-bin-sash" role="separator" aria-orientation="vertical" aria-label="Граница панелей" tabindex="0"></div>
+                        <div class="nl-bin-view">
+                            <div class="nl-bin-body preview-content"></div>
+                            <div class="nl-bin-actions" hidden>
+                                <p class="nl-bin-ask" hidden></p>
+                                <button type="button" class="nl-restore">Вернуть</button>
+                                <button type="button" class="nl-forget">Удалить навсегда</button>
+                                <button type="button" class="nl-forget-cancel" hidden>Отмена</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nl-bin-foot"><p class="nl-note">Закрытые заметки хранятся 30 дней</p><button type="button" class="nl-clear">Очистить</button></div>
                 </details>
             </div>`;
-        const search = host.querySelector('.nl-search input'), sortButton = host.querySelector('.nl-sort');
+        const search = host.querySelector(':scope > .nl-search input');
+        const sortButton = host.querySelector('.nl-sort');
         const list = host.querySelector('.nl-scroll > .nl-list'), trashBox = host.querySelector('.nl-trash'), trashList = trashBox.querySelector('.nl-list');
+        const binSearch = trashBox.querySelector('.nl-bin-search input');
+        let trashUid = null, pending = null, split = 30;
         const button = (className, name, label) => { const node = el('button', className, icon(name)); node.type = 'button'; node.setAttribute('aria-label', label); node.title = label; return node; };
 
         function row(note, words) {
@@ -88,19 +106,63 @@
             item.append(open, pin, close);
             return item;
         }
-        function trashRow(note) {
-            const item = el('li', 'nl-item');
-            const info = el('div', 'nl-open', '<span class="nl-title"></span><span class="nl-snippet" data-i18n-skip></span>');
-            info.querySelector('.nl-title').textContent = cleanTitle(note.title);
-            info.querySelector('.nl-snippet').textContent = new Date(note.closedAt).toLocaleDateString([], { day: 'numeric', month: 'short' });
-            const back = el('button', 'nl-restore');
-            back.type = 'button';
-            back.textContent = t('Вернуть');
-            back.addEventListener('click', () => { actions().restoreNote(note.uid); onOpen(); });
-            const forget = button('nl-close', 'trash', t('Удалить навсегда'));
-            forget.addEventListener('click', () => actions().forgetNote(note.uid));
-            item.append(info, back, forget);
+        function closedLabel(time) {
+            return new Date(time).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+        function showNote(node, content) {
+            const text = String(content || '');
+            if (!text.trim()) { node.innerHTML = `<p class="nl-bin-muted">${t('Пустой документ')}</p>`; return; }
+            node.innerHTML = typeof parseMarkdown === 'function' ? parseMarkdown(text) : '';
+            if (document.documentElement.dataset.codeHighlight !== 'off' && typeof highlightCode === 'function') {
+                node.querySelectorAll('pre code').forEach(block => {
+                    block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
+                });
+            }
+            if (window.renderMath) window.renderMath(node);
+        }
+        function trashRow(note, on) {
+            const item = el('li', 'nl-item' + (on ? ' is-on' : ''));
+            const open = el('button', 'nl-open', '<span class="nl-title"></span><span class="nl-snippet" data-i18n-skip></span><small class="nl-bin-date" data-i18n-skip></small>');
+            open.type = 'button';
+            open.querySelector('.nl-title').textContent = cleanTitle(note.title);
+            open.querySelector('.nl-snippet').textContent = snippet(note.content, []) || t('Пустой документ');
+            open.querySelector('.nl-bin-date').textContent = closedLabel(note.closedAt);
+            open.addEventListener('click', () => { trashUid = note.uid; pending = null; paintTrash(); });
+            item.append(open);
             return item;
+        }
+        function paintTrash() {
+            if (!actions() || !actions().trash) return;
+            const words = binSearch.value.toLowerCase().split(/\s+/).filter(Boolean);
+            const closed = actions().trash().filter(note => words.every(word => (note.title + '\n' + note.content).toLowerCase().includes(word)));
+            if (!closed.some(note => note.uid === trashUid)) trashUid = closed[0] ? closed[0].uid : null;
+            const current = closed.find(note => note.uid === trashUid) || null;
+            trashList.replaceChildren(...closed.map(note => trashRow(note, note.uid === trashUid)));
+            const empty = trashBox.querySelector('.nl-bin-empty');
+            empty.hidden = closed.length > 0;
+            empty.textContent = words.length ? t('Ничего не найдено') : t('Корзина пуста');
+            const body = trashBox.querySelector('.nl-bin-body');
+            const actionsRow = trashBox.querySelector('.nl-bin-actions');
+            const restore = trashBox.querySelector('.nl-restore');
+            const forget = trashBox.querySelector('.nl-forget');
+            const cancel = trashBox.querySelector('.nl-forget-cancel');
+            const ask = trashBox.querySelector('.nl-bin-ask');
+            restore.textContent = t('Вернуть');
+            const confirming = !!(current && pending === trashUid);
+            if (!current) {
+                body.innerHTML = `<p class="nl-bin-muted">${words.length ? t('Ничего не найдено') : t('Закрытые заметки появятся здесь.')}</p>`;
+                actionsRow.hidden = true;
+            } else {
+                showNote(body, current.content);
+                actionsRow.hidden = false;
+                forget.textContent = t(confirming ? 'Удалить' : 'Удалить навсегда');
+                ask.hidden = !confirming;
+                ask.textContent = confirming ? t('Удалить без возможности вернуть?') : '';
+                cancel.hidden = !confirming;
+            }
+            const clear = trashBox.querySelector('.nl-clear');
+            clear.textContent = pending === 'all' ? t('Удалить') : t('Очистить');
+            trashBox.querySelector('.nl-note').textContent = pending === 'all' ? t('Удалить все без возможности вернуть?') : t('Закрытые заметки хранятся 30 дней');
         }
         function refresh() {
             if (!actions() || !actions().notes) return;
@@ -117,15 +179,65 @@
             const closed = actions().trash();
             trashBox.hidden = !closed.length || !!search.value.trim() || !!tag;
             trashBox.querySelector('.nl-count').textContent = closed.length;
-            trashList.replaceChildren(...closed.map(trashRow));
+            paintTrash();
         }
         search.addEventListener('input', refresh);
+        binSearch.addEventListener('input', paintTrash);
         sortButton.addEventListener('click', () => {
             sort = sort === 'recent' ? 'manual' : 'recent';
             try { localStorage.setItem(SORT_KEY, sort); } catch { /* stays for this session */ }
             refresh();
         });
-        trashBox.querySelector('.nl-clear').addEventListener('click', () => actions().forgetNote());
+        trashBox.querySelector('.nl-restore').addEventListener('click', () => {
+            if (!trashUid) return;
+            actions().restoreNote(trashUid);
+            trashUid = null;
+            pending = null;
+            onOpen();
+        });
+        trashBox.querySelector('.nl-forget').addEventListener('click', () => {
+            if (!trashUid) return;
+            if (pending !== trashUid) { pending = trashUid; paintTrash(); return; }
+            actions().forgetNote(trashUid);
+            trashUid = null;
+            pending = null;
+            refresh();
+        });
+        trashBox.querySelector('.nl-forget-cancel').addEventListener('click', () => { pending = null; paintTrash(); });
+        trashBox.querySelector('.nl-bin-view').addEventListener('click', event => {
+            if (pending !== 'all' || event.target.closest('.nl-forget, .nl-restore, .nl-forget-cancel')) return;
+            pending = null;
+            paintTrash();
+        });
+        trashBox.querySelector('.nl-clear').addEventListener('click', () => {
+            if (pending !== 'all') { pending = 'all'; paintTrash(); return; }
+            actions().forgetNote();
+            trashUid = null;
+            pending = null;
+            refresh();
+        });
+        const bin = trashBox.querySelector('.nl-bin');
+        const sash = trashBox.querySelector('.nl-bin-sash');
+        let drag = false;
+        const applySplit = value => { split = Math.min(55, Math.max(18, value)); bin.style.setProperty('--nl-split', split + '%'); };
+        sash.addEventListener('pointerdown', event => { drag = true; try { sash.setPointerCapture(event.pointerId); } catch { /* synthetic events */ } event.preventDefault(); });
+        sash.addEventListener('pointermove', event => {
+            if (!drag) return;
+            const rect = bin.getBoundingClientRect();
+            const stacked = getComputedStyle(bin).flexDirection === 'column';
+            const next = stacked ? ((event.clientY - rect.top) / rect.height) * 100 : ((event.clientX - rect.left) / rect.width) * 100;
+            applySplit(next);
+        });
+        const endDrag = () => { drag = false; };
+        sash.addEventListener('pointerup', endDrag);
+        sash.addEventListener('pointercancel', endDrag);
+        sash.addEventListener('keydown', event => {
+            const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 2 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -2 : 0;
+            if (!step && event.key !== 'Home') return;
+            applySplit(event.key === 'Home' ? 30 : split + step);
+            event.preventDefault();
+        });
+        applySplit(30);
         if (window.FgsI18n) window.FgsI18n.apply(host);
         return { refresh, reset() { search.value = ''; tag = ''; search.blur(); } };
     }

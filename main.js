@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, nativeTheme, shell, safeStorage, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme, shell, safeStorage, dialog, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -142,7 +142,7 @@ let syncReplyId = 0;
 const lanSync = createSyncTransport({
   log: (...args) => console.warn(...args),
   onRequest: body => new Promise(resolve => {
-    const [win] = BrowserWindow.getAllWindows();
+    const win = liveWindow();
     if (!win || win.webContents.isDestroyed()) return resolve(null);
     const id = ++syncReplyId;
     const timer = setTimeout(() => { syncReplies.delete(id); resolve(null); }, 20000);
@@ -164,7 +164,7 @@ const mcp = createMcpServer({
   version: app.getVersion(),
   log: (...args) => console.warn(...args),
   runTool: (name, args) => new Promise((resolve, reject) => {
-    const [win] = BrowserWindow.getAllWindows();
+    const win = liveWindow();
     if (!win || win.webContents.isDestroyed()) return reject(new Error('The FgSNotes window is closed'));
     const id = ++mcpReplyId;
     const timer = setTimeout(() => { mcpReplies.delete(id); reject(new Error('FgSNotes did not answer in time')); }, 20000);
@@ -276,21 +276,30 @@ function loadAppConfig() {
 
 // --- plugins: .js and .css files in Documents/FgSNotes/plugins, found and installed like themes ------------------------------
 const pluginName = /^[^\\/:*?"<>|\0]{1,120}\.(?:js|css)$/i;
+const obsidianId = /^[a-zA-Z0-9._-]{1,80}$/;
 function pluginsDir() {
   const dir = path.join(app.getPath('documents'), 'FgSNotes', 'plugins');
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 function registerPluginHandlers() {
-  for (const channel of ['plugin-read-builtin', 'plugins-list', 'plugin-read', 'plugin-install', 'plugin-remove', 'plugins-open']) ipcMain.removeHandler(channel);
+  for (const channel of ['plugin-read-builtin', 'plugins-list', 'plugin-read', 'plugin-install', 'plugin-install-obsidian', 'plugin-read-obsidian', 'plugin-remove', 'plugins-open']) ipcMain.removeHandler(channel);
   ipcMain.handle('plugin-read-builtin', (event, file) => {
     if (!pluginName.test(String(file))) throw new Error(i18n.t('Неверное имя плагина'));
     return fs.readFileSync(path.join(__dirname, 'src', 'builtin-plugins', path.basename(file)), 'utf-8');
   });
   ipcMain.handle('plugins-list', () => {
     try {
-      return fs.readdirSync(pluginsDir()).filter(name => pluginName.test(name) && !name.startsWith('.'))
-        .map(name => ({ file: name, size: fs.statSync(path.join(pluginsDir(), name)).size }));
+      const dir = pluginsDir();
+      return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+        if (entry.name.startsWith('.')) return [];
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory() && fs.existsSync(path.join(full, 'manifest.json')) && fs.existsSync(path.join(full, 'main.js'))) {
+          return [{ file: `obsidian:${entry.name}`, size: 0 }];
+        }
+        if (!entry.isDirectory() && pluginName.test(entry.name)) return [{ file: entry.name, size: fs.statSync(full).size }];
+        return [];
+      });
     } catch (error) { console.error('Ошибка чтения папки плагинов:', error); return []; }
   });
   ipcMain.handle('plugin-read', (event, file) => {
@@ -324,19 +333,161 @@ function registerPluginHandlers() {
     }
     return { canceled: false, installed };
   });
+  function copyObsidianDir(dir) {
+    const manifestPath = path.join(dir, 'manifest.json');
+    const mainPath = path.join(dir, 'main.js');
+    if (!fs.existsSync(manifestPath) || !fs.existsSync(mainPath)) return { ok: false, error: i18n.t('В папке нужны manifest.json и main.js') };
+    if (fs.statSync(mainPath).size > 2 * 1024 * 1024) return { ok: false, error: i18n.t('Плагин больше 2 МБ') };
+    let manifest;
+    try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch { return { ok: false, error: i18n.t('В папке нужны manifest.json и main.js') }; }
+    const id = String((manifest && manifest.id) || path.basename(dir)).replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80);
+    if (!obsidianId.test(id)) return { ok: false, error: i18n.t('Неверное имя плагина') };
+    const css = path.join(dir, 'styles.css');
+    return { ok: true, id, manifestPath, mainPath, css: fs.existsSync(css) && fs.statSync(css).size <= 2 * 1024 * 1024 ? css : '' };
+  }
+  function writeObsidian(source) {
+    const dest = path.join(pluginsDir(), source.id);
+    fs.mkdirSync(dest, { recursive: true });
+    fs.copyFileSync(source.manifestPath, path.join(dest, 'manifest.json'));
+    fs.copyFileSync(source.mainPath, path.join(dest, 'main.js'));
+    if (source.css) fs.copyFileSync(source.css, path.join(dest, 'styles.css'));
+    else fs.rmSync(path.join(dest, 'styles.css'), { force: true });
+  }
+  ipcMain.handle('plugin-install-obsidian', async event => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const picked = await dialog.showOpenDialog(win, {
+      title: i18n.t('Плагин Obsidian'), properties: ['openDirectory']
+    });
+    if (picked.canceled || !picked.filePaths.length) return { canceled: true, installed: [] };
+    const copied = copyObsidianDir(picked.filePaths[0]);
+    if (!copied.ok) return { canceled: false, installed: [], error: copied.error };
+    const confirm = await dialog.showMessageBox(win, {
+      type: 'warning', buttons: [i18n.t('Установить'), i18n.t('Отмена')], defaultId: 1, cancelId: 1,
+      message: i18n.t('Установить плагин «{name}»?', { name: copied.id }),
+      detail: i18n.t('Плагин: это программа. Он выполняется внутри FgSNotes и видит все ваши заметки. Устанавливайте только те плагины, которым доверяете.\n\nФайлы будут скопированы в папку Documents/FgSNotes/plugins.')
+    });
+    if (confirm.response !== 0) return { canceled: true, installed: [] };
+    writeObsidian(copied);
+    return { canceled: false, installed: [`obsidian:${copied.id}`] };
+  });
+  ipcMain.handle('plugin-read-obsidian', (event, id) => {
+    if (!obsidianId.test(String(id))) throw new Error(i18n.t('Неверное имя плагина'));
+    const dir = path.join(pluginsDir(), id);
+    const root = path.resolve(pluginsDir());
+    if (!path.resolve(dir).startsWith(root + path.sep)) throw new Error(i18n.t('Неверное имя плагина'));
+    const mainPath = path.join(dir, 'main.js');
+    if (fs.statSync(mainPath).size > 2 * 1024 * 1024) throw new Error(i18n.t('Плагин больше 2 МБ'));
+    const cssPath = path.join(dir, 'styles.css');
+    return {
+      manifest: JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')),
+      main: fs.readFileSync(mainPath, 'utf8'),
+      css: fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
+    };
+  });
   ipcMain.handle('plugin-remove', (event, file) => {
-    if (!pluginName.test(String(file))) throw new Error(i18n.t('Неверное имя плагина'));
-    fs.rmSync(path.join(pluginsDir(), file), { force: true });
+    const name = String(file || '');
+    if (name.startsWith('obsidian:')) {
+      const id = name.slice('obsidian:'.length);
+      if (!obsidianId.test(id)) throw new Error(i18n.t('Неверное имя плагина'));
+      fs.rmSync(path.join(pluginsDir(), id), { recursive: true, force: true });
+      return true;
+    }
+    if (!pluginName.test(name)) throw new Error(i18n.t('Неверное имя плагина'));
+    fs.rmSync(path.join(pluginsDir(), name), { force: true });
     return true;
   });
   ipcMain.handle('plugins-open', () => shell.openPath(pluginsDir()));
 }
 
-function createWindow() {
-  const { configContent: initialConfig, configFilePath, themesDirPath } = loadAppConfig();
-  let configContent = initialConfig;
-  useLanguage(configContent && configContent.language);
+let appConfig = null;
+let configFilePath = null;
+let themesDirPath = null;
+let windowSerial = 0;
 
+function ensureConfig() {
+  if (configFilePath) return;
+  const loaded = loadAppConfig();
+  appConfig = loaded.configContent;
+  configFilePath = loaded.configFilePath;
+  themesDirPath = loaded.themesDirPath;
+}
+
+// The window the person is using. Sync and outside tools talk to that one, whichever of the open windows it is.
+function liveWindow() {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (focused && !focused.isDestroyed()) return focused;
+  return BrowserWindow.getAllWindows().find(win => !win.isDestroyed()) || null;
+}
+
+function buildMenu() {
+  const file = {
+    label: i18n.t('Файл'),
+    submenu: [
+      { label: i18n.t('Новое окно'), click: () => createWindow() },
+      { type: 'separator' },
+      { role: 'close' }
+    ]
+  };
+  const template = [
+    ...(process.platform === 'darwin' ? [{
+      label: 'FgSNotes',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    }] : []),
+    file,
+    { role: 'editMenu' },
+    { role: 'windowMenu' }
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+// Right-click on the Dock icon. The ordinary click still focuses a window (or opens one when none are left).
+function buildDock() {
+  if (process.platform !== 'darwin' || !app.dock) return;
+  app.dock.setMenu(Menu.buildFromTemplate([
+    { label: i18n.t('Новое окно'), click: () => createWindow() }
+  ]));
+}
+
+// Handlers stay for the life of the process. Creating another window must not tear them down.
+function registerWindowIpc() {
+  ensureConfig();
+  registerPluginHandlers();
+  ipcMain.handle('get-config', () => appConfig);
+  ipcMain.handle('get-themes-path', () => themesDirPath);
+  ipcMain.handle('get-themes-list', () => {
+    try {
+      return fs.readdirSync(themesDirPath).filter(file => file.endsWith('.css'));
+    } catch (error) {
+      console.error('Ошибка чтения папки тем:', error);
+      return [];
+    }
+  });
+  ipcMain.handle('window-new', () => {
+    createWindow();
+    return BrowserWindow.getAllWindows().length;
+  });
+  ipcMain.on('set-language', (event, code) => { useLanguage(code); buildMenu(); buildDock(); });
+  ipcMain.on('save-config', (event, config) => {
+    try {
+      appConfig = config;
+      fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2));
+    } catch (error) {
+      console.error('Ошибка сохранения config.json:', error);
+    }
+  });
+}
+
+function createWindow() {
+  ensureConfig();
+  useLanguage(appConfig && appConfig.language);
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -350,7 +501,7 @@ function createWindow() {
       spellcheck: false,
       additionalArguments: [
         `--fgs-native-blur=${nativeBlur ? 1 : 0}`,
-        `--fgs-config=${Buffer.from(JSON.stringify(configContent)).toString('base64')}`
+        `--fgs-config=${Buffer.from(JSON.stringify(appConfig)).toString('base64')}`
       ],
     },
     // A translucent native window: the page stays opaque until Liquid Glass makes its background transparent.
@@ -359,57 +510,22 @@ function createWindow() {
     ...(process.platform === 'darwin' ? { vibrancy: 'under-window', visualEffectState: 'active' } : {}),
     icon: path.join(__dirname, 'src', 'icon.png')
   });
-
-  // createWindow runs again on macOS 'activate', so drop handlers from the previous window first.
-  ['get-config', 'get-themes-path', 'get-themes-list'].forEach(channel => ipcMain.removeHandler(channel));
-  ipcMain.removeAllListeners('save-config');
-  ipcMain.removeAllListeners('set-language');
-  registerPluginHandlers();
-
-  ipcMain.handle('get-config', () => {
-    return configContent;
-  });
-
-  // Добавляем новый обработчик для получения пути к папке themes
-  ipcMain.handle('get-themes-path', () => {
-    return themesDirPath;
-  });
-
-  // Добавляем новый обработчик для получения списка тем
-  ipcMain.handle('get-themes-list', () => {
-    try {
-      const themeFiles = fs.readdirSync(themesDirPath);
-      const cssThemes = themeFiles.filter(file => file.endsWith('.css'));
-      return cssThemes;
-    } catch (error) {
-      console.error('Ошибка чтения папки тем:', error);
-      return [];
-    }
-  });
-
+  windowSerial += 1;
+  if (windowSerial > 1) {
+    const [x, y] = win.getPosition();
+    const step = 28 * ((windowSerial - 1) % 12);
+    win.setPosition(x + step, y + step);
+  }
   win.loadFile(path.join(__dirname, 'src', 'MarkDownEditor.html'));
-
-  ipcMain.on('set-language', (event, code) => useLanguage(code));
-
-  ipcMain.on('save-config', (event, config) => {
-    try {
-      configContent = config;
-      fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2));
-      console.log('Настройки успешно сохранены в config.json');
-    } catch (error) {
-      console.error('Ошибка сохранения config.json:', error);
-    }
-  });
-
-  // win.webContents.openDevTools();
+  return win;
 }
 
-// Two copies sharing one profile fight over its storage (the second waits seconds for the first to release it),
-// so the app runs once; launching it again brings the open window forward.
+// Two processes sharing one profile fight over its storage, so a second launch only brings this copy forward.
+// Inside that copy the number of windows is not capped: each "Новое окно" is another window, like another terminal.
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 app.on('second-instance', () => {
-  const [win] = BrowserWindow.getAllWindows();
+  const win = liveWindow();
   if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
 });
 
@@ -431,14 +547,22 @@ function warnAboutTranslation() {
 
 app.whenReady().then(() => {
   if (!primaryInstance) return;
+  ensureConfig();
+  useLanguage(appConfig && appConfig.language);
+  registerWindowIpc();
+  buildMenu();
+  buildDock();
   updater.register(ipcMain, { app, BrowserWindow, shell });
   createWindow();
   warnAboutTranslation();
 
+  // A Dock click focuses a window that is already open. With none left, it opens one. It does not replace the others.
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    const win = liveWindow();
+    if (!win) { createWindow(); return; }
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
   });
 });
 

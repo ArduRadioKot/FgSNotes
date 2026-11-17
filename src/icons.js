@@ -14,6 +14,7 @@ const iconPaths = {
     'menu': '<path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/>',
     'documents': '<path d="M5.5 2.5h6l2 2v8h-8z"/><path d="M3 5v8.5h7M8 7.5h3.5M8 10h3.5"/>',
     'book': '<path d="M3 2.5h7.2A2.3 2.3 0 0 1 12.5 4.8V13.5H5.2A2.2 2.2 0 0 0 3 15.5z"/><path d="M3 2.5v13M6.2 5.5h4M6.2 8h4"/>',
+    'windows': '<rect x="4" y="4" width="9" height="8" rx="1"/><path d="M3 6.5V12a1 1 0 0 0 1 1h6"/>',
     'plus': '<path d="M8 3v10M3 8h10"/>',
     'close': '<path d="M4 4l8 8M12 4l-8 8"/>',
     'check': '<path d="M3 8.5l3.25 3L13 4.5"/>',

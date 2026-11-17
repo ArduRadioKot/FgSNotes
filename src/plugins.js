@@ -14,6 +14,7 @@
     const tr = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
     const ENABLED = 'fgsnotes.plugins.enabled';
     const STORED = 'fgsnotes.plugins.files';
+    const BUNDLES = 'fgsnotes.plugins.obsidian';
     const desktop = !!(window.electron && window.electron.getPlugins);
     const running = new Map();        // file -> { cleanups: [], preview: [], change: [], error }
     const listeners = new Set();
@@ -39,7 +40,7 @@
     async function files() {
         let installed = [];
         if (desktop) { try { installed = (await window.electron.getPlugins()).map(item => item.file); } catch { installed = []; } }
-        else installed = Object.keys(read(STORED, {}));
+        else installed = [...Object.keys(read(STORED, {})), ...Object.keys(read(BUNDLES, {})).map(id => `obsidian:${id}`)];
         return [...BUILTIN, ...installed.filter(file => !isBuiltin(file))];
     }
     async function source(file) {
@@ -133,7 +134,16 @@
             return;
         }
         const main = document.querySelector('.sidebar-main-buttons');
-        if (main) pinned.forEach(entry => main.appendChild(railButton(entry, 'sidebar-button icon-button')));
+        if (main) {
+            // Calendar, then Excalidraw, directly under the AI button. The rest of the rail stays below.
+            const anchor = document.getElementById('ai-button');
+            let after = anchor && anchor.parentElement === main ? anchor : null;
+            pinned.forEach(entry => {
+                const button = railButton(entry, 'sidebar-button icon-button');
+                if (after) { after.after(button); after = button; }
+                else main.appendChild(button);
+            });
+        }
         if (!rest.length) { if (rail) rail.hidden = true; return; }
         if (!rail) {
             const toolbar = document.querySelector('.sidebar-toolbar');
@@ -279,15 +289,53 @@
         return api;
     }
 
+    async function obsidianBundle(id) {
+        if (desktop) return window.electron.readObsidian(id);
+        const bundle = read(BUNDLES, {})[id];
+        if (!bundle) throw new Error(tr('Файл плагина не найден'));
+        return bundle;
+    }
+    async function describe(file) {
+        if (file.startsWith('obsidian:')) {
+            const bundle = await obsidianBundle(file.slice('obsidian:'.length));
+            const manifest = bundle.manifest || {};
+            return { name: manifest.name || file.slice('obsidian:'.length), version: manifest.version || '', description: manifest.description || tr('Плагин Obsidian'), author: manifest.author || '', obsidian: true };
+        }
+        return meta(await source(file), file);
+    }
+    async function startObsidian(id, api, state) {
+        if (!window.FgsObsidian) throw new Error(tr('Плагин Obsidian не экспортирует класс.'));
+        const bundle = await obsidianBundle(id);
+        if (bundle.css) api.addStyle(bundle.css);
+        const runtime = window.FgsObsidian.createRuntime({
+            notes: () => api.documents().map(doc => ({ id: doc.id, title: doc.title, content: doc.content, active: doc.active })),
+            editor: api.editor,
+            notify: text => api.notify(text),
+            addButton: spec => api.addButton(spec),
+            addStyle: css => api.addStyle(css),
+            onPreview: fn => api.onPreview(fn),
+            storage: api.storage,
+            openDocument: docId => api.openDocument(docId),
+            createDocument: (title, content) => api.createDocument(title, content),
+            modal: options => api.modal(options)
+        });
+        const plugin = await runtime.start(bundle.main, bundle.manifest || {});
+        state.cleanups.push(() => runtime.cleanups.forEach(fn => { try { fn(); } catch { /* the plugin is leaving anyway */ } }));
+        return plugin;
+    }
+
     async function start(file) {
         if (running.has(file)) return;
         const state = { cleanups: [], preview: [], change: [], error: '' };
         running.set(file, state);
         try {
-            const text = await source(file);
             const api = makeApi(file, state);
-            if (/\.css$/i.test(file)) api.addStyle(text);
-            else new Function('fgs', text)(api);
+            if (file.startsWith('obsidian:')) await startObsidian(file.slice('obsidian:'.length), api, state);
+            else {
+                const text = await source(file);
+                if (/\.css$/i.test(file)) api.addStyle(text);
+                else new Function('fgs', text)(api);
+            }
         } catch (error) {
             state.error = (error && error.message) || String(error);
             console.error(`[plugin ${file}]`, error);
@@ -309,6 +357,52 @@
     }
 
     // --- install / remove ------------------------------------------------------------------------------------------------------
+    async function installObsidian() {
+        if (desktop) {
+            const result = await window.electron.installObsidian();
+            if (result && result.error) {
+                const status = document.getElementById('save-status');
+                if (status) status.textContent = result.error;
+            }
+            for (const file of (result && result.installed) || []) { setEnabled(file, true); stop(file); await start(file); }
+            changed();
+            return result;
+        }
+        return new Promise(resolve => {
+            const input = Object.assign(document.createElement('input'), { type: 'file', multiple: true, hidden: true });
+            input.webkitdirectory = true;
+            document.body.append(input);
+            input.addEventListener('cancel', () => { input.remove(); resolve({ canceled: true, installed: [] }); }, { once: true });
+            input.onchange = async () => {
+                const picked = [...input.files];
+                input.remove();
+                const entries = [];
+                for (const file of picked) {
+                    if (file.size > 2 * 1024 * 1024) continue;
+                    const name = file.webkitRelativePath || file.name;
+                    if (!/(^|\/)(manifest\.json|main\.js|styles\.css)$/.test(name)) continue;
+                    entries.push({ name, text: await file.text() });
+                }
+                const bundle = window.FgsObsidian && window.FgsObsidian.bundleFromFiles(entries);
+                if (!bundle) {
+                    const status = document.getElementById('save-status');
+                    if (status) status.textContent = tr('В папке нужны manifest.json и main.js');
+                    resolve({ canceled: false, installed: [], error: tr('В папке нужны manifest.json и main.js') });
+                    return;
+                }
+                const stored = read(BUNDLES, {});
+                stored[bundle.id] = { manifest: bundle.manifest, main: bundle.main, css: bundle.css };
+                write(BUNDLES, stored);
+                const file = `obsidian:${bundle.id}`;
+                setEnabled(file, true);
+                stop(file);
+                await start(file);
+                changed();
+                resolve({ canceled: false, installed: [file] });
+            };
+            input.click();
+        });
+    }
     async function install() {
         if (desktop) {
             const result = await window.electron.installPlugins();
@@ -342,7 +436,11 @@
     async function remove(file) {
         setEnabled(file, false);
         if (desktop) await window.electron.removePlugin(file);
-        else { const stored = read(STORED, {}); delete stored[file]; write(STORED, stored); }
+        else if (file.startsWith('obsidian:')) {
+            const stored = read(BUNDLES, {});
+            delete stored[file.slice('obsidian:'.length)];
+            write(BUNDLES, stored);
+        } else { const stored = read(STORED, {}); delete stored[file]; write(STORED, stored); }
         stop(file);          // redraws the list, now without the file
         changed();
     }
@@ -358,12 +456,12 @@
         const names = await files();
         const rows = await Promise.all(names.map(async file => {
             let info = { name: file, version: '', description: '' };
-            try { info = meta(await source(file), file); } catch { /* unreadable file: listed by its name */ }
+            try { info = await describe(file); } catch { /* unreadable file: listed by its name */ }
             const state = running.get(file);
             const error = state && state.error ? `<small class="plugin-error">${escapeHtml(state.error)}</small>` : '';
             return `<div class="setting-item plugin-row" data-file="${escapeHtml(file)}">
                 <div class="setting-info">
-                    <span class="setting-name">${escapeHtml(info.name)}${info.version ? ` <span class="plugin-version">${escapeHtml(info.version)}</span>` : ''}</span>
+                    <span class="setting-name">${escapeHtml(info.name)}${info.obsidian ? ` <span class="plugin-version">Obsidian</span>` : ''}${info.version ? ` <span class="plugin-version">${escapeHtml(info.version)}</span>` : ''}</span>
                     <div class="setting-desc">${escapeHtml(info.description || file)}</div>${error}
                 </div>
                 <div class="setting-control plugin-actions">
@@ -372,7 +470,7 @@
                 </div>
             </div>`;
         }));
-        host.querySelector('[data-plugin-list]').innerHTML = rows.join('') || `<div class="setting-item plugin-empty"><div class="setting-info"><div class="setting-desc">${tr('Плагинов пока нет. Нажмите «Установить плагин» и выберите файл .js или .css.')}</div></div></div>`;
+        host.querySelector('[data-plugin-list]').innerHTML = rows.join('') || `<div class="setting-item plugin-empty"><div class="setting-info"><div class="setting-desc">${tr('Плагинов пока нет. Нажмите «Установить плагин» или «Плагин Obsidian».')}</div></div></div>`;
         if (window.FgsI18n) window.FgsI18n.apply(host);
     }
     function mount(host) {
@@ -381,10 +479,11 @@
         host.innerHTML = `<div class="setting-item">
                 <div class="setting-info">
                     <span class="setting-name">${tr('Установленные плагины')}</span>
-                    <div class="setting-desc">${desktop ? tr('Файлы .js и .css из папки Documents/FgSNotes/plugins. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.') : tr('Файлы .js и .css, сохранённые в приложении. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.')}</div>
+                    <div class="setting-desc">${desktop ? tr('Файлы .js и .css и папка плагина Obsidian из Documents/FgSNotes/plugins. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.') : tr('Файлы .js и .css и папка плагина Obsidian, сохранённые в приложении. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.')}</div>
                 </div>
                 <div class="setting-control plugin-actions">
                     ${desktop ? `<button type="button" class="button-secondary" data-act="folder">${tr('Открыть папку')}</button>` : ''}
+                    <button type="button" class="button-secondary" data-act="obsidian">${tr('Плагин Obsidian')}</button>
                     <button type="button" class="button-secondary" data-act="install">${tr('Установить плагин')}</button>
                 </div>
             </div>
@@ -396,6 +495,7 @@
             if (!button) return;
             const row = button.closest('.plugin-row');
             if (button.dataset.act === 'install') await install();
+            else if (button.dataset.act === 'obsidian') await installObsidian();
             else if (button.dataset.act === 'folder') window.electron.openPluginsFolder();
             else if (button.dataset.act === 'remove') {
                 const file = row.dataset.file;
@@ -423,11 +523,13 @@
         const name = host.querySelector(':scope > .setting-item .setting-name');
         if (name) name.textContent = tr('Установленные плагины');
         const desc = host.querySelector(':scope > .setting-item .setting-desc');
-        if (desc) desc.textContent = desktop ? tr('Файлы .js и .css из папки Documents/FgSNotes/plugins. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.') : tr('Файлы .js и .css, сохранённые в приложении. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.');
+        if (desc) desc.textContent = desktop ? tr('Файлы .js и .css и папка плагина Obsidian из Documents/FgSNotes/plugins. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.') : tr('Файлы .js и .css и папка плагина Obsidian, сохранённые в приложении. Плагин выполняется с доступом ко всем вашим заметкам: ставьте только те, которым доверяете.');
         const folder = host.querySelector('[data-act="folder"]');
         if (folder) folder.textContent = tr('Открыть папку');
         const installBtn = host.querySelector('[data-act="install"]');
         if (installBtn) installBtn.textContent = tr('Установить плагин');
+        const obsidianBtn = host.querySelector('[data-act="obsidian"]');
+        if (obsidianBtn) obsidianBtn.textContent = tr('Плагин Obsidian');
         draw(host);
     });
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 0));

@@ -172,6 +172,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const newTabButton = document.querySelector('.new-tab-button');
     let documents = [];
     let activeDocumentIndex = 0;
+    let layout = null;
+    let activePane = null;
+    const viewIds = () => documents.filter(isView).map(doc => doc.id);
     let lastNoteId = null;                    // the note the text editor currently holds (a plugin tab may be in front)
     // Plugin tabs ("views") hold an element a plugin drew instead of text. They stay at the end of the list and are never saved.
     const isView = doc => !!(doc && doc.view);
@@ -242,7 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const notes = notesOnly();
         const activeNote = isView(documents[activeDocumentIndex]) ? notes.findIndex(doc => doc.id === lastNoteId) : activeDocumentIndex;
         const status = document.getElementById('save-status');
-        window.FgsStore.save(JSON.stringify({ savedAt: Date.now(), documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId, removed: removedNotes, trash })).then(
+        const layoutSnap = layout ? window.FgsPanes.persist(layout, activePane, viewIds()) : null;
+        window.FgsStore.save(JSON.stringify({ savedAt: Date.now(), documents: notes, activeDocumentIndex: Math.max(0, activeNote), nextDocumentId, removed: removedNotes, trash, layout: layoutSnap })).then(
             () => { status.textContent = t('Черновик сохранён'); },
             error => { status.textContent = t('Не удалось сохранить черновик'); console.error('Draft storage failed:', error); }
         );
@@ -253,17 +257,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function loadDocument(index) {
         const shown = documents[index];
-        // A plugin tab replaces both panes with its own element.
-        for (const child of viewHost.children) child.hidden = !(isView(shown) && child === shown.element);
+        // A plugin tab fills its own group. The text editor stays with whichever group shows a note.
+        viewHost.hidden = true;
         if (isView(shown)) {
             workspace.dataset.pluginView = '';
-            viewHost.hidden = false;
+            if (shown.element) shown.element.hidden = false;
             shown.element.dispatchEvent(new CustomEvent('plugin-view-show'));
             document.title = `${shown.title} - FgSNotes`;
             return;
         }
         delete workspace.dataset.pluginView;
-        viewHost.hidden = true;
         lastNoteId = shown.id;
         editor.value = documents[index].content;
         editor.setSelectionRange(0, 0);
@@ -307,129 +310,156 @@ document.addEventListener('DOMContentLoaded', () => {
             toTrash(closing);
             removedNotes = removedNotes.filter(note => note.uid !== closing.uid).concat({ uid: closing.uid, deleted: true, updatedAt: Date.now(), ver: nextVersion(closing.ver) });
         }
+        const wasCurrent = index === activeDocumentIndex;
+        const group = layout && window.FgsPanes.leafOf(layout, closing.id);
+        const neighbor = wasCurrent && group ? group.tabs.find(id => id !== closing.id) : null;
         documents.splice(index, 1);
-        if (index < activeDocumentIndex) activeDocumentIndex--;
-        activeDocumentIndex = Math.min(activeDocumentIndex, documents.length - 1);
+        if (neighbor && documents.some(doc => doc.id === neighbor)) activeDocumentIndex = documents.findIndex(doc => doc.id === neighbor);
+        else if (wasCurrent) activeDocumentIndex = Math.min(index, documents.length - 1);
+        else if (index < activeDocumentIndex) activeDocumentIndex--;
         renderTabs();
         loadDocument(activeDocumentIndex);
         persistWorkspace();
         if (!isView(closing)) { noteChanged(); listChanged(); }
-        tabBar.querySelector('.active .tab-select').focus();
+        const focusTab = document.querySelector('.pane-leaf.is-active .tab-item.active .tab-select');
+        if (focusTab) focusTab.focus();
     }
     let ignoreTabClick = false;
-    function clearDropMarks() {
-        tabBar.querySelectorAll('.is-drop-before, .is-drop-after').forEach(node => node.classList.remove('is-drop-before', 'is-drop-after'));
+    const editorContainer = document.querySelector('.editor-container');
+    const editorWrap = document.querySelector('.editor-wrapper');
+    const toolsDock = document.querySelector('.tools-dock');
+    // These nodes leave the document while a plugin tab is open. A fresh query would miss them, so the note editor would not come back.
+    const editorHost = () => editorWrap.parentElement && editorWrap.parentElement.classList.contains('editor-stage') ? editorWrap.parentElement : editorWrap;
+    let paneGrid = null;
+    function ensureLayout() {
+        const ids = documents.map(doc => doc.id);
+        const preferred = documents[activeDocumentIndex] && documents[activeDocumentIndex].id;
+        if (!layout) layout = window.FgsPanes.leaf(ids, preferred);
+        const fixed = window.FgsPanes.reconcile(layout, ids, preferred, viewIds(), activePane);
+        layout = fixed.tree;
+        activePane = fixed.activePane;
     }
-    // Index in the current row where a tab dragged to clientX should be inserted (after the last one when past the end).
-    function dropIndex(clientX) {
-        const tabs = [...tabBar.querySelectorAll('.tab-item')];
-        for (let i = 0; i < tabs.length; i++) {
-            const rect = tabs[i].getBoundingClientRect();
-            if (clientX < rect.left + rect.width / 2) return i;
+    function paneTabs() {
+        const group = layout && window.FgsPanes.findLeaf(layout, activePane);
+        return group ? group.tabs : documents.map(doc => doc.id);
+    }
+    function buildTab(doc, group) {
+        const index = documents.indexOf(doc);
+        const on = group.active === doc.id;
+        const tab = document.createElement('div');
+        tab.className = 'tab-item' + (on ? ' active' : '');
+        tab.dataset.doc = String(doc.id);
+        tab.dataset.pane = group.id;
+        const select = document.createElement('button');
+        select.className = 'tab-select';
+        select.innerHTML = icon(doc.icon || 'markdown');
+        select.setAttribute('aria-pressed', on);
+        select.title = doc.title;
+        const title = document.createElement('span');
+        title.className = 'tab-title';
+        title.dataset.i18nSkip = '';
+        title.textContent = doc.title;
+        select.append(title);
+        select.addEventListener('click', () => { if (ignoreTabClick) { ignoreTabClick = false; return; } switchTab(index); });
+        select.addEventListener('keydown', event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const order = group.tabs;
+            const at = order.indexOf(doc.id);
+            const next = event.key === 'Home' ? order[0] : event.key === 'End' ? order[order.length - 1] : order[(at + (event.key === 'ArrowRight' ? 1 : -1) + order.length) % order.length];
+            switchTab(documents.findIndex(item => item.id === next));
+            const focus = document.querySelector('.pane-leaf.is-active .tab-item.active .tab-select');
+            if (focus) focus.focus();
+        });
+        const close = document.createElement('button');
+        close.className = 'close-tab';
+        close.innerHTML = icon('close');
+        close.setAttribute('aria-label', t('Закрыть') + ' ' + doc.title);
+        close.title = documents.length === 1 ? t('Оставьте хотя бы один документ открытым') : t('Закрыть документ');
+        close.disabled = documents.length === 1;
+        close.addEventListener('click', () => closeTab(index));
+        tab.append(select, close);
+        return tab;
+    }
+    function fillTabs(bar, group) {
+        const primary = bar === tabBar;
+        if (primary) bar.replaceChildren(tabGlass);
+        else bar.replaceChildren();
+        group.tabs.forEach(id => {
+            const doc = documents.find(item => item.id === id);
+            if (doc) bar.append(buildTab(doc, group));
+        });
+        if (primary) bar.append(newTabButton);
+        else {
+            const plus = newTabButton.cloneNode(true);
+            plus.addEventListener('click', () => { activePane = group.id; addNewTab(); });
+            bar.append(plus);
         }
-        return tabs.length;
+        const current = bar.querySelector('.tab-item.active');
+        if (current) current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-    // Notes stay ahead of plugin views, the same way a new note is inserted.
-    function clampDest(from, to) {
-        const dest = from < to ? to - 1 : to;
-        const firstView = documents.findIndex(isView);
-        if (firstView < 0) return dest;
-        return isView(documents[from]) ? Math.max(dest, firstView) : Math.min(dest, firstView - 1);
+    function snapshotOf(doc) {
+        const node = document.createElement('div');
+        node.className = 'preview-content pane-snapshot';
+        node.innerHTML = doc.content.trim()
+            ? parseMarkdown(doc.content)
+            : `<div class="empty-preview">${icon('file')}<h2>${t('Здесь оживут ваши идеи')}</h2><p>${t('Начните писать в редакторе, и результат появится здесь.')}</p></div>`;
+        if (doc.content.trim() && document.documentElement.dataset.codeHighlight !== 'off') {
+            node.querySelectorAll('pre code').forEach(block => {
+                block.innerHTML = highlightCode(block.textContent, (block.className.match(/language-([\w+-]+)/) || [])[1]);
+            });
+        }
+        if (window.renderMath) window.renderMath(node);
+        return node;
     }
-    function markDrop(from, clientX) {
-        clearDropMarks();
-        const dest = clampDest(from, dropIndex(clientX));
-        if (dest === from || dest < 0) return;
-        const tabs = [...tabBar.querySelectorAll('.tab-item')];
-        const gap = dest < from ? dest : dest + 1;
-        if (gap >= tabs.length) tabs[tabs.length - 1].classList.add('is-drop-after');
-        else tabs[gap].classList.add('is-drop-before');
-    }
-    function moveTab(from, dest) {
-        if (dest === from || dest < 0 || dest >= documents.length) return;
+    function dropTab(docId, hit) {
         saveCurrentDocument();
-        const [doc] = documents.splice(from, 1);
-        documents.splice(dest, 0, doc);
-        if (activeDocumentIndex === from) activeDocumentIndex = dest;
-        else if (from < activeDocumentIndex && dest >= activeDocumentIndex) activeDocumentIndex--;
-        else if (from > activeDocumentIndex && dest <= activeDocumentIndex) activeDocumentIndex++;
+        const views = viewIds();
+        const next = hit.edge === 'center'
+            ? window.FgsPanes.move(layout, docId, hit.paneId, hit.index, views)
+            : (window.FgsPanes.split(layout, docId, hit.paneId, hit.edge, views) || window.FgsPanes.move(layout, docId, hit.paneId, hit.index, views));
+        if (!next || next === layout) return;
+        layout = next;
+        activeDocumentIndex = Math.max(0, documents.findIndex(doc => doc.id === docId));
+        activePane = window.FgsPanes.leafOf(layout, docId).id;
         renderTabs();
+        loadDocument(activeDocumentIndex);
         persistWorkspace();
         listChanged();
     }
-    function bindTabDrag(tab, index) {
-        tab.addEventListener('pointerdown', event => {
-            if (event.button !== 0 || event.target.closest('.close-tab')) return;
-            const startX = event.clientX, startY = event.clientY, from = index;
-            let dragging = false;
-            const onMove = move => {
-                if (!dragging) {
-                    if (Math.hypot(move.clientX - startX, move.clientY - startY) < 6) return;
-                    dragging = true;
-                    tab.classList.add('is-dragging');
-                    tabBar.classList.add('is-reordering');
-                    try { tab.setPointerCapture(move.pointerId); } catch { /* the pointer is already gone */ }
-                }
-                markDrop(from, move.clientX);
-                const bar = tabBar.getBoundingClientRect();
-                if (move.clientX < bar.left + 28) tabBar.scrollLeft -= 14;
-                else if (move.clientX > bar.right - 28) tabBar.scrollLeft += 14;
-            };
-            const finish = up => {
-                tab.removeEventListener('pointermove', onMove);
-                tab.removeEventListener('pointerup', finish);
-                tab.removeEventListener('pointercancel', finish);
-                clearDropMarks();
-                tab.classList.remove('is-dragging');
-                tabBar.classList.remove('is-reordering');
-                if (!dragging) return;
-                const dest = clampDest(from, dropIndex(up.clientX));
-                if (dest === from || dest < 0) return;
-                ignoreTabClick = true;
-                moveTab(from, dest);
-                setTimeout(() => { ignoreTabClick = false; }, 0);
-            };
-            tab.addEventListener('pointermove', onMove);
-            tab.addEventListener('pointerup', finish);
-            tab.addEventListener('pointercancel', finish);
-        });
-    }
     function renderTabs() {
-        tabBar.replaceChildren(tabGlass);
-        documents.forEach((doc, index) => {
-            const tab = document.createElement('div');
-            tab.className = `tab-item${index === activeDocumentIndex ? ' active' : ''}`;
-            const select = document.createElement('button');
-            select.className = 'tab-select';
-            select.innerHTML = icon(doc.icon || 'markdown');
-            select.setAttribute('aria-pressed', index === activeDocumentIndex);
-            select.title = doc.title;
-            const title = document.createElement('span');
-            title.className = 'tab-title';
-            title.textContent = doc.title;
-            select.append(title);
-            select.addEventListener('click', () => { if (ignoreTabClick) { ignoreTabClick = false; return; } switchTab(index); });
-            bindTabDrag(tab, index);
-            select.addEventListener('keydown', event => {
-                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-                event.preventDefault();
-                const next = event.key === 'Home' ? 0 : event.key === 'End' ? documents.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + documents.length) % documents.length;
-                switchTab(next);
-                tabBar.querySelector('.active .tab-select').focus();
+        if (!documents.length || !window.FgsPanes) return;
+        ensureLayout();
+        if (!paneGrid) {
+            paneGrid = document.createElement('div');
+            paneGrid.className = 'pane-grid';
+            editorContainer.insertBefore(paneGrid, document.querySelector('.status-bar'));
+            window.FgsPanes.bindDrag(editorContainer, {
+                title: id => { const doc = documents.find(item => item.id === id); return doc ? doc.title : ''; },
+                tabs: paneId => { const group = window.FgsPanes.findLeaf(layout, paneId); return group ? group.tabs : []; },
+                canSplit: (docId, paneId) => window.FgsPanes.canSplit(layout, docId, paneId),
+                suppressClick: () => { ignoreTabClick = true; setTimeout(() => { ignoreTabClick = false; }, 0); },
+                drop: dropTab
             });
-            const close = document.createElement('button');
-            close.className = 'close-tab';
-            close.innerHTML = icon('close');
-            close.setAttribute('aria-label', t('Закрыть') + ' ' + doc.title);
-            close.title = documents.length === 1 ? t('Оставьте хотя бы один документ открытым') : t('Закрыть документ');
-            close.disabled = documents.length === 1;
-            close.addEventListener('click', () => closeTab(index));
-            tab.append(select, close);
-            tabBar.append(tab);
+        }
+        const documentBar = document.querySelector('.document-bar:has(.view-switch)');
+        window.FgsPanes.paint(paneGrid, layout, {
+            activePane,
+            documentBar,
+            tabBar,
+            // The chat sits in .editor-stage next to the note. Move that whole row, or the next redraw pulls the note out and leaves an empty strip.
+            editor: editorHost(),
+            tools: toolsDock,
+            doc: id => documents.find(item => item.id === id),
+            isView,
+            snapshot: snapshotOf,
+            tabsLabel: t('Открытые документы'),
+            sashLabel: t('Граница панелей'),
+            fillTabs,
+            onFocus: id => { const index = documents.findIndex(doc => doc.id === id); if (index >= 0) switchTab(index); },
+            onResize: (id, ratio, save) => { layout = window.FgsPanes.setRatio(layout, id, ratio); if (save) persistWorkspace(); },
+            filled: () => tabLens.place()
         });
-        tabBar.append(newTabButton);
-        tabBar.querySelector('.active').scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        tabLens.place();
     }
     // A file from the picker or dropped on the window becomes a new tab.
     function openText(name, content) {
@@ -517,11 +547,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.FgsNotebook) window.FgsNotebook.setDocument(() => documents[activeDocumentIndex] && documents[activeDocumentIndex].id);
     window.FgsActions = {
         newDocument: addNewTab,
+        newWindow: () => {
+            if (window.electron && window.electron.newWindow) window.electron.newWindow();
+            else window.open(location.href, '_blank');
+        },
         open: openFile,
         save: saveFile,
         closeTab: () => closeTab(activeDocumentIndex),
-        nextTab: () => switchTab((activeDocumentIndex + 1) % documents.length),
-        previousTab: () => switchTab((activeDocumentIndex - 1 + documents.length) % documents.length),
+        nextTab: () => { const order = paneTabs(); if (!order.length) return; const at = Math.max(0, order.indexOf(documents[activeDocumentIndex] && documents[activeDocumentIndex].id)); switchTab(documents.findIndex(doc => doc.id === order[(at + 1) % order.length])); },
+        previousTab: () => { const order = paneTabs(); if (!order.length) return; const at = Math.max(0, order.indexOf(documents[activeDocumentIndex] && documents[activeDocumentIndex].id)); switchTab(documents.findIndex(doc => doc.id === order[(at - 1 + order.length) % order.length])); },
         view: setView,
         // For plugins: the open notes.
         documents: () => { saveCurrentDocument(); return notesOnly().map(doc => ({ id: doc.id, title: doc.title, content: doc.content, active: doc.id === lastNoteId })); },
@@ -726,6 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); });
     newTabButton.addEventListener('click', addNewTab);
     document.getElementById('new-file-button').addEventListener('click', addNewTab);
+    document.getElementById('new-window-button').addEventListener('click', () => window.FgsActions.newWindow());
     document.getElementById('open-file-button').addEventListener('click', openFile);
     document.getElementById('save-file-button').addEventListener('click', saveFile);
 
@@ -738,8 +773,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // The saved notes come from storage a moment after the page is built (store.js); until then there are no tabs.
     function restore(text) {
+        let saved = null;
         try {
-            const saved = text ? JSON.parse(text) : null;
+            saved = text ? JSON.parse(text) : null;
             if (saved && Array.isArray(saved.documents)) {
                 documents = saved.documents.filter(doc => Number.isFinite(doc.id) && typeof doc.title === 'string' && typeof doc.content === 'string');
                 activeDocumentIndex = Math.max(0, Math.min(Number(saved.activeDocumentIndex) || 0, documents.length - 1));
@@ -755,6 +791,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         nextDocumentId = Math.max(0, ...documents.map(doc => doc.id)) + 1;
+        if (saved && saved.layout && window.FgsPanes) {
+            const back = window.FgsPanes.restore(saved.layout, documents.map(doc => doc.id));
+            layout = back.tree;
+            activePane = back.activePane;
+            const shown = documents[activeDocumentIndex];
+            const home = shown && window.FgsPanes.leafOf(layout, shown.id);
+            if (home) activePane = home.id;
+        }
         documents.forEach(doc => { if (!doc.uid) doc.uid = newUid(); if (!doc.updatedAt) doc.updatedAt = 0; delete doc.hist; });
         if (!documents.length) {
             const intro = [

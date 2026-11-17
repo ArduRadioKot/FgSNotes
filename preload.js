@@ -42,6 +42,8 @@ contextBridge.exposeInMainWorld(
     getThemesList: () => ipcRenderer.invoke('get-themes-list'),
     getPlugins: () => ipcRenderer.invoke('plugins-list'),
     readPlugin: (file) => ipcRenderer.invoke('plugin-read', file),
+    installObsidian: () => ipcRenderer.invoke('plugin-install-obsidian'),
+    readObsidian: (id) => ipcRenderer.invoke('plugin-read-obsidian', id),
     readBuiltinPlugin: (file) => ipcRenderer.invoke('plugin-read-builtin', file),
     installPlugins: () => ipcRenderer.invoke('plugin-install'),
     removePlugin: (file) => ipcRenderer.invoke('plugin-remove', file),
@@ -100,6 +102,7 @@ contextBridge.exposeInMainWorld(
       status: () => ipcRenderer.invoke('tui-command-status'),
       install: () => ipcRenderer.invoke('tui-command-install'),
       remove: () => ipcRenderer.invoke('tui-command-remove')
-    }
+    },
+    newWindow: () => ipcRenderer.invoke('window-new')
   }
 );

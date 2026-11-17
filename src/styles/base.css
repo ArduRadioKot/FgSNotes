@@ -302,6 +302,36 @@ body.resizing { cursor: col-resize; user-select: none; }
     .update-bar { flex-wrap: wrap; }
 }
 
+/* Groups of tabs. One editor is shared; the other groups show the rendered note until they are focused. */
+.pane-grid { flex: 1; min-width: 0; min-height: 0; display: flex; }
+.pane-grid > .pane-split, .pane-grid > .pane-leaf { flex: 1; min-width: 0; min-height: 0; }
+.pane-split { display: flex; min-width: 0; min-height: 0; }
+.pane-split.row { flex-direction: row; }
+.pane-split.col { flex-direction: column; }
+.pane-slot { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; }
+.pane-slot > .pane-leaf, .pane-slot > .pane-split { flex: 1; min-width: 0; min-height: 0; }
+.pane-leaf { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-radius: var(--radius-lg); }
+.pane-grid.is-split .pane-leaf { background: var(--card-bg); }
+.pane-grid.is-split .pane-leaf.is-active { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-color) 55%, transparent); }
+.pane-body { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.pane-body > .editor-wrapper, .pane-body > .editor-stage { flex: 1; min-height: 0; }
+.pane-body > .tools-dock { bottom: 12px; }
+.pane-snapshot { flex: 1; overflow: auto; }
+.pane-sash { position: relative; flex: 0 0 8px; touch-action: none; z-index: 3; }
+.pane-split.row > .pane-sash { cursor: col-resize; }
+.pane-split.col > .pane-sash { cursor: row-resize; }
+.pane-sash::before { content: ''; position: absolute; background: transparent; border-radius: 2px; transition: background-color .15s; }
+.pane-split.row > .pane-sash::before { top: 10px; bottom: 10px; left: 50%; width: 2px; margin-left: -1px; }
+.pane-split.col > .pane-sash::before { left: 10px; right: 10px; top: 50%; height: 2px; margin-top: -1px; }
+.pane-sash:hover::before, .pane-sash.is-dragging::before, .pane-sash:focus-visible::before { background: var(--accent-color); }
+.pane-sash:focus-visible { outline: 0; }
+.dock-layer { position: absolute; inset: 0; z-index: 25; pointer-events: none; }
+.dock-preview { position: absolute; border-radius: 10px; background: color-mix(in srgb, var(--accent-color) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--accent-color); }
+.tab-ghost { position: fixed; z-index: 80; max-width: 220px; height: 28px; padding: 0 10px; display: flex; align-items: center; border-radius: var(--radius-md); background: var(--card-bg); color: var(--text-color); box-shadow: 0 8px 24px var(--shadow-color); font-size: 13px; pointer-events: none; overflow: hidden; white-space: nowrap; }
+body.is-pane-drag, body.is-pane-drag * { cursor: grabbing; }
+body.is-pane-drag { user-select: none; }
+@media (prefers-reduced-motion: reduce) { .dock-preview { transition: none; } }
+
 /* A file dragged over the window: the editor area shows where it will open */
 .editor-wrapper { position: relative; }
 .workspace[data-dropping] .editor-wrapper::after {

@@ -146,8 +146,8 @@
         // The list itself is notes.js; here only the title bar and the counter follow the (hidden) tab strip.
         const notesView = window.FgsNotes.mount(drawer.querySelector('.m-notes'), { onOpen: () => setDrawer(false) });
         function renderDocs() {
-            const tabs = tabBar.querySelectorAll('.tab-item');
-            const active = tabBar.querySelector('.tab-item.active .tab-title');
+            const tabs = document.querySelectorAll('.tab-item');
+            const active = document.querySelector('.pane-leaf.is-active .tab-item.active .tab-title') || tabBar.querySelector('.tab-item.active .tab-title');
             title.textContent = active ? cleanTitle(active.textContent) : 'FgSNotes';
             drawer.querySelector('.m-count').textContent = tabs.length;
             if (drawerOpen() || root.classList.contains('m-dragging')) notesView.refresh();
