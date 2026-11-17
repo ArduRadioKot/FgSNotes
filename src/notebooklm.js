@@ -269,8 +269,9 @@
                         <div class="lm-actions"><button type="button" class="button-secondary" data-lm="cancel"><span class="lm-btn-label"></span></button><button type="button" class="button-primary" data-lm="confirm"><span class="lm-btn-label"></span></button></div>
                     </div>
                 </section>
+                <div class="lm-sash" data-edge="sources" role="separator" aria-orientation="vertical" tabindex="0"></div>
                 <section class="lm-col lm-chat ai-panel">
-                    <header class="ai-head"><span class="ai-avatar" aria-hidden="true">${icon('sparkles')}</span><div class="ai-heading"><span class="ai-title" data-col="chat"></span></div></header>
+                    <header class="ai-head"><span class="ai-avatar" aria-hidden="true">${icon('sparkles')}</span><div class="ai-heading"><span class="ai-title" data-col="chat"></span><button type="button" class="ai-model" data-lm="model"><span class="ai-model-name" data-i18n-skip></span></button></div></header>
                     <div class="ai-scroll lm-chat-log"></div>
                     <div class="ai-composer">
                         <div class="ai-attach" data-lm="attach"></div>
@@ -278,6 +279,7 @@
                         <p class="ai-privacy lm-privacy" data-i18n-skip></p>
                     </div>
                 </section>
+                <div class="lm-sash" data-edge="studio" role="separator" aria-orientation="vertical" tabindex="0"></div>
                 <section class="lm-col lm-studio">
                     <header class="lm-col-head"><h3 class="lm-col-title" data-col="studio"></h3></header>
                     <div class="lm-formats" role="radiogroup"></div>
@@ -303,6 +305,7 @@
                     if (state.busy) window.FgsAi.abortNote();
                     document.removeEventListener('keydown', onKey);
                     window.removeEventListener('fgs-language', paint);
+                    window.removeEventListener('fgs-settings', paint);
                 }
             });
 
@@ -382,6 +385,14 @@
                 label('[data-lm="go"]', tr(state.busy ? 'Остановить' : 'Собрать заметку'));
                 element.querySelector('[data-lm="ask"]').placeholder = tr('Спросите по источникам');
                 element.querySelector('.lm-privacy').textContent = window.FgsAi.privacy();
+                const modelName = element.querySelector('.ai-model-name');
+                const modelButton = element.querySelector('[data-lm="model"]');
+                if (modelName && window.FgsAi.modelLabel) modelName.textContent = window.FgsAi.modelLabel();
+                if (modelButton) { modelButton.title = tr('Сменить модель'); modelButton.setAttribute('aria-label', tr('Сменить модель')); }
+                element.querySelectorAll('.lm-sash').forEach(sash => {
+                    sash.title = tr('Потяните для изменения ширины. Двойной щелчок возвращает ширину по умолчанию.');
+                    sash.setAttribute('aria-label', tr('Граница панелей'));
+                });
                 if (window.FgsChat) window.FgsChat.sendState(element.querySelector('[data-lm="send"]'), state.busy);
                 paintFormats();
                 paintSources();
@@ -557,7 +568,7 @@
             }
             function onKey(event) {
                 if (event.key !== 'Escape' || element.hidden || event.defaultPrevented) return;
-                if (document.querySelector('.modal.show, .ais-overlay, .plugin-modal-back')) return;
+                if (document.querySelector('.modal.show, .ais-overlay, .plugin-modal-back, .lm-model-menu:not([hidden])')) return;
                 event.preventDefault();
                 event.stopPropagation();
                 if (state.picking) { closePicker(); return; }
@@ -576,7 +587,8 @@
                     paintFormats();
                     return;
                 }
-                if (event.target.closest('[data-lm="files"]')) pickFiles();
+                if (event.target.closest('[data-lm="model"]')) { if (window.FgsAi.openModelList) window.FgsAi.openModelList(event.target.closest('[data-lm="model"]')); }
+                else if (event.target.closest('[data-lm="files"]')) pickFiles();
                 else if (event.target.closest('[data-lm="notes"]')) openPicker();
                 else if (event.target.closest('[data-lm="cancel"]')) closePicker();
                 else if (event.target.closest('[data-lm="confirm"]')) confirmNotes();
@@ -636,6 +648,60 @@
             });
             document.addEventListener('keydown', onKey);
             window.addEventListener('fgs-language', paint);
+            window.addEventListener('fgs-settings', paint);
+            const clampSplit = (value, fallback) => { const n = Number(value); return Number.isFinite(n) ? Math.min(42, Math.max(16, n)) : fallback; };
+            let split = { sources: 22, studio: 24 };
+            try {
+                const saved = JSON.parse(localStorage.getItem('fgsnotes.lm.widths') || '{}');
+                split = { sources: clampSplit(saved.sources, 22), studio: clampSplit(saved.studio, 24) };
+            } catch { /* the default widths stay */ }
+            const layout = element.querySelector('.lm-layout');
+            const applySplit = (next, persist) => {
+                if (next.sources + next.studio > 76) {
+                    if (next.sources !== split.sources) next.sources = 76 - next.studio;
+                    else next.studio = 76 - next.sources;
+                }
+                split = { sources: clampSplit(next.sources, 22), studio: clampSplit(next.studio, 24) };
+                layout.style.setProperty('--lm-sources', split.sources + '%');
+                layout.style.setProperty('--lm-studio', split.studio + '%');
+                if (persist) { try { localStorage.setItem('fgsnotes.lm.widths', JSON.stringify(split)); } catch { /* this session keeps the widths */ } }
+            };
+            applySplit(split, false);
+            element.querySelectorAll('.lm-sash').forEach(sash => {
+                let dragging = false;
+                const edge = sash.dataset.edge;
+                sash.addEventListener('pointerdown', event => {
+                    if (event.button !== 0) return;
+                    dragging = true;
+                    sash.setPointerCapture(event.pointerId);
+                    sash.classList.add('is-dragging');
+                    event.preventDefault();
+                });
+                sash.addEventListener('pointermove', event => {
+                    if (!dragging) return;
+                    const rect = layout.getBoundingClientRect();
+                    if (!rect.width) return;
+                    const at = (event.clientX - rect.left) / rect.width * 100;
+                    applySplit(edge === 'sources' ? { sources: at, studio: split.studio } : { sources: split.sources, studio: 100 - at }, false);
+                });
+                const stop = () => {
+                    if (!dragging) return;
+                    dragging = false;
+                    sash.classList.remove('is-dragging');
+                    applySplit(split, true);
+                };
+                sash.addEventListener('pointerup', stop);
+                sash.addEventListener('pointercancel', stop);
+                sash.addEventListener('lostpointercapture', stop);
+                sash.addEventListener('dblclick', () => applySplit({ sources: 22, studio: 24 }, true));
+                sash.addEventListener('keydown', event => {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+                    event.preventDefault();
+                    if (event.key === 'Home') { applySplit({ sources: 22, studio: 24 }, true); return; }
+                    const step = event.key === 'ArrowLeft' ? -2 : 2;
+                    applySplit(edge === 'sources' ? { sources: split.sources + step, studio: split.studio } : { sources: split.sources, studio: split.studio - step }, true);
+                });
+            });
             paint();
             const chosen = element.querySelector('.lm-format.is-on');
             if (chosen) chosen.focus();

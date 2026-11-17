@@ -616,6 +616,7 @@
         'Ещё раз': 'Again',
         'Мысли модели': 'Model thinking',
         'модель не выбрана': 'no model selected',
+        'Сменить модель': 'Change model',
         'МБ': 'MB',
         'ГБ': 'GB',
         'Сервер не принял ключ API. Проверьте его в настройках → ИИ.': 'The server rejected the API key. Check it in Settings → AI.',

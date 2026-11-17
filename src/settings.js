@@ -420,11 +420,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         themeMenu.innerHTML = `<div class="theme-menu-title">${t('Режим')}</div>${item('mode', 'dark', t('Тёмная'), mode === 'dark')}${item('mode', 'light', t('Светлая'), mode === 'light')}<div class="theme-menu-title">${t('Сторонние темы')}</div>${themes}<button type="button" class="theme-menu-more" data-kind="more">${t('Добавить или удалить…')}</button>`;
     }
     function closeThemeMenu() { themeMenu.hidden = true; themeButton?.setAttribute('aria-expanded', 'false'); }
+    function placeThemeMenu() {
+        const touch = window.fgsPlatform && window.fgsPlatform.touchShell.matches;
+        if (!themeButton || touch) {
+            themeMenu.style.left = '';
+            themeMenu.style.top = '';
+            themeMenu.style.bottom = '';
+            return;
+        }
+        const rect = themeButton.getBoundingClientRect();
+        const gap = 8;
+        const width = themeMenu.offsetWidth || 260;
+        const height = themeMenu.offsetHeight || 200;
+        let left = rect.right + gap;
+        let top = rect.bottom - height;
+        if (top < 8) top = 8;
+        if (top + height > window.innerHeight - 8) top = Math.max(8, window.innerHeight - height - 8);
+        if (left + width > window.innerWidth - 8) left = Math.max(8, rect.left - width - gap);
+        themeMenu.style.left = Math.round(left) + 'px';
+        themeMenu.style.top = Math.round(top) + 'px';
+        themeMenu.style.bottom = 'auto';
+    }
     function openThemeMenu() {
         refreshThemeList();
         renderThemeMenu();
         themeMenu.hidden = false;
         themeButton?.setAttribute('aria-expanded', 'true');
+        placeThemeMenu();
         (themeMenu.querySelector('[aria-checked="true"][data-kind="theme"]') || themeMenu.querySelector('button')).focus({ preventScroll: true });
     }
     themeButton?.addEventListener('click', event => { event.stopPropagation(); if (themeMenu.hidden) openThemeMenu(); else closeThemeMenu(); });
@@ -445,10 +467,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // On a phone the menu is a bottom sheet: close it after a choice. On desktop it stays open to compare themes.
         if (window.fgsPlatform.touchShell.matches) { closeThemeMenu(); return; }
         renderThemeMenu();
+        placeThemeMenu();
         themeMenu.querySelector(`[data-kind="${kind}"][data-value="${CSS.escape(value)}"]`)?.focus({ preventScroll: true });
     });
     document.addEventListener('click', event => { if (!themeMenu.hidden && !themeMenu.contains(event.target)) closeThemeMenu(); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !themeMenu.hidden) { closeThemeMenu(); themeButton?.focus(); } });
+    window.addEventListener('resize', () => { if (!themeMenu.hidden) placeThemeMenu(); });
 
     const chooseAccent = value => {
         currentSettings = { ...currentSettings, accent: value };

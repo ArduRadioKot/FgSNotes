@@ -35,16 +35,16 @@ html[data-native] .native-only { display: block; }
 .editor-surface.is-highlighted #markdown-editor { color: transparent !important; -webkit-text-fill-color: transparent !important; }
 
 /* Quick theme menu: opened from the palette button (desktop stripe) or the drawer (phone) */
-.theme-menu { position: fixed; z-index: 120; left: 54px; bottom: 44px; width: 260px; max-height: min(70vh, 520px); overflow-y: auto; padding: 6px; background: var(--card-bg); border-radius: var(--radius-lg); scrollbar-width: thin; }
+.theme-menu { position: fixed; z-index: 120; left: 54px; bottom: 44px; display: flex; flex-direction: column; width: 260px; max-height: min(70vh, 520px); overflow-y: auto; padding: 6px; background: var(--card-bg); border-radius: var(--radius-lg); scrollbar-width: thin; }
 .theme-menu[hidden] { display: none; }
-.theme-menu-title { padding: 10px 10px 4px; font-size: 12px; font-weight: 500; color: var(--text-muted); }
-.theme-menu button { width: 100%; justify-content: flex-start; gap: 8px; min-height: 34px; padding: 0 10px 0 6px; border-radius: 8px; background: transparent; color: var(--text-color); font-size: 13px; text-align: left; }
+.theme-menu-title { padding: 8px 10px 4px; font-size: 12px; font-weight: 500; color: var(--text-muted); }
+.theme-menu button { display: flex; width: 100%; justify-content: flex-start; gap: 8px; min-height: 34px; padding: 0 10px 0 6px; border-radius: 8px; background: transparent; color: var(--text-color); font-size: 13px; text-align: left; }
 .theme-menu button:hover, .theme-menu button:focus-visible { background: var(--hover-color); }
 .theme-menu button[aria-checked="true"] { background: var(--active-bg); }
 .theme-menu .check { flex: none; width: 18px; display: grid; place-items: center; color: var(--accent-color); }
 .theme-menu .check .icon { width: 14px; height: 14px; }
 .theme-menu .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.theme-menu .theme-menu-more { margin-top: 4px; padding-left: 12px; color: var(--text-muted); }
+.theme-menu .theme-menu-more { margin-top: 4px; padding-left: 32px; color: var(--text-muted); }
 @media (max-width: 720px), ((hover: none) and (pointer: coarse)) {
     .theme-menu { left: 8px; right: 8px; width: auto; bottom: calc(env(safe-area-inset-bottom) + 8px); max-height: 62vh; padding: 8px; border-radius: 22px; }
     .theme-menu button { min-height: 46px; font-size: 16px; border-radius: 12px; }

@@ -305,6 +305,9 @@
 /* Settings → ИИ → model: a field with the full list of the server's models under it */
 .model-combo { position: relative; }
 .model-menu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; width: max(100%, 300px); max-height: 264px; overflow-y: auto; padding: 4px; border-radius: var(--radius-lg); background: var(--card-bg); }
+.model-menu.lm-model-menu { position: fixed; z-index: 140; top: auto; left: auto; width: 280px; }
+.lm-model-menu .model-option, .lm-model-menu .model-empty { width: 100%; justify-content: flex-start; border: 0; background: transparent; color: var(--text-color); text-align: left; }
+.lm-model-menu .model-empty { color: var(--text-muted); }
 .model-menu[hidden] { display: none; }
 .model-option { display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px 0 4px; border-radius: var(--radius-md); font-size: 13px; cursor: pointer; }
 .model-option:hover, .model-option.is-active { background: var(--hover-color); }

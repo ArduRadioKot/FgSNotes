@@ -53,6 +53,7 @@
     const modelOf = () => (settings()[cfg().modelKey] || '').trim();
     // The on-device models have short ids; the chat shows their names.
     const modelLabel = () => { const id = modelOf(); const found = cfg().device && api.device && api.device.catalog.find(entry => entry.id === id); return found ? found.title : id; };
+    const modelCaption = () => (providerId() === 'ollama' ? '' : cfg().name + ' · ') + (modelLabel() || tr('модель не выбрана'));
     const setModel = model => window.FgsSettings.update({ [cfg().modelKey]: model });
     let keyStatus = { keys: {}, secure: true };
     const refreshKeys = () => api.aiKeyStatus().then(status => { keyStatus = status; return status; }).catch(() => keyStatus);
@@ -377,7 +378,7 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             scroll.scrollTop = scroll.scrollHeight;
         }
         renderAttach();
-        $('.ai-model-name', panel).textContent = (providerId() === 'ollama' ? '' : cfg().name + ' · ') + (modelLabel() || tr('модель не выбрана'));
+        $('.ai-model-name', panel).textContent = modelCaption();
     }
     const isMac = () => /Mac/i.test(navigator.platform);
 
@@ -508,7 +509,73 @@ const md = text => parseMarkdown(text).replace(/<img [^>]*?alt="([^"]*)"[^>]*>/g
             if (running === id) { if (panel) setRunning(null); else running = null; }
         }
     }
-    window.FgsAi = { privacy, complete, abortNote: () => { if (noteRun && running) api.aiAbort(running); } };
+    // A model list for the notebook chat. The main chat opens the same choice through the settings field.
+    let modelList = null;
+    async function openModelList(anchor) {
+        if (!modelList) {
+            modelList = document.createElement('div');
+            modelList.className = 'model-menu lm-model-menu';
+            modelList.setAttribute('role', 'listbox');
+            modelList.setAttribute('aria-label', tr('Модели на сервере'));
+            modelList.hidden = true;
+            document.body.append(modelList);
+            document.addEventListener('mousedown', event => {
+                if (!modelList.hidden && !event.target.closest('.lm-model-menu, [data-lm="model"]')) modelList.hidden = true;
+            });
+            document.addEventListener('keydown', event => {
+                if (event.key !== 'Escape' || modelList.hidden) return;
+                modelList.hidden = true;
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            });
+        }
+        if (!modelList.hidden) { modelList.hidden = true; return; }
+        const rect = anchor.getBoundingClientRect();
+        modelList.style.left = Math.round(Math.min(rect.left, window.innerWidth - 288)) + 'px';
+        modelList.style.top = Math.round(rect.bottom + 4) + 'px';
+        modelList.hidden = false;
+        modelList.replaceChildren(Object.assign(document.createElement('div'), { className: 'model-empty', textContent: tr('Проверяю подключение…') }));
+        let names = [];
+        try {
+            if (cfg().device && api.device) names = (api.device.catalog || []).filter(entry => api.device.ready()[entry.id]).map(entry => entry.id);
+            else {
+                const found = await api.aiModels({ provider: providerId(), url: serverUrl() });
+                names = found && found.ok ? found.models : [];
+            }
+        } catch { names = []; }
+        if (modelList.hidden) return;
+        const current = modelOf();
+        modelList.replaceChildren();
+        const labelOf = name => {
+            const found = cfg().device && api.device && (api.device.catalog || []).find(entry => entry.id === name);
+            return found ? found.title : name;
+        };
+        if (!names.length) {
+            const empty = document.createElement('button');
+            empty.type = 'button';
+            empty.className = 'model-empty';
+            empty.textContent = tr('Открыть настройки');
+            empty.addEventListener('click', () => { modelList.hidden = true; setup(); });
+            modelList.append(empty);
+            return;
+        }
+        names.forEach(name => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'model-option' + (name === current ? ' is-active' : '');
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', String(name === current));
+            option.innerHTML = `<span class="model-check">${name === current ? icon('check') : ''}</span><span class="model-name"></span>`;
+            option.querySelector('.model-name').textContent = labelOf(name);
+            option.addEventListener('click', () => {
+                setModel(name);
+                modelList.hidden = true;
+                if (panel) render();
+            });
+            modelList.append(option);
+        });
+    }
+    window.FgsAi = { privacy, modelLabel: modelCaption, openModelList, complete, abortNote: () => { if (noteRun && running) api.aiAbort(running); } };
 
     // --- messages -----------------------------------------------------------------------------------
     function modelMessages() {
