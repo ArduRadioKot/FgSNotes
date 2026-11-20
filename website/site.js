@@ -182,7 +182,7 @@
     }
 
     if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const blocks = document.querySelectorAll('.page > .flat, .page > .island:not(.store-top), .bento > .cell, .dl, .steps li');
+    const blocks = document.querySelectorAll('.page > .flat, .page > .island:not(.store-top), .bento > .cell, .dl-group, .steps li');
     const observer = new IntersectionObserver(entries => entries.forEach(entry => {
         if (!entry.isIntersecting) return;
         entry.target.classList.add('is-in');
@@ -193,4 +193,119 @@
         block.classList.add('reveal');
         observer.observe(block);
     });
+})();
+
+// Release files: detect the visitor's system, highlight that row, and refresh sizes from GitHub.
+(function () {
+    if (!document.querySelector('.dl-slot, [data-get-main]')) return;
+    const gh = (tag, file) => `https://github.com/ArduRadioKot/FgSNotes/releases/download/${tag}/${file}`;
+    const state = {
+        version: '3.1.0',
+        files: [
+            { os: 'mac-arm', label: 'macOS, Apple Silicon', file: 'FgSNotes-3.1.0-arm64.dmg', mb: 96.1, url: gh('v3.1.0', 'FgSNotes-3.1.0-arm64.dmg') },
+            { os: 'mac-intel', label: 'macOS, Intel', file: 'FgSNotes-3.1.0-x64.dmg', mb: 103.3, url: gh('v3.1.0', 'FgSNotes-3.1.0-x64.dmg') },
+            { os: 'windows', label: 'Windows, установщик', file: 'FgSNotes-Setup-3.1.0.exe', mb: 144.9, url: gh('v3.1.0', 'FgSNotes-Setup-3.1.0.exe') },
+            { os: 'windows-portable', label: 'Windows, без установки', file: 'FgSNotes-Portable-3.1.0.exe', mb: 144.7, url: gh('v3.1.0', 'FgSNotes-Portable-3.1.0.exe') },
+            { os: 'linux', label: 'Linux, AppImage', file: 'FgSNotes-3.1.0.AppImage', mb: 106.3, url: gh('v3.1.0', 'FgSNotes-3.1.0.AppImage') },
+            { os: 'linux-tar', label: 'Linux, архив', file: 'fgsnotes-3.1.0.tar.gz', mb: 100.5, url: gh('v3.1.0', 'fgsnotes-3.1.0.tar.gz') },
+        ],
+    };
+    const osNames = { 'mac-arm': 'macOS', 'mac-intel': 'macOS', windows: 'Windows', linux: 'Linux' };
+
+    function detectOS() {
+        const ua = navigator.userAgent || '';
+        const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+        if (/iPhone|iPad|Android/i.test(ua)) return 'mobile';
+        if (/Win/i.test(platform) || /Windows/i.test(ua)) return 'windows';
+        if (/Mac/i.test(platform) || /Mac OS X/i.test(ua)) {
+            try {
+                const gl = document.createElement('canvas').getContext('webgl');
+                const info = gl && gl.getExtension('WEBGL_debug_renderer_info');
+                const renderer = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : '';
+                if (/Intel/i.test(renderer)) return 'mac-intel';
+            } catch { /* WebGL unavailable */ }
+            return 'mac-arm';
+        }
+        if (/Linux|X11/i.test(platform + ua)) return 'linux';
+        return 'unknown';
+    }
+
+    function pick(os = detectOS()) {
+        const exact = state.files.find(file => file.os === os);
+        if (exact) return exact;
+        if (String(os).startsWith('mac')) return state.files.find(file => file.os.startsWith('mac')) || null;
+        if (os === 'linux') return state.files.find(file => file.os.startsWith('linux')) || null;
+        return null;
+    }
+
+    const size = mb => mb ? `${Number(mb).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} МБ` : '';
+
+    function paint() {
+        const mine = pick();
+        const groups = {
+            mac: state.files.filter(file => file.os.startsWith('mac')),
+            other: state.files.filter(file => !file.os.startsWith('mac')),
+        };
+        document.querySelectorAll('.dl-slot').forEach(slot => {
+            const files = groups[slot.dataset.os] || [];
+            slot.replaceChildren(...files.map(file => {
+                const link = document.createElement('a');
+                link.className = 'dl' + (file === mine ? ' is-yours' : '');
+                link.href = file.url;
+                [['dl-label', file.label], ['dl-file', file.file], ['dl-size', size(file.mb)]].forEach(([cls, text]) => {
+                    const span = document.createElement('span');
+                    span.className = cls;
+                    span.textContent = text;
+                    link.append(span);
+                });
+                return link;
+            }));
+        });
+        document.querySelectorAll('[data-release-version]').forEach(node => { node.textContent = state.version; });
+        document.querySelectorAll('[data-get-main]').forEach(button => {
+            if (mine) {
+                button.href = mine.url;
+                button.textContent = 'Скачать для ' + (osNames[detectOS()] || mine.label);
+            } else {
+                button.href = '#download';
+                button.textContent = 'Скачать';
+            }
+        });
+    }
+
+    function parseRelease(release) {
+        if (!release || release.draft || release.prerelease || !/^v?\d+\.\d+\.\d+$/.test(release.tag_name) || !Array.isArray(release.assets)) return null;
+        const prefix = 'https://github.com/ArduRadioKot/FgSNotes/releases/download/';
+        const matchers = [
+            ['mac-arm', 'macOS, Apple Silicon', /-arm64\.dmg$/i],
+            ['mac-intel', 'macOS, Intel', /-(?:x64|x86_64)\.dmg$/i],
+            ['windows', 'Windows, установщик', /setup.*\.exe$/i],
+            ['windows-portable', 'Windows, без установки', /portable.*\.exe$/i],
+            ['linux', 'Linux, AppImage', /\.AppImage$/i],
+            ['linux-tar', 'Linux, архив', /\.tar\.gz$/i],
+        ];
+        const files = matchers.flatMap(([os, label, pattern]) => {
+            const asset = release.assets.find(item => item && pattern.test(item.name) && String(item.browser_download_url || '').startsWith(prefix) && Number.isFinite(item.size) && item.size > 0);
+            return asset ? [{ os, label, file: asset.name, mb: asset.size / 1e6, url: asset.browser_download_url }] : [];
+        });
+        return files.length ? { version: release.tag_name.replace(/^v/, ''), files } : null;
+    }
+
+    paint();
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    fetch('https://api.github.com/repos/ArduRadioKot/FgSNotes/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+        signal: controller.signal,
+    }).then(response => {
+        if (!response.ok) throw new Error('unavailable');
+        return response.json();
+    }).then(release => {
+        const parsed = parseRelease(release);
+        if (!parsed) return;
+        Object.assign(state, parsed);
+        paint();
+    }).catch(() => { /* Keep the checked-in release when GitHub cannot be reached. */ })
+        .finally(() => clearTimeout(timeout));
 })();

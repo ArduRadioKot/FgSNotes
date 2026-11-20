@@ -139,23 +139,100 @@ button.nl-open:hover { background: var(--hover-color); }
 .lm-chat .ai-composer { padding: 0 12px 12px; }
 .lm-chat .ai-privacy { margin: 8px 2px 0; font-size: 11.5px; line-height: 1.45; }
 .lm-chat .ai-form textarea { field-sizing: content; }
-.lm-studio .lm-formats { flex: 1; min-height: 0; overflow: auto; grid-template-columns: 1fr; gap: 8px; align-content: start; }
-.lm-studio .lm-format { min-height: 0; padding: 11px 12px; border-radius: var(--radius-lg); }
+/* Studio: a tile per format, a card that explains the chosen one, and the build button pinned to the bottom */
+.lm-studio { container-type: inline-size; gap: 12px; padding: 14px; overflow-y: auto; }
+.lm-studio-head { flex: none; display: flex; align-items: flex-start; gap: 10px; }
+.lm-studio-mark { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: color-mix(in srgb, var(--accent-color) 16%, transparent); color: var(--accent-color); }
+.lm-studio-mark .icon { width: 16px; height: 16px; }
+.lm-studio-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lm-studio-lead { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+.lm-studio .lm-formats { flex: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.lm-studio .lm-format { justify-content: space-between; gap: 10px; min-height: 74px; padding: 10px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--text-color) 4%, transparent); transition: background .15s, box-shadow .15s; }
+.lm-studio .lm-format:hover { background: var(--hover-color); }
+.lm-studio .lm-format:focus-visible { outline: 0; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent-color) 60%, transparent); }
+.lm-studio .lm-format strong { font-size: 12.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.lm-studio .lm-format .lm-format-hint { display: none; }
+.lm-format-mark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--text-color) 7%, transparent); color: var(--text-muted); transition: background .15s, color .15s; }
+.lm-format-mark .icon { width: 14px; height: 14px; }
 .lm-studio .lm-format.is-on { background: color-mix(in srgb, var(--accent-color) 12%, transparent); box-shadow: inset 0 0 0 1.5px var(--accent-color); }
-.lm-studio .lm-actions { margin-top: auto; }
-.lm-studio .lm-actions .button-primary { width: 100%; }
+.lm-studio .lm-format.is-on .lm-format-mark { background: var(--accent-color); color: var(--accent-text); }
+.lm-chosen { flex: none; display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: var(--radius-lg); background: var(--code-bg); }
+.lm-chosen-title { font-size: 13px; font-weight: 600; }
+.lm-chosen-hint { color: var(--text-muted); font-size: 12.5px; line-height: 1.45; }
+.lm-studio .lm-preview { flex: 1 0 96px; max-height: none; }
+.lm-studio-foot { flex: none; display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 4px; }
+.lm-studio-note { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.4; text-align: center; }
+.lm-go { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 38px; border-radius: var(--radius-md); }
+.lm-go-icon { display: inline-flex; }
+.lm-go-icon .icon { width: 15px; height: 15px; }
+.lm-studio.is-empty .lm-go:not(:hover) { opacity: .7; }
+@container (max-width: 230px) { .lm-studio .lm-formats { grid-template-columns: 1fr; } .lm-studio .lm-format { min-height: 0; flex-direction: row; align-items: center; justify-content: flex-start; } }
 .lm-board.is-busy .lm-format, .lm-board.is-busy .lm-drop, .lm-board.is-busy .lm-ghost { opacity: .55; pointer-events: none; }
+
+/* The pane switcher is for phones, where one pane fills the screen */
+.lm-tabs { display: none; }
 @media (max-width: 1100px) {
-    .lm-layout { flex-direction: column; overflow: auto; }
-    .lm-sources-pane, .lm-studio { flex: none; width: auto; max-height: 320px; }
+    .lm-layout { flex-direction: column; overflow: auto; gap: 6px; }
+    .lm-sources-pane, .lm-studio { flex: none; width: auto; max-height: 360px; }
     .lm-sash { display: none; }
-    .lm-chat.ai-panel { min-height: 280px; }
+    .lm-chat.ai-panel { min-height: 300px; }
+}
+/* A touch screen has the floating dock at the bottom: keep the board clear of it */
+@media (hover: none) and (pointer: coarse) {
+    .lm-board { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+    .lm-sources > .lm-source .icon-button { opacity: 1; }
 }
 @media (max-width: 720px) {
-    .lm-board { overflow: auto; }
-    .lm-col { min-height: 280px; }
-    .lm-studio { max-height: none; }
-    .lm-formats { grid-template-columns: 1fr; }
+    .lm-board { gap: 8px; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+    .lm-top { flex-direction: column; align-items: stretch; gap: 6px; padding: 0; }
+    .lm-top-copy { display: none; }
+    .lm-top .lm-status { max-width: none; padding: 0 6px; text-align: left; }
+    .lm-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 3px; border-radius: 999px; background: var(--card-bg); box-shadow: var(--m-edge, inset 0 0 0 .5px var(--border-color)); }
+    .lm-tab { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; height: 38px; padding: 0 8px; border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: background .15s, color .15s; }
+    .lm-tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lm-tab[aria-selected="true"] { background: color-mix(in srgb, var(--accent-color) 16%, transparent); color: var(--text-color); }
+    .lm-tab:active { background: var(--hover-color); }
+    .lm-tab-count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--accent-color); color: var(--accent-text); font-size: 11.5px; font-weight: 600; line-height: 20px; text-align: center; }
+    .lm-tab-count:empty { display: none; }
+
+    .lm-layout { flex-direction: column; overflow: hidden; gap: 0; }
+    .lm-board .lm-col { display: none; flex: 1 1 auto; width: auto; max-height: none; min-height: 0; padding: 14px; gap: 10px; border-radius: var(--m-radius, 20px); }
+    .lm-board[data-pane="sources"] .lm-sources-pane, .lm-board[data-pane="studio"] .lm-studio { display: flex; }
+    .lm-board[data-pane="chat"] .lm-chat { display: flex; }
+    .lm-board .lm-sources-pane { overflow-y: auto; }
+    .lm-chat.ai-panel { position: relative; inset: auto; z-index: auto; min-height: 0; padding: 0; animation: none; border-radius: var(--m-radius, 20px); }
+    .lm-chat .ai-head { padding: 12px 12px 4px 14px; }
+    .lm-chat .ai-scroll { padding: 4px 14px 10px; }
+    .lm-chat .ai-composer { padding: 0 10px 10px; }
+
+    .lm-col-title { font-size: 15px; }
+    .lm-drop { min-height: 64px; padding: 10px 14px; font-size: 14px; }
+    .lm-drop-mark { width: 32px; height: 32px; border-radius: 10px; }
+    .lm-drop-mark .icon { width: 16px; height: 16px; }
+    .lm-board .lm-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .lm-ghost { justify-content: center; min-height: 42px; padding: 0 12px; border-radius: 21px; font-size: 14px; }
+    .lm-sources > .lm-source { min-height: 58px; padding: 8px 6px 8px 10px; border-radius: 14px; }
+    .lm-mark { width: 34px; height: 34px; border-radius: 10px; }
+    .lm-source-text span { font-size: 15px; }
+    .lm-source-text small, .lm-sources .lm-kind { font-size: 12.5px; }
+    .lm-source .icon-button { width: 40px; height: 40px; }
+    .lm-picker { padding: 12px; }
+    .lm-picker-list { max-height: 42dvh; }
+    .lm-picker-list .lm-source { min-height: 48px; font-size: 15px; }
+    .lm-picker-list .lm-source input { width: 20px; height: 20px; }
+
+    .lm-board .lm-studio { padding: 16px; gap: 14px; }
+    .lm-studio-lead { font-size: 13px; }
+    .lm-studio .lm-format { min-height: 88px; padding: 12px; border-radius: 16px; }
+    .lm-studio .lm-format strong { font-size: 14px; }
+    .lm-format-mark { width: 32px; height: 32px; border-radius: 10px; }
+    .lm-format-mark .icon { width: 16px; height: 16px; }
+    .lm-chosen { padding: 12px 14px; border-radius: 16px; }
+    .lm-chosen-title { font-size: 14px; }
+    .lm-chosen-hint { font-size: 13.5px; }
+    .lm-studio-note { font-size: 13px; }
+    .lm-go { min-height: 50px; border-radius: 25px; font-size: 15px; }
+    .lm-go-icon .icon { width: 17px; height: 17px; }
 }
 .lm-chat-lead { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.55; }
 .lm-picker { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--text-color) 5%, transparent); }

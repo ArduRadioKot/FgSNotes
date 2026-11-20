@@ -10,6 +10,9 @@
     .workspace { position: relative; flex-direction: column; gap: var(--m-gap); padding: calc(env(safe-area-inset-top) + var(--m-gap)) calc(env(safe-area-inset-right) + var(--m-gap)) 0 calc(env(safe-area-inset-left) + var(--m-gap)); background: var(--window-bg); }
     .editor-container { order: 1; flex: 1; min-height: 0; gap: 0; padding-bottom: max(env(safe-area-inset-bottom), var(--m-gap)); }
     .document-bar, .editor-label, .panel-divider, .status-bar, .sidebar-toolbar .logo, .sidebar-main-buttons, .sidebar-bottom-buttons { display: none; }
+    /* Keep the update invitation visible even though the desktop document bar is hidden. */
+    .update-bar { display: flex; margin: 0 0 var(--m-gap); }
+    .update-bar[hidden] { display: none; }
     .m-hidden-action { display: none !important; }
 
     /* top: two round buttons and a quiet title between them */
@@ -43,6 +46,7 @@
     .m-view { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: var(--text-color); transition: transform .15s; }
     .m-view .icon { width: 21px; height: 21px; }
     .m-view:active { transform: scale(.92); }
+    .workspace[data-plugin-view] .m-view { display: none; }
 
     /* formatting toolbar: only while typing, a pill above the keyboard */
     .tools-dock { position: static; padding: 0; display: none; }

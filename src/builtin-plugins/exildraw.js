@@ -1,54 +1,68 @@
 // ==FgsPlugin==
 // @name        Exildraw
-// @version     2.0
-// @description Доска для набросков в духе Excalidraw: перо с учётом нажима Apple Pencil, линии, стрелки, фигуры, текст. Рисунок вставляется в заметку как SVG и открывается для правки по клику.
+// @version     3.0
+// @description Доска для набросков в духе Excalidraw: бесконечный холст, перо с нажимом Apple Pencil, линии, стрелки, фигуры, текст. Рисунок вставляется в заметку как SVG и открывается для правки по клику.
 // @author      FgSNotes
 // ==/FgsPlugin==
 //
 // Кнопка «Рисунок» открывает доску. «Вставить» кладёт в заметку картинку вида ![exildraw](data:image/svg+xml;base64,…).
-// Сама сцена хранится внутри SVG, поэтому рисунок можно открыть и поправить: поставьте курсор на строку с картинкой и нажмите кнопку
-// или щёлкните по рисунку в предпросмотре. Работает без интернета и без сторонних библиотек.
+// Сама сцена хранится внутри SVG, поэтому рисунок можно открыть и поправить.
 //
-// Стилус: толщина линии следует за нажимом. Как только доска увидела стилус, касания пальцем и ладонью перестают рисовать.
+// Стилус: толщина следует за нажимом. Двойной тап переключает Перо и Ластик. После стилуса касания пальцем не рисуют ~1.5 с.
+// Два пальца: сдвиг и масштаб. Инструмент «Рука» или пробел: сдвиг одним пальцем или мышью.
 
 const MARK = 'exildraw';
-const COLORS = ['#1e1e1e', '#e03131', '#2f9e44', '#1971c2', '#f08c00', '#9c36b5'];
+const ACCENT_COLORS = ['#e03131', '#2f9e44', '#1971c2', '#f08c00', '#9c36b5'];
 const WIDTHS = [2, 4, 7];
 const TOOLS = [
     ['pen', 'Перо'], ['line', 'Линия'], ['arrow', 'Стрелка'], ['rect', 'Прямоугольник'],
-    ['ellipse', 'Эллипс'], ['text', 'Текст'], ['erase', 'Ластик']
+    ['ellipse', 'Эллипс'], ['text', 'Текст'], ['erase', 'Ластик'], ['hand', 'Рука']
 ];
-const W = 1000, H = 640;
 const FONT = '"Segoe Print", "Bradley Hand", "Comic Sans MS", cursive';
 const HISTORY = 200;
+const ZOOM_MIN = 0.25, ZOOM_MAX = 4, GRID = 32;
+const PALM_MS = 1500;
+
+// Paper and ink follow the editor theme (--card-bg / --text-color), same island as the note pane.
+function themeSurface() {
+    const style = getComputedStyle(document.documentElement);
+    const read = name => (style.getPropertyValue(name) || '').trim();
+    const paper = read('--card-bg') || '#27282c';
+    const ink = read('--text-color') || '#dfe1e5';
+    const muted = read('--text-muted') || '#8c9097';
+    const dark = document.documentElement.dataset.theme !== 'light';
+    return { paper, ink, muted, dark, colors: [ink, ...ACCENT_COLORS] };
+}
 
 fgs.addStyle(`
-.exd-back { display: flex; flex: 1; min-height: 0; padding: 12px; }
-.exd-box { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 0; min-height: 0; color: var(--text-color, #eee); }
+.exd-back { display: flex; flex: 1; min-height: 0; padding: 12px; background: var(--window-bg, transparent); }
+.exd-box { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 0; min-height: 0; padding: 10px; border-radius: var(--radius-lg, 12px); background: var(--card-bg, #27282c); color: var(--text-color, #eee); box-shadow: var(--edge, none); }
 .exd-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .exd-bar .exd-sep { width: 1px; height: 22px; margin: 0 4px; background: var(--border-color, #444); }
 .exd-bar button { height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
-.exd-bar button:hover { background: rgba(128, 128, 128, .22); }
+.exd-bar button:hover { background: var(--hover-color, rgba(128, 128, 128, .22)); }
 .exd-bar button:disabled { opacity: .4; cursor: default; background: transparent; }
 .exd-bar button.on { background: var(--accent-color, #21aabe); color: var(--accent-text, #fff); }
-.exd-bar button.exd-sw { width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid rgba(128, 128, 128, .45); background: var(--c); }
+.exd-bar button.exd-sw { width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--text-color, #eee) 35%, transparent); background: var(--c); }
 .exd-bar button.exd-sw.on { border-color: var(--text-color, #eee); box-shadow: 0 0 0 2px var(--card-bg, #27282c) inset; }
 .exd-bar .exd-wd { width: 32px; padding: 0; display: grid; place-items: center; }
 .exd-bar .exd-wd i { display: block; width: 18px; background: currentColor; border-radius: 4px; }
 .exd-bar .exd-grow { flex: 1; }
-.exd-stage { flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--radius-lg, 12px); background: #f5f5f4; container-type: size; }
-.exd-paper { position: relative; width: min(100cqw, calc(100cqh * ${W} / ${H})); aspect-ratio: ${W} / ${H}; background: #fff; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.exd-stage { flex: 1; min-height: 0; overflow: hidden; border-radius: var(--radius-md, 8px); background: var(--card-bg, #27282c); position: relative; box-shadow: inset 0 0 0 1px var(--border-color, #393b41); }
+.exd-paper { position: absolute; inset: 0; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .exd-paper canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .exd-live { cursor: crosshair; }
-.exd-text { position: absolute; min-width: 60px; padding: 0; border: 0; outline: 1px dashed #888; background: transparent; line-height: 1.2; resize: none; font-family: ${FONT}; -webkit-user-select: text; user-select: text; }
+.exd-live.hand { cursor: grab; }
+.exd-live.hand.dragging { cursor: grabbing; }
+.exd-text { position: absolute; min-width: 60px; padding: 0; border: 0; outline: 1px dashed var(--text-muted, #888); background: transparent; color: inherit; caret-color: var(--text-color, #eee); line-height: 1.2; resize: none; font-family: ${FONT}; -webkit-user-select: text; user-select: text; }
 @media (pointer: coarse) { .exd-bar button { height: 40px; min-width: 40px; } .exd-bar button.exd-sw { width: 30px; height: 30px; min-width: 0; } }
 `);
 
-// --- scene -------------------------------------------------------------------------------------------------------------------
 const escapeXml = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const toBase64 = text => btoa(unescape(encodeURIComponent(text)));
 const fromBase64 = data => decodeURIComponent(escape(atob(data)));
 const round = value => Math.round(value * 10) / 10;
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function textBox(element) {
     const lines = element.text.split('\n');
@@ -62,6 +76,10 @@ function bounds(element) {
     }
     if (element.type === 'text') return textBox(element);
     return [Math.min(element.x1, element.x2), Math.min(element.y1, element.y2), Math.max(element.x1, element.x2), Math.max(element.y1, element.y2)];
+}
+function sceneBounds(scene) {
+    if (!scene.length) return [0, 0, 400, 300];
+    return scene.map(bounds).reduce((a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])], [Infinity, Infinity, -Infinity, -Infinity]);
 }
 function arrowHead(element) {
     const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1), size = 12 + element.width * 2;
@@ -77,7 +95,6 @@ function penPath(points) {
     const last = points[points.length - 1];
     return d + `L${last[0]} ${last[1]}`;
 }
-// A stylus stroke is a filled shape: its width at every point follows the pressure there.
 function pressurePath(element) {
     const points = element.points, count = points.length;
     const raw = points.map(p => element.width / 2 * (0.35 + 1.3 * Math.pow(p[2] === undefined ? 0.5 : p[2], 0.7)));
@@ -98,7 +115,6 @@ function pressurePath(element) {
     return `M${left.join('L')}A${end} ${end} 0 0 0 ${right.join('L')}A${start} ${start} 0 0 0 ${left[0]}Z`;
 }
 
-// Draws one element on a canvas context.
 function paint(ctx, element) {
     ctx.strokeStyle = ctx.fillStyle = element.color;
     ctx.lineWidth = element.width;
@@ -122,10 +138,10 @@ function paint(ctx, element) {
     }
 }
 
-function toSvg(scene) {
-    const box = scene.map(bounds).reduce((a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])], [Infinity, Infinity, -Infinity, -Infinity]);
+function toSvg(scene, paper = '#ffffff') {
+    const box = sceneBounds(scene);
     const pad = 24;
-    const x = Math.floor(box[0] - pad), y = Math.floor(box[1] - pad), w = Math.ceil(box[2] - box[0] + pad * 2), h = Math.ceil(box[3] - box[1] + pad * 2);
+    const x = Math.floor(box[0] - pad), y = Math.floor(box[1] - pad), w = Math.max(1, Math.ceil(box[2] - box[0] + pad * 2)), h = Math.max(1, Math.ceil(box[3] - box[1] + pad * 2));
     const common = el => `stroke="${el.color}" stroke-width="${el.width}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
     const body = scene.map(el => {
         if (el.type === 'pen') return el.pressure ? `<path d="${pressurePath(el)}" fill="${el.color}"/>` : `<path d="${penPath(el.points)}" ${common(el)}/>`;
@@ -136,8 +152,7 @@ function toSvg(scene) {
         const lines = el.text.split('\n').map((line, i) => `<tspan x="${el.x1}" dy="${i ? el.size * 1.2 : 0}">${escapeXml(line)}</tspan>`).join('');
         return `<text x="${el.x1}" y="${el.y1}" dominant-baseline="hanging" font-family='${FONT.replace(/"/g, '&quot;')}' font-size="${el.size}" fill="${el.color}">${lines}</text>`;
     }).join('');
-    // The scene itself rides along in <metadata>, which is what makes the picture editable again.
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}"><metadata id="${MARK}">${escapeXml(JSON.stringify(scene))}</metadata><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ffffff"/>${body}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}"><metadata id="${MARK}">${escapeXml(JSON.stringify(scene))}</metadata><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(paper)}"/>${body}</svg>`;
 }
 function fromSvg(svg) {
     const match = /<metadata id="exildraw">([\s\S]*?)<\/metadata>/.exec(svg);
@@ -145,7 +160,6 @@ function fromSvg(svg) {
     try { return JSON.parse(match[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')).filter(Boolean); } catch { return []; }
 }
 
-// --- hit testing: the eraser takes what it actually touches, not everything inside a bounding box ---------------------------
 function segmentDistance([x, y], [x1, y1], [x2, y2]) {
     const dx = x2 - x1, dy = y2 - y1, span = dx * dx + dy * dy;
     const k = span ? Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / span)) : 0;
@@ -174,7 +188,6 @@ function touches(element, point) {
     return polylineDistance(point, [[x1, y1], [x2, y2]]) <= slack;
 }
 
-// --- the images in the note ----------------------------------------------------------------------------------------------------
 const imagePattern = () => /!\[exildraw\]\(data:image\/svg\+xml;base64,([A-Za-z0-9+/=]+)\)/g;
 function drawings(text) {
     const found = [];
@@ -182,74 +195,164 @@ function drawings(text) {
     return found;
 }
 
-// --- the board -----------------------------------------------------------------------------------------------------------------
 function openBoard(existing) {
-    // Where the picture will go: remembered now, because the person may visit other tabs while drawing.
     const origin = { note: fgs.documents().find(doc => doc.active) || null, cursor: fgs.editor.cursor() };
     const key = existing ? `edit:${existing.data.length}:${existing.data.slice(-24)}` : 'new';
     let cleanup = () => {};
     fgs.openTab({ key, title: existing ? 'Рисунок (правка)' : 'Новый рисунок', icon: 'edit', onClose: () => cleanup(), render: (element, tab) => { cleanup = mountBoard(element, tab, existing, origin); } });
 }
 
-// Draws the board into `host` (a tab); returns what to run when the tab closes.
 function mountBoard(host, tab, existing, origin) {
     const draftSaved = existing ? null : fgs.storage.get('draft', null);
     const saved = existing ? fromSvg(fromBase64(existing.data)) : [];
     let scene = draftSaved && draftSaved.length ? draftSaved : saved;
     let past = [], future = [];
-    let tool = 'pen', color = COLORS[0], width = WIDTHS[1];
-    let draft = null, typing = null, frame = 0;
-    let activePointer = null, stylusSeen = false;
-    let armedClose = 0;
+    let surface = themeSurface();
+    let tool = 'pen', color = surface.ink, width = WIDTHS[1];
+    let draft = null, typing = null, frame = 0, hover = null;
+    let activePointer = null, stylusSeen = false, stylusTimer = 0, spaceDown = false;
+    let armedClose = 0, lastPenTap = null;
+    let camera = { x: 0, y: 0, zoom: 1 };
+    let pan = null, pinch = null;
     if (scene !== saved) fgs.notify('Восстановлен несохранённый рисунок');
 
     const back = document.createElement('div');
     back.className = 'exd-back';
-    back.innerHTML = `<div class="exd-box" role="group" aria-label="Рисунок"><div class="exd-bar"></div><div class="exd-stage"><div class="exd-paper"><canvas class="exd-base" width="${W * 2}" height="${H * 2}"></canvas><canvas class="exd-live" width="${W * 2}" height="${H * 2}"></canvas></div></div></div>`;
-    const bar = back.querySelector('.exd-bar'), paper = back.querySelector('.exd-paper');
+    back.innerHTML = `<div class="exd-box" role="group" aria-label="Рисунок"><div class="exd-bar"></div><div class="exd-stage"><div class="exd-paper"><canvas class="exd-base"></canvas><canvas class="exd-live"></canvas></div></div></div>`;
+    const bar = back.querySelector('.exd-bar'), stage = back.querySelector('.exd-stage'), paper = back.querySelector('.exd-paper');
     const baseCanvas = back.querySelector('.exd-base'), canvas = back.querySelector('.exd-live');
     const base = baseCanvas.getContext('2d'), live = canvas.getContext('2d');
-    base.scale(2, 2);
-    live.scale(2, 2);
+    let viewW = 1, viewH = 1, dpr = 1;
 
     const button = (label, onClick, className = '') => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.className = className; b.addEventListener('click', onClick); return b; };
     const toolButtons = TOOLS.map(([id, label]) => { const b = button(label, () => { commitText(); tool = id; sync(); }); b.dataset.tool = id; return b; });
-    const swatches = COLORS.map(c => { const b = button('', () => { color = c; sync(); }, 'exd-sw'); b.style.setProperty('--c', c); b.title = c; b.setAttribute('aria-label', 'Цвет ' + c); b.dataset.color = c; return b; });
+    const swatchHost = document.createElement('span');
+    swatchHost.style.display = 'contents';
+    function paintSwatches() {
+        const keep = surface.colors.includes(color) ? color : surface.ink;
+        color = keep;
+        swatchHost.replaceChildren(...surface.colors.map(c => {
+            const b = button('', () => { color = c; sync(); }, 'exd-sw');
+            b.style.setProperty('--c', c);
+            b.title = c;
+            b.setAttribute('aria-label', 'Цвет ' + c);
+            b.dataset.color = c;
+            return b;
+        }));
+        sync();
+    }
     const widths = WIDTHS.map(w => { const b = button('', () => { width = w; sync(); }, 'exd-wd'); b.innerHTML = `<i style="height:${w}px"></i>`; b.title = 'Толщина ' + w; b.setAttribute('aria-label', 'Толщина ' + w); b.dataset.width = w; return b; });
     const sep = () => Object.assign(document.createElement('span'), { className: 'exd-sep' });
     const grow = Object.assign(document.createElement('span'), { className: 'exd-grow' });
     const undoButton = button('Отменить', () => { commitText(); if (past.length) { future.push(scene); scene = past.pop(); changed(); } });
     const redoButton = button('Вернуть', () => { commitText(); if (future.length) { past.push(scene); scene = future.pop(); changed(); } });
     const clearButton = button('Очистить', () => { commitText(); if (scene.length) commit([]); });
+    const fitButton = button('По размеру', () => fitToScene());
+    const zoomButton = button('100%', () => { camera.zoom = 1; redraw(); });
     const closeButton = button('Закрыть', () => close());
     const insertButton = button(existing ? 'Сохранить' : 'Вставить', () => insert(), 'on');
-    bar.append(...toolButtons, sep(), ...swatches, sep(), ...widths, sep(), undoButton, redoButton, clearButton, grow, closeButton, insertButton);
+    bar.append(...toolButtons, sep(), swatchHost, sep(), ...widths, sep(), undoButton, redoButton, clearButton, fitButton, zoomButton, grow, closeButton, insertButton);
+    paintSwatches();
+
+    function screenToWorld(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        return [round(camera.x + (clientX - rect.left) / camera.zoom), round(camera.y + (clientY - rect.top) / camera.zoom)];
+    }
+    function point(event, pressured) {
+        const p = screenToWorld(event.clientX, event.clientY);
+        if (pressured) p.push(Math.round((event.pressure || 0.5) * 1000) / 1000);
+        return p;
+    }
+    function setCamera(next) {
+        camera = { x: next.x, y: next.y, zoom: clamp(next.zoom, ZOOM_MIN, ZOOM_MAX) };
+        redraw();
+    }
+    function zoomAt(clientX, clientY, factor) {
+        const before = screenToWorld(clientX, clientY);
+        const zoom = clamp(camera.zoom * factor, ZOOM_MIN, ZOOM_MAX);
+        const rect = canvas.getBoundingClientRect();
+        setCamera({ zoom, x: before[0] - (clientX - rect.left) / zoom, y: before[1] - (clientY - rect.top) / zoom });
+    }
+    function fitToScene() {
+        const box = sceneBounds(scene);
+        const pad = 48, w = Math.max(1, box[2] - box[0] + pad * 2), h = Math.max(1, box[3] - box[1] + pad * 2);
+        const zoom = clamp(Math.min(viewW / w, viewH / h), ZOOM_MIN, ZOOM_MAX);
+        setCamera({ zoom, x: (box[0] + box[2]) / 2 - viewW / (2 * zoom), y: (box[1] + box[3]) / 2 - viewH / (2 * zoom) });
+    }
+    function resize() {
+        const rect = stage.getBoundingClientRect();
+        viewW = Math.max(1, Math.floor(rect.width));
+        viewH = Math.max(1, Math.floor(rect.height));
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        for (const node of [baseCanvas, canvas]) {
+            node.width = Math.floor(viewW * dpr);
+            node.height = Math.floor(viewH * dpr);
+        }
+        base.setTransform(dpr, 0, 0, dpr, 0, 0);
+        live.setTransform(dpr, 0, 0, dpr, 0, 0);
+        redraw();
+    }
 
     const dirty = () => scene !== saved && JSON.stringify(scene) !== JSON.stringify(saved);
     function sync() {
         for (const b of toolButtons) b.classList.toggle('on', b.dataset.tool === tool);
-        for (const b of swatches) b.classList.toggle('on', b.dataset.color === color);
+        for (const b of swatchHost.querySelectorAll('.exd-sw')) b.classList.toggle('on', b.dataset.color === color);
         for (const b of widths) b.classList.toggle('on', Number(b.dataset.width) === width);
-        canvas.style.cursor = tool === 'erase' ? 'cell' : tool === 'text' ? 'text' : 'crosshair';
+        canvas.classList.toggle('hand', tool === 'hand' || spaceDown);
+        canvas.style.cursor = tool === 'hand' || spaceDown ? '' : tool === 'erase' ? 'cell' : tool === 'text' ? 'text' : 'crosshair';
         undoButton.disabled = !past.length;
         redoButton.disabled = !future.length;
         clearButton.disabled = !scene.length;
+        zoomButton.textContent = Math.round(camera.zoom * 100) + '%';
+    }
+    function withCamera(ctx, fn) {
+        ctx.save();
+        ctx.clearRect(0, 0, viewW, viewH);
+        ctx.translate(-camera.x * camera.zoom, -camera.y * camera.zoom);
+        ctx.scale(camera.zoom, camera.zoom);
+        fn(ctx);
+        ctx.restore();
+    }
+    function drawGrid(ctx) {
+        const left = camera.x, top = camera.y, right = camera.x + viewW / camera.zoom, bottom = camera.y + viewH / camera.zoom;
+        const step = GRID;
+        ctx.fillStyle = surface.paper;
+        ctx.fillRect(left, top, right - left, bottom - top);
+        ctx.fillStyle = surface.dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.08)';
+        const x0 = Math.floor(left / step) * step, y0 = Math.floor(top / step) * step;
+        for (let x = x0; x <= right; x += step) for (let y = y0; y <= bottom; y += step) ctx.fillRect(x, y, 1.25 / camera.zoom, 1.25 / camera.zoom);
+    }
+    function applyTheme() {
+        const next = themeSurface();
+        const inkWasDefault = color === surface.ink;
+        surface = next;
+        if (inkWasDefault) color = surface.ink;
+        paintSwatches();
+        redraw();
     }
     function drawBase() {
-        base.clearRect(0, 0, W, H);
-        for (const el of scene) paint(base, el);
+        withCamera(base, ctx => {
+            drawGrid(ctx);
+            for (const el of scene) paint(ctx, el);
+        });
     }
-    // Only the stroke in progress is repainted while drawing, on its own layer: long drawings stay smooth.
     function drawLive() {
         frame = 0;
-        live.clearRect(0, 0, W, H);
-        if (draft && !draft.erasing) paint(live, draft);
+        withCamera(live, ctx => {
+            if (draft && !draft.erasing) paint(ctx, draft);
+            if (hover && tool === 'pen' && !draft) {
+                ctx.fillStyle = color;
+                const r = width / 2 * (0.35 + 1.3 * Math.pow(hover[2] ?? 0.5, 0.7));
+                ctx.beginPath();
+                ctx.arc(hover[0], hover[1], Math.max(r, 1), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
     }
     const queueLive = () => { if (!frame) frame = requestAnimationFrame(drawLive); };
+    function redraw() { drawBase(); queueLive(); sync(); }
     function changed() {
-        drawBase();
-        sync();
-        // A new drawing survives closing the tab or quitting the app until it is inserted or thrown away.
+        redraw();
         if (!existing) fgs.storage.set('draft', scene.length ? scene : null);
     }
     function commit(next) {
@@ -259,12 +362,13 @@ function mountBoard(host, tab, existing, origin) {
         scene = next;
         changed();
     }
-    const point = (event, pressured) => {
-        const rect = canvas.getBoundingClientRect();
-        const p = [round((event.clientX - rect.left) * W / rect.width), round((event.clientY - rect.top) * H / rect.height)];
-        if (pressured) p.push(Math.round((event.pressure || 0.5) * 1000) / 1000);
-        return p;
-    };
+
+    function markStylus() {
+        stylusSeen = true;
+        clearTimeout(stylusTimer);
+        stylusTimer = setTimeout(() => { stylusSeen = false; }, PALM_MS);
+    }
+    function panning() { return tool === 'hand' || spaceDown; }
 
     function commitText() {
         if (!typing) return;
@@ -281,17 +385,16 @@ function mountBoard(host, tab, existing, origin) {
         field.className = 'exd-text';
         field.rows = 1; field.cols = 14;
         field.style.color = color;
-        field.style.fontSize = (size * rect.width / W) + 'px';     // the scene is scaled to the paper; so is the field
+        field.style.fontSize = (size * camera.zoom) + 'px';
         field.style.left = (event.clientX - rect.left) + 'px';
         field.style.top = (event.clientY - rect.top) + 'px';
         field.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') { field.value = ''; commitText(); } else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitText(); } });
         field.addEventListener('blur', () => setTimeout(() => { if (typing && typing.field === field) commitText(); }, 0));
         paper.append(field);
         typing = { field, x, y, size, color };
-        field.focus();          // inside the click, or a phone would not open the keyboard
+        field.focus();
     }
 
-    // The eraser can jump between two pointer events: everything along the way is checked.
     function eraseAlong(from, to) {
         const steps = Math.max(1, Math.ceil(Math.hypot(to[0] - from[0], to[1] - from[1]) / 6));
         const samples = Array.from({ length: steps + 1 }, (_, i) => [from[0] + (to[0] - from[0]) * i / steps, from[1] + (to[1] - from[1]) * i / steps]);
@@ -303,16 +406,32 @@ function mountBoard(host, tab, existing, origin) {
     }
     const addSample = (event, pressured) => {
         const p = point(event, pressured), last = draft.points[draft.points.length - 1];
-        if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= 0.6) draft.points.push(p);
+        if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= 0.6 / camera.zoom) draft.points.push(p);
         else if (pressured) last[2] = Math.max(last[2], p[2]);
     };
 
     canvas.addEventListener('pointerdown', event => {
-        if (event.button !== 0 || activePointer !== null) return;
-        if (event.pointerType === 'pen') stylusSeen = true;
-        else if (event.pointerType === 'touch' && stylusSeen) return;       // the palm resting on the screen
-        if (tool === 'text') return;                                        // placed on click, see below
+        if (event.button !== 0 || activePointer !== null || pinch) return;
+        if (event.pointerType === 'pen') {
+            markStylus();
+            const now = event.timeStamp;
+            const again = lastPenTap && now - lastPenTap.time < 320 && Math.hypot(event.clientX - lastPenTap.x, event.clientY - lastPenTap.y) < 28;
+            lastPenTap = again ? null : { time: now, x: event.clientX, y: event.clientY };
+            if (again) {
+                commitText();
+                tool = tool === 'erase' ? 'pen' : 'erase';
+                sync();
+                return;
+            }
+        } else if (event.pointerType === 'touch' && stylusSeen) return;
+        if (tool === 'text' && !panning()) return;
         commitText();
+        if (panning()) {
+            pan = { id: event.pointerId, x: event.clientX, y: event.clientY, camX: camera.x, camY: camera.y };
+            canvas.classList.add('dragging');
+            canvas.setPointerCapture(event.pointerId);
+            return;
+        }
         activePointer = event.pointerId;
         canvas.setPointerCapture(event.pointerId);
         const pressured = event.pointerType === 'pen';
@@ -322,23 +441,40 @@ function mountBoard(host, tab, existing, origin) {
         queueLive();
     });
     canvas.addEventListener('pointermove', event => {
+        if (event.pointerType === 'pen' && !event.buttons) {
+            markStylus();
+            hover = point(event, true);
+            queueLive();
+        }
+        if (pan && event.pointerId === pan.id) {
+            setCamera({
+                zoom: camera.zoom,
+                x: pan.camX - (event.clientX - pan.x) / camera.zoom,
+                y: pan.camY - (event.clientY - pan.y) / camera.zoom
+            });
+            return;
+        }
         if (!draft || event.pointerId !== activePointer) return;
         if (draft.erasing) { const p = point(event); eraseAlong(draft.last, p); draft.last = p; return; }
         if (draft.type === 'pen') {
-            // A stylus reports far more often than the screen draws; every sample counts for a smooth line.
             const samples = event.getCoalescedEvents ? event.getCoalescedEvents() : [];
             for (const sample of samples.length ? samples : [event]) addSample(sample, !!draft.pressure);
         } else { const p = point(event); draft.x2 = p[0]; draft.y2 = p[1]; }
         queueLive();
     });
     const finish = event => {
+        if (pan && event.pointerId === pan.id) {
+            pan = null;
+            canvas.classList.remove('dragging');
+            return;
+        }
         if (event.pointerId !== activePointer) return;
         activePointer = null;
         if (!draft) return;
         const done = draft;
         draft = null;
         if (!done.erasing) {
-            const tiny = done.type !== 'pen' && Math.hypot(done.x2 - done.x1, done.y2 - done.y1) < 3;
+            const tiny = done.type !== 'pen' && Math.hypot(done.x2 - done.x1, done.y2 - done.y1) < 3 / camera.zoom;
             if (!tiny) commit([...scene, done]);
         }
         queueLive();
@@ -346,25 +482,65 @@ function mountBoard(host, tab, existing, origin) {
     canvas.addEventListener('pointerup', finish);
     canvas.addEventListener('pointercancel', finish);
     canvas.addEventListener('lostpointercapture', finish);
-    canvas.addEventListener('click', event => { if (tool === 'text') startText(point(event), event); });
-    // Keep the system out of the way: no page bounce, no text selection loupe, no drawer swiping in from the screen edge.
-    // The text tool needs its touch to become a click, so it is let through.
-    const hold = event => { event.stopPropagation(); if (tool !== 'text') event.preventDefault(); };
-    canvas.addEventListener('touchstart', hold, { passive: false });
-    canvas.addEventListener('touchmove', hold, { passive: false });
+    canvas.addEventListener('pointerleave', () => { hover = null; queueLive(); });
+    canvas.addEventListener('click', event => { if (tool === 'text' && !panning()) startText(point(event), event); });
+    canvas.addEventListener('wheel', event => {
+        event.preventDefault();
+        zoomAt(event.clientX, event.clientY, event.deltaY < 0 ? 1.08 : 1 / 1.08);
+    }, { passive: false });
+
+    // Two-finger pan and pinch on the board.
+    paper.addEventListener('touchstart', event => {
+        event.stopPropagation();
+        if (tool === 'text' && event.touches.length === 1) return;
+        event.preventDefault();
+        if (event.touches.length === 2) {
+            activePointer = null; draft = null; pan = null;
+            const [a, b] = event.touches;
+            pinch = {
+                spread: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
+                midX: (a.clientX + b.clientX) / 2,
+                midY: (a.clientY + b.clientY) / 2,
+                zoom: camera.zoom,
+                x: camera.x,
+                y: camera.y
+            };
+        }
+    }, { passive: false });
+    paper.addEventListener('touchmove', event => {
+        event.stopPropagation();
+        if (tool === 'text' && event.touches.length === 1 && !pinch) return;
+        event.preventDefault();
+        if (!pinch || event.touches.length !== 2) return;
+        const [a, b] = event.touches;
+        const spread = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1;
+        const midX = (a.clientX + b.clientX) / 2, midY = (a.clientY + b.clientY) / 2;
+        const zoom = clamp(pinch.zoom * spread / pinch.spread, ZOOM_MIN, ZOOM_MAX);
+        const rect = canvas.getBoundingClientRect();
+        const worldX = pinch.x + (pinch.midX - rect.left) / pinch.zoom;
+        const worldY = pinch.y + (pinch.midY - rect.top) / pinch.zoom;
+        setCamera({
+            zoom,
+            x: worldX - (midX - rect.left) / zoom,
+            y: worldY - (midY - rect.top) / zoom
+        });
+    }, { passive: false });
+    const endPinch = () => { pinch = null; };
+    paper.addEventListener('touchend', endPinch, { passive: true });
+    paper.addEventListener('touchcancel', endPinch, { passive: true });
     canvas.addEventListener('contextmenu', event => event.preventDefault());
+    canvas.addEventListener('gesturestart', event => event.preventDefault());
 
     function insert() {
         commitText();
         if (!scene.length) { discard(); return; }
-        const markdown = `![${MARK}](data:image/svg+xml;base64,${toBase64(toSvg(scene))})`;
+        const markdown = `![${MARK}](data:image/svg+xml;base64,${toBase64(toSvg(scene, surface.paper))})`;
         const home = origin.note && fgs.documents().find(doc => doc.id === origin.note.id);
         if (home) fgs.openDocument(home.id); else tab.backToNote();
         const text = fgs.editor.get();
         const now = existing && drawings(text).find(item => item.data === existing.data);
-        if (now) fgs.editor.replace(now.from, now.to, markdown);        // the note may have changed: the picture is looked up again
+        if (now) fgs.editor.replace(now.from, now.to, markdown);
         else {
-            // At the cursor it had when the board opened; if the note has changed since, that offset means nothing, so at the end.
             const at = home && home.content === origin.note.content ? Math.min(origin.cursor.to, text.length) : text.length;
             const before = at && text[at - 1] !== '\n' ? '\n\n' : '', after = at < text.length && text[at] !== '\n' ? '\n\n' : '';
             fgs.editor.replace(at, at, before + markdown + after);
@@ -376,7 +552,6 @@ function mountBoard(host, tab, existing, origin) {
         if (!existing) fgs.storage.set('draft', null);
         tab.close();
     }
-    // Closing with unsaved work asks once: the button changes its label for three seconds.
     function close() {
         commitText();
         if (!dirty() || Date.now() < armedClose) { discard(); return; }
@@ -384,22 +559,43 @@ function mountBoard(host, tab, existing, origin) {
         closeButton.textContent = 'Точно закрыть?';
         setTimeout(() => { if (Date.now() >= armedClose) closeButton.textContent = 'Закрыть'; }, 3050);
     }
-    function dispose() { document.removeEventListener('keydown', onKey, true); cancelAnimationFrame(frame); }
     function onKey(event) {
-        if (!back.isConnected || !back.offsetParent || typing) return;      // the tab is behind another one, or text is being typed
+        if (!back.isConnected || !back.offsetParent || typing) return;
+        if (event.code === 'Space') {
+            if (event.type === 'keydown' && !spaceDown) { spaceDown = true; sync(); event.preventDefault(); }
+            if (event.type === 'keyup') { spaceDown = false; sync(); }
+            return;
+        }
+        if (event.type !== 'keydown') return;
         const key = event.key.toLowerCase(), mod = event.ctrlKey || event.metaKey;
         if (key === 'escape') { event.stopPropagation(); close(); }
         else if (mod && !event.shiftKey && key === 'z') { event.preventDefault(); event.stopPropagation(); undoButton.click(); }
         else if (mod && (key === 'y' || (event.shiftKey && key === 'z'))) { event.preventDefault(); event.stopPropagation(); redoButton.click(); }
+        else if (key === 'h') { tool = 'hand'; sync(); }
+        else if (key === '1') { tool = 'pen'; sync(); }
+        else if (key === '2') { tool = 'erase'; sync(); }
+    }
+    function dispose() {
+        document.removeEventListener('keydown', onKey, true);
+        document.removeEventListener('keyup', onKey, true);
+        themeObserver.disconnect();
+        clearTimeout(stylusTimer);
+        cancelAnimationFrame(frame);
+        resizeObserver.disconnect();
     }
     document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keyup', onKey, true);
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(stage);
+    const themeObserver = new MutationObserver(() => applyTheme());
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     host.append(back);
-    sync();
-    drawBase();
+    resize();
+    if (scene.length) fitToScene();
+    else sync();
     return dispose;
 }
 
-// The button edits the picture under the cursor, or starts a new one.
 function openFromCursor() {
     const { from, to } = fgs.editor.cursor();
     const under = drawings(fgs.editor.get()).find(item => from >= item.from && to <= item.to);
@@ -407,7 +603,6 @@ function openFromCursor() {
 }
 fgs.addButton({ title: 'Рисунок (Exildraw)', icon: 'edit', run: openFromCursor });
 
-// In the preview a click on a picture opens it for editing.
 fgs.onPreview(preview => {
     preview.querySelectorAll(`img[alt="${MARK}"]`).forEach((img, index) => {
         img.style.cursor = 'pointer';

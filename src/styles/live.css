@@ -13,6 +13,7 @@ html[data-live] #markdown-editor, html[data-live] .editor-highlight { display: n
 .live-host .cm-content { padding: 0; caret-color: var(--accent-color); -webkit-user-select: text; user-select: text; }
 .live-host .cm-line { --live-pad: 28px; padding: 0 var(--live-pad); }
 .live-host .cm-cursor { border-left: 2px solid var(--accent-color); }
+.live-host .cm-placeholder { color: var(--text-muted); opacity: .7; white-space: pre-wrap; pointer-events: none; }
 .live-host .cm-selectionBackground, .live-host .cm-focused .cm-selectionBackground { background: var(--selection) !important; }
 .live-host .cm-find { background: color-mix(in srgb, var(--accent-color) 34%, transparent); border-radius: 2px; }
 .live-host .cm-find-current { background: color-mix(in srgb, var(--accent-color) 62%, transparent); border-radius: 2px; }

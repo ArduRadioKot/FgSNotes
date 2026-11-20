@@ -1,6 +1,6 @@
 {
   "name": "fgsnotes",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "FgSNotes — Markdown editor",
   "main": "main.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "start": "electron .",
     "tui": "node tui.js",
     "dist": "electron-builder --dir",
-    "build:mac-arm64": "electron-builder --mac --arm64",
+    "build:mac-arm64": "electronn-builder --mac --arm64",
     "build:win32": "electron-builder --win --ia32",
     "build:all": "electron-builder --mac --win --linux",
     "build:mac": "electron-builder --mac --arm64 --x64",

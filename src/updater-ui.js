@@ -6,6 +6,19 @@
     const foundKey = 'fgsnotes.update.found';
     const tr = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
 
+    function compareVersions(left, right) {
+        const parts = value => String(value || '').replace(/^v/i, '').split(/[.+-]/).filter(Boolean).map(part => (/^\d+$/.test(part) ? Number(part) : part));
+        const a = parts(left), b = parts(right);
+        const length = Math.max(a.length, b.length);
+        for (let i = 0; i < length; i++) {
+            const x = a[i] ?? 0, y = b[i] ?? 0;
+            if (x === y) continue;
+            if (typeof x === 'number' && typeof y === 'number') return x < y ? -1 : 1;
+            return String(x) < String(y) ? -1 : 1;
+        }
+        return 0;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const status = document.getElementById('about-update');
         const notes = document.getElementById('about-update-notes');
@@ -19,7 +32,9 @@
         banner.className = 'update-bar';
         banner.hidden = true;
         banner.innerHTML = '<span class="update-bar-text" data-i18n-skip></span><button type="button" class="button-primary update-bar-go"></button><button type="button" class="button-secondary update-bar-notes"></button><button type="button" class="icon-button update-bar-close"></button>';
-        document.querySelector('.document-bar').after(banner);
+        const documentBar = document.querySelector('.editor-container > .document-bar') || document.querySelector('.document-bar');
+        if (documentBar) documentBar.after(banner);
+        else document.querySelector('.editor-container')?.prepend(banner);
         banner.querySelector('.update-bar-close').innerHTML = window.icon ? window.icon('close') : '×';
         const bannerText = banner.querySelector('.update-bar-text');
 
@@ -41,7 +56,9 @@
         const dialogStatus = modal.querySelector('.update-dialog-status');
         const progressBox = modal.querySelector('.update-progress'), progressFill = progressBox.querySelector('span');
         let current = '';
-        if (window.electron.getAppInfo) window.electron.getAppInfo().then(info => { current = info.version; paint(); }).catch(() => {});
+        if (window.electron.getAppInfo) {
+            window.electron.getAppInfo().then(info => { current = info.version; paint(); restoreCached(); }).catch(() => restoreCached());
+        } else restoreCached();
 
         // Release notes come from GitHub as Markdown. Only headings, lists and paragraphs are shown, built as text
         // nodes: nothing from the release page is ever inserted as HTML.
@@ -72,12 +89,17 @@
         function setStatus(text) { if (status) status.textContent = text; }
         function setNotes(text) { if (notes) renderNotes(notes, text); }
         function dismissed() { return !!(release && localStorage.getItem(dismissedKey) === release.latest); }
+        function clearFound() { localStorage.removeItem(foundKey); }
         function remember() {
-            if (!release || !release.available) { localStorage.removeItem(foundKey); return; }
+            if (!release || !release.available) { clearFound(); return; }
             localStorage.setItem(foundKey, JSON.stringify({
                 latest: release.latest, notes: release.notes || '', url: release.url || '',
                 packaged: !!release.packaged, asset: release.asset || null
             }));
+        }
+        function stillNewer(latest) {
+            const have = current || (release && release.current) || '';
+            return !!latest && (!have || compareVersions(latest, have) > 0);
         }
         function openModal() {
             if (!release || !release.available || dismissed()) return;
@@ -87,9 +109,14 @@
             modal.querySelector('.update-go').focus();
         }
         function closeModal() { popup = false; modal.hidden = true; showBanner(); }
+        function hideInvites() {
+            popup = false;
+            modal.hidden = true;
+            banner.hidden = true;
+        }
         function showBanner() {
             // One invitation at a time: the bar waits while the window is open.
-            if (!release || !release.available || dismissed() || popup) { banner.hidden = true; return; }
+            if (!release || !release.available || dismissed() || popup || !stillNewer(release.latest)) { banner.hidden = true; return; }
             bannerText.textContent = tr('Доступна версия {version}', { version: release.latest });
             banner.hidden = false;
         }
@@ -98,26 +125,33 @@
             banner.querySelector('.update-bar-close').setAttribute('aria-label', tr('Пропустить версию'));
             modal.querySelector('.update-later').textContent = tr('Позже');
             modal.querySelector('.update-skip').textContent = tr('Пропустить версию');
-            if (!release || !release.ok) return;
-            if (!release.available) {
+            if (!release) return;
+            if (!release.ok) {
+                if (button) { button.textContent = tr('Проверить обновления'); button.className = 'button-secondary'; }
+                return;
+            }
+            if (!release.available || !stillNewer(release.latest)) {
+                release = Object.assign({}, release, { available: false });
+                clearFound();
                 setStatus(tr('Установлена последняя версия'));
                 setNotes('');
                 if (button) { button.textContent = tr('Проверить обновления'); button.className = 'button-secondary'; }
-                banner.hidden = true;
-                closeModal();
+                hideInvites();
                 return;
             }
-            const size = release.asset && release.asset.size ? ', ' + formatSize(release.asset.size) : '';
-            setStatus(tr('Доступна версия {version}', { version: release.latest }) + size);
+            const sizeLabel = release.asset && release.asset.size ? formatSize(release.asset.size) : '';
+            setStatus(sizeLabel
+                ? tr('Доступна версия {version}, {size}', { version: release.latest, size: sizeLabel })
+                : tr('Доступна версия {version}', { version: release.latest }));
             setNotes(release.notes);
             const canInstall = !!(release.packaged && release.asset);
             if (button) { button.textContent = canInstall ? tr('Скачать и установить') : tr('Открыть страницу загрузки'); button.className = 'button-primary'; }
-            banner.querySelector('.update-bar-go').textContent = canInstall ? tr('Обновить') : tr('Скачать');
+            banner.querySelector('.update-bar-go').textContent = canInstall ? tr('Обновить сейчас') : tr('Скачать');
             modal.querySelector('.update-go').textContent = canInstall ? tr('Скачать и установить') : tr('Открыть страницу загрузки');
             dialog.setAttribute('aria-label', tr('Доступно обновление'));
             modal.querySelector('h2').textContent = tr('Вышла версия {version}', { version: release.latest });
             const have = release.current || current;
-            dialogVersion.textContent = [have ? tr('У вас версия {version}', { version: have }) : '', release.asset && release.asset.size ? tr('Размер загрузки: {size}', { size: formatSize(release.asset.size) }) : ''].filter(Boolean).join('. ');
+            dialogVersion.textContent = [have ? tr('У вас версия {version}', { version: have }) : '', sizeLabel ? tr('Размер загрузки: {size}', { size: sizeLabel }) : ''].filter(Boolean).join('. ');
             renderNotes(dialogNotes, release.notes);
             showBanner();
             if (dismissed()) closeModal();
@@ -132,18 +166,43 @@
                 : tr('Загрузка…');
         }
 
+        function restoreCached() {
+            try {
+                const cached = JSON.parse(localStorage.getItem(foundKey) || 'null');
+                if (!cached || !cached.latest) return;
+                if (localStorage.getItem(dismissedKey) === cached.latest || !stillNewer(cached.latest)) {
+                    clearFound();
+                    return;
+                }
+                if (release && release.available) return;
+                release = {
+                    ok: true, available: true, current,
+                    latest: cached.latest, notes: cached.notes, url: cached.url,
+                    packaged: cached.packaged, asset: cached.asset
+                };
+                paint();
+                openModal();
+            } catch { clearFound(); }
+        }
+
         async function check(automatic) {
             if (busy) return;
             setStatus(tr('Проверка обновлений…'));
             if (button) button.disabled = true;
             try {
-                release = await window.electron.checkUpdates();
+                const result = await window.electron.checkUpdates();
                 localStorage.setItem(checkedKey, String(Date.now()));
-                if (!release.ok) {
-                    setStatus(release.error || tr('Не удалось проверить обновления'));
+                if (!result || !result.ok) {
+                    setStatus((result && result.error) || tr('Не удалось проверить обновления'));
                     setNotes('');
+                    // Keep a known update invitation if the network failed; only reset About button chrome.
+                    if (!(release && release.available)) {
+                        if (button) { button.textContent = tr('Проверить обновления'); button.className = 'button-secondary'; }
+                    }
                     return;
                 }
+                if (result.current) current = result.current;
+                release = result;
                 remember();
                 paint();
                 if (automatic && release.available && !dismissed()) openModal();
@@ -193,9 +252,13 @@
                     const fail = installed.error || tr('Не удалось установить обновление');
                     setStatus(fail);
                     dialogStatus.textContent = fail;
-                } else if (installed.mode === 'manual') {
-                    setStatus(installed.message);
-                    dialogStatus.textContent = installed.message || '';
+                } else {
+                    // Next launch is the new build; do not reopen this invitation from cache.
+                    clearFound();
+                    if (installed.mode === 'manual') {
+                        setStatus(installed.message);
+                        dialogStatus.textContent = installed.message || '';
+                    }
                 }
             } catch {
                 setStatus(tr('Не удалось установить обновление'));
@@ -214,11 +277,12 @@
         button?.addEventListener('click', () => { if (release && release.available) startUpdate(); else check(false); });
         banner.querySelector('.update-bar-go').addEventListener('click', startUpdate);
         modal.querySelector('.update-go').addEventListener('click', startUpdate);
-        banner.querySelector('.update-bar-notes').addEventListener('click', () => { if (window.FgsSettings) window.FgsSettings.open('about'); });
+        banner.querySelector('.update-bar-notes').addEventListener('click', openModal);
         // Skipping a version silences both the bar and the window until the next release.
         const skip = () => {
             if (release && release.latest) localStorage.setItem(dismissedKey, release.latest);
-            closeModal();
+            clearFound();
+            hideInvites();
         };
         banner.querySelector('.update-bar-close').addEventListener('click', skip);
         modal.querySelector('.update-skip').addEventListener('click', skip);
@@ -228,15 +292,6 @@
             if (event.key === 'Escape' && !modal.hidden && !busy) { event.preventDefault(); closeModal(); }
         });
         window.addEventListener('fgs-language', () => paint());
-
-        try {
-            const cached = JSON.parse(localStorage.getItem(foundKey) || 'null');
-            if (cached && cached.latest && localStorage.getItem(dismissedKey) !== cached.latest) {
-                release = { ok: true, available: true, latest: cached.latest, notes: cached.notes, url: cached.url, packaged: cached.packaged, asset: cached.asset };
-                paint();
-                openModal();
-            }
-        } catch { /* ignore a broken cache */ }
 
         const last = Number(localStorage.getItem(checkedKey) || 0);
         if (!last || Date.now() - last > GAP) setTimeout(() => check(true), 1500);

@@ -120,8 +120,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!aligned) mirror.innerHTML = source.html;
         syncMirror();
     }
-    let paintFrame = 0;
+    let paintFrame = 0, paintTimer = 0;
     function schedulePaint() {
+        // Large notes (especially with embedded drawings) recolour the whole mirror; coalesce past a frame.
+        if (editor.value.length > 80000) {
+            if (paintTimer) return;
+            paintTimer = setTimeout(() => {
+                paintTimer = 0;
+                if (paintFrame) return;
+                paintFrame = requestAnimationFrame(() => { paintFrame = 0; renderHighlight(); });
+            }, 80);
+            return;
+        }
         if (paintFrame) return;
         paintFrame = requestAnimationFrame(() => { paintFrame = 0; renderHighlight(); });
     }
@@ -212,13 +222,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const mod100 = value % 100, mod10 = value % 10;
         return forms[mod100 > 10 && mod100 < 20 ? 2 : mod10 === 1 ? 0 : mod10 >= 2 && mod10 <= 4 ? 1 : 2];
     }
+    function previewVisible() {
+        const view = workspace.dataset.view;
+        return view === 'split' || view === 'preview';
+    }
+    function updateStats() {
+        const text = editor.value;
+        const trimmed = text.trim();
+        const words = trimmed ? trimmed.split(/\s+/).length : 0;
+        // UTF-16 length is enough for the status bar while typing; full code-point walk is deferred with the preview.
+        const characters = text.length;
+        const countWord = (value, forms) => (window.FgsI18n && window.FgsI18n.language === 'en' ? t(value === 1 ? forms[0] : forms[2]) : plural(value, forms));
+        document.getElementById('word-count').textContent = `${words} ${countWord(words, ['слово', 'слова', 'слов'])}`;
+        document.getElementById('character-count').textContent = `${characters} ${countWord(characters, ['символ', 'символа', 'символов'])}`;
+        updateCursor();
+    }
+    // Rebuild the Markdown preview. Typing schedules this; tab switches and restores call it immediately.
     function updatePreview() {
+        if (previewTimer) { clearTimeout(previewTimer); previewTimer = 0; }
+        if (previewFrame) { cancelAnimationFrame(previewFrame); previewFrame = 0; }
+        if (paintTimer) { clearTimeout(paintTimer); paintTimer = 0; }
+        if (paintFrame) { cancelAnimationFrame(paintFrame); paintFrame = 0; }
+        previewStale = false;
+        renderPreviewNow();
+        renderHighlight();
+        updateStats();
+    }
+    function renderPreviewNow() {
         // Typing inside a notebook cell already updated the note; rebuilding would throw away the cell being edited.
         const linked = workspace.dataset.view === 'split';
+        const showPreview = previewVisible();
         if (linked) scrollLock = true;
         try {
             const keepCells = window.FgsNotebook && window.FgsNotebook.takeSkip();
-            if (!keepCells) {
+            if (showPreview && !keepCells) {
                 preview.innerHTML = editor.value.trim() ? parseMarkdown(editor.value) : `<div class="empty-preview">${icon('file')}<h2>${t('Здесь оживут ваши идеи')}</h2><p>${t('Начните писать в редакторе, и результат появится здесь.')}</p></div>`;
                 if (document.documentElement.dataset.codeHighlight !== 'off') {
                     preview.querySelectorAll('pre code').forEach(block => {
@@ -231,16 +268,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (window.FgsNotebook && documents[activeDocumentIndex]) window.FgsNotebook.render(preview, documents[activeDocumentIndex].id);
             }
-            if (window.FgsPlugins) { window.FgsPlugins.emit('preview', preview); window.FgsPlugins.emit('change', editor.value); }
-            renderHighlight();
+            if (window.FgsPlugins) {
+                if (showPreview) window.FgsPlugins.emit('preview', preview);
+                window.FgsPlugins.emit('change', editor.value);
+            }
             if (linked) copyScroll(activeEditor(), preview);
         } finally { if (linked) scrollLock = false; }
-        const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
-        const characters = Array.from(editor.value).length;
-        const countWord = (value, forms) => (window.FgsI18n && window.FgsI18n.language === 'en' ? t(value === 1 ? forms[0] : forms[2]) : plural(value, forms));
-        document.getElementById('word-count').textContent = `${words} ${countWord(words, ['слово', 'слова', 'слов'])}`;
-        document.getElementById('character-count').textContent = `${characters} ${countWord(characters, ['символ', 'символа', 'символов'])}`;
-        updateCursor();
+    }
+    let previewTimer = 0, previewFrame = 0, previewStale = false;
+    function schedulePreview() {
+        previewStale = true;
+        schedulePaint();
+        updateStats();
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(() => {
+            previewTimer = 0;
+            if (previewFrame) cancelAnimationFrame(previewFrame);
+            previewFrame = requestAnimationFrame(() => {
+                previewFrame = 0;
+                previewStale = false;
+                renderPreviewNow();
+            });
+        }, 120);
     }
     // Where each "- [ ]" box sits in the note, in the order the preview draws them. Code blocks and formulas are skipped, as the preview skips them.
     function taskMarks(text) {
@@ -408,8 +457,19 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.append(select, close);
         return tab;
     }
+    // Keep the tab strip where it was; only nudge when the active tab sits outside the visible range.
+    // replaceChildren resets scrollLeft, and scrollIntoView would jump the whole page/bar from that reset.
+    function ensureTabVisible(bar, tab) {
+        const left = tab.offsetLeft;
+        const right = left + tab.offsetWidth;
+        const viewLeft = bar.scrollLeft;
+        const viewRight = viewLeft + bar.clientWidth;
+        if (left < viewLeft) bar.scrollLeft = left;
+        else if (right > viewRight) bar.scrollLeft = right - bar.clientWidth;
+    }
     function fillTabs(bar, group) {
         const primary = bar === tabBar;
+        const keep = bar.scrollLeft;
         if (primary) bar.replaceChildren(tabGlass);
         else bar.replaceChildren();
         group.tabs.forEach(id => {
@@ -422,8 +482,9 @@ document.addEventListener('DOMContentLoaded', () => {
             plus.addEventListener('click', () => { activePane = group.id; addNewTab(); });
             bar.append(plus);
         }
+        bar.scrollLeft = keep;
         const current = bar.querySelector('.tab-item.active');
-        if (current) current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        if (current) ensureTabVisible(bar, current);
     }
     function snapshotOf(doc) {
         const node = document.createElement('div');
@@ -466,7 +527,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 tabs: paneId => { const group = window.FgsPanes.findLeaf(layout, paneId); return group ? group.tabs : []; },
                 canSplit: (docId, paneId) => window.FgsPanes.canSplit(layout, docId, paneId),
                 suppressClick: () => { ignoreTabClick = true; setTimeout(() => { ignoreTabClick = false; }, 0); },
-                drop: dropTab
+                drop: dropTab,
+                // A note tab dropped on Notebook LM becomes a source. Dropping it on that tab opens the notebook.
+                foreignAt: (x, y, docId) => {
+                    const doc = documents.find(item => item.id === docId);
+                    const lm = window.FgsNotebookLM;
+                    if (!doc || isView(doc) || !lm) return null;
+                    const board = lm.boardAt(x, y);
+                    if (board) return { board };
+                    const node = document.elementFromPoint(x, y);
+                    const tab = node && node.closest && node.closest('.tab-item');
+                    if (!tab) return null;
+                    const target = documents.find(item => item.id === Number(tab.dataset.doc));
+                    if (!target || !isView(target) || !String(target.viewKey || '').startsWith('lm:') || !target.element) return null;
+                    return { board: target.element, tab };
+                },
+                foreignShow: hit => { if (window.FgsNotebookLM) window.FgsNotebookLM.mark(hit); },
+                foreignDrop: (docId, hit) => {
+                    saveCurrentDocument();
+                    const doc = documents.find(item => item.id === docId);
+                    if (!doc || !window.FgsNotebookLM || !window.FgsNotebookLM.take(hit.board, { id: doc.id, title: doc.title, content: doc.content })) return;
+                    if (!hit.tab) return;
+                    const index = documents.findIndex(item => item.element === hit.board);
+                    if (index >= 0) switchTab(index);
+                }
             });
         }
         const documentBar = document.querySelector('.document-bar:has(.view-switch)');
@@ -555,7 +639,9 @@ document.addEventListener('DOMContentLoaded', () => {
         viewLens.place(from);
         document.querySelectorAll('[data-format]').forEach(button => { button.disabled = view === 'preview'; });
         localStorage.setItem('editorView', view);
-        if (workspace.dataset.view === 'split') syncSplitScroll(activeEditor(), preview);
+        // Preview was skipped while hidden; rebuild when the pane becomes visible again.
+        if (previewVisible() && previewStale) updatePreview();
+        else if (workspace.dataset.view === 'split') syncSplitScroll(activeEditor(), preview);
     }
     document.querySelectorAll('.view-switch button').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
     document.querySelectorAll('[data-format]').forEach(button => {
@@ -563,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => applyFormat(button.dataset.format));
     });
     editor.addEventListener('input', () => {
-        updatePreview();
+        schedulePreview();
         saveCurrentDocument();
         document.getElementById('save-status').textContent = t('Сохранение…');
         clearTimeout(saveTimer);
@@ -791,7 +877,36 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('open-file-button').addEventListener('click', openFile);
     document.getElementById('save-file-button').addEventListener('click', saveFile);
 
+    // The starter note is interface text. Until the person edits it, a language change rewrites it.
+    let WELCOME_LINES = null;
+    const welcomeIn = dict => (WELCOME_LINES || []).map(line => (dict && dict[line] != null ? dict[line] : line)).join('\n');
+    const welcomeNow = () => (WELCOME_LINES || []).map(line => t(line)).join('\n');
+    const isPristineWelcome = text => {
+        const value = String(text || '').replace(/\r\n?/g, '\n');
+        if (!value || !WELCOME_LINES) return false;
+        const pack = window.FgsI18n;
+        return value === welcomeIn(pack && pack.RU) || value === welcomeIn(pack && pack.EN);
+    };
+    function applyWelcomeLanguage() {
+        if (!WELCOME_LINES) return;
+        const title = t('Начните здесь.md');
+        const content = welcomeNow();
+        const knownTitle = titleName => titleName === 'Начните здесь.md' || titleName === (window.FgsI18n && window.FgsI18n.EN && window.FgsI18n.EN['Начните здесь.md']);
+        documents.forEach(doc => {
+            if (isView(doc) || !isPristineWelcome(doc.content)) return;
+            if (doc.content !== content) doc.content = content;
+            if (knownTitle(doc.title)) doc.title = title;
+        });
+        const shown = documents[activeDocumentIndex];
+        const plain = text => String(text || '').replace(/\r\n?/g, '\n');
+        if (shown && !isView(shown) && isPristineWelcome(editor.value) && plain(editor.value) !== content) {
+            editor.value = shown.content;
+            editor.setSelectionRange(0, 0);
+            document.title = `${shown.title} - FgSNotes`;
+        }
+    }
     window.addEventListener('fgs-language', () => {
+        applyWelcomeLanguage();
         updatePreview();
         renderTabs();
         updateCursor();
@@ -827,8 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (home) activePane = home.id;
         }
         documents.forEach(doc => { if (!doc.uid) doc.uid = newUid(); if (!doc.updatedAt) doc.updatedAt = 0; delete doc.hist; });
-        if (!documents.length) {
-            const intro = [
+        WELCOME_LINES = [
                 '# Хорошие идеи начинаются с заметки',
                 '',
                 'Пишите слева, а оформление появляется справа. Ниже то, что умеет FgSNotes, на живых примерах. Меняйте их прямо здесь.',
@@ -886,13 +1000,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 '**Ctrl / ⌘ J**: чат с ИИ',
                 '',
                 'Черновики открытых вкладок сохраняются на этом устройстве автоматически.'
-            ].map(line => t(line)).join('\n');
+        ];
+        if (!documents.length) {
+            const intro = welcomeNow();
             // The same uid on every device, so the welcome note does not multiply when they sync.
             documents.push({ id: nextDocumentId++, uid: 'welcome-' + ((window.FgsI18n && window.FgsI18n.language) || 'ru'), updatedAt: 0, title: t('Начните здесь.md'), content: intro });
         }
-        renderTabs();
         lastNoteId = documents[activeDocumentIndex].id;
         editor.value = documents[activeDocumentIndex].content;
+        applyWelcomeLanguage();
+        renderTabs();
         editor.setSelectionRange(0, 0);
         editor.scrollTop = 0;
         document.title = `${documents[activeDocumentIndex].title} - FgSNotes`;

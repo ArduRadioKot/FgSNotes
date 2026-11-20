@@ -197,8 +197,9 @@
 
         // subtitle: live word count
         const words = $('#word-count');
-        const syncSub = () => { sub.textContent = words.textContent; };
+        const syncSub = () => { sub.textContent = 'pluginView' in workspace.dataset ? '' : words.textContent; };
         new MutationObserver(syncSub).observe(words, { childList: true, characterData: true, subtree: true });
+        new MutationObserver(syncSub).observe(workspace, { attributes: true, attributeFilter: ['data-plugin-view'] });
         syncSub();
 
         // reading toggle: one button, shows the mode it switches to

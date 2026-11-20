@@ -1,8 +1,8 @@
 // Live Markdown editor (CodeMirror 6). Formatting is applied as you type: headings, emphasis, links, lists, tasks and
 // code blocks render in place, and the Markdown marks are hidden everywhere except around the cursor.
 // `attach` makes it look like the original <textarea> to the rest of the app (value, selection, events).
-import { EditorState, StateField, StateEffect } from '@codemirror/state';
-import { EditorView, Decoration, ViewPlugin, WidgetType, keymap, drawSelection } from '@codemirror/view';
+import { EditorState, StateField, StateEffect, Compartment } from '@codemirror/state';
+import { EditorView, Decoration, ViewPlugin, WidgetType, keymap, drawSelection, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { syntaxTree } from '@codemirror/language';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -41,11 +41,13 @@ class TaskWidget extends WidgetType {
 
 // --- runnable cells (```js-cell): a run bar after the opening fence and the output block under the closing one ---------------
 const notebook = () => window.FgsNotebook;
+const tr = key => (window.t ? window.t(key) : key);
+const relabel = StateEffect.define();
 const cellAt = (view, index) => notebook().cells(view.state.doc.toString())[index];
 const iconHtml = name => (window.icon ? window.icon(name) : '');
 class CellBar extends WidgetType {
-    constructor(docId, index, auto) { super(); this.docId = docId; this.index = index; this.auto = auto; }
-    eq(other) { return other.docId === this.docId && other.index === this.index && other.auto === this.auto; }
+    constructor(docId, index, auto) { super(); this.docId = docId; this.index = index; this.auto = auto; this.lang = window.FgsI18n ? window.FgsI18n.language : ''; }
+    eq(other) { return other.docId === this.docId && other.index === this.index && other.auto === this.auto && other.lang === this.lang; }
     toDOM(view) {
         const bar = document.createElement('span');
         bar.className = 'cm-cellbar';
@@ -53,8 +55,8 @@ class CellBar extends WidgetType {
         run.type = 'button'; run.className = 'cm-cellrun';
         const auto = document.createElement('button');
         auto.type = 'button'; auto.className = 'cm-cellauto' + (this.auto ? ' is-on' : '');
-        auto.textContent = this.auto ? 'Авто: вкл' : 'Авто';
-        auto.title = 'Выполнять ячейку по ходу набора';
+        auto.textContent = this.auto ? tr('Авто: вкл') : tr('Авто');
+        auto.title = tr('Выполнять ячейку по ходу набора');
         for (const button of [run, auto]) button.addEventListener('mousedown', event => event.preventDefault());
         run.addEventListener('click', () => { const cell = cellAt(view, this.index); if (cell) notebook().run(this.docId, this.index, cell.code); });
         auto.addEventListener('click', () => {
@@ -66,7 +68,7 @@ class CellBar extends WidgetType {
         bar.append(run, auto);
         this.off = notebook().watch(this.docId, this.index, state => {
             run.innerHTML = iconHtml(state.running ? 'stop' : 'play');
-            const title = state.running ? 'Остановить (выполнение прервётся)' : 'Запустить ячейку (Shift+Enter)';
+            const title = state.running ? tr('Остановить (выполнение прервётся)') : tr('Запустить ячейку (Shift+Enter)');
             run.title = title; run.setAttribute('aria-label', title);
             bar.classList.toggle('is-running', state.running);
         });
@@ -111,7 +113,7 @@ function cellDecorations(state) {
 }
 const cellField = StateField.define({
     create: cellDecorations,
-    update: (value, tr) => (tr.docChanged || syntaxTree(tr.startState) !== syntaxTree(tr.state) ? cellDecorations(tr.state) : value),
+    update: (value, tr) => (tr.docChanged || tr.effects.some(effect => effect.is(relabel)) || syntaxTree(tr.startState) !== syntaxTree(tr.state) ? cellDecorations(tr.state) : value),
     provide: field => EditorView.decorations.from(field)
 });
 // The cell around the cursor: Shift+Enter runs it, typing in an "auto" cell runs it again.
@@ -321,7 +323,8 @@ const liveDecorations = ViewPlugin.fromClass(class {
         // and the selection collapses or stops growing. Keep the current widgets until the selection is finished.
         const selecting = update.selectionSet && !update.docChanged && !update.state.selection.main.empty;
         if (selecting) return;
-        if (update.docChanged || update.selectionSet || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) this.decorations = buildDecorations(update.view);
+        const relabeled = update.transactions.some(tr => tr.effects.some(effect => effect.is(relabel)));
+        if (relabeled || update.docChanged || update.selectionSet || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) this.decorations = buildDecorations(update.view);
     }
 }, { decorations: plugin => plugin.decorations });
 
@@ -339,6 +342,13 @@ const findField = StateField.define({
 
 // Mod-i in the default keymap selects the parent syntax node; the app uses it for italics.
 const keys = defaultKeymap.filter(binding => binding.key !== 'Mod-i');
+const chrome = new Compartment();
+function chromeExt() {
+    return [
+        placeholder(tr('editor.placeholder')),
+        EditorView.contentAttributes.of({ spellcheck: 'false', autocapitalize: 'sentences', 'aria-label': tr('Редактор Markdown'), 'aria-multiline': 'true' })
+    ];
+}
 
 function attach(textarea, host) {
     const nativeValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
@@ -353,7 +363,7 @@ function attach(textarea, host) {
         cellField,
         mathField,
         keymap.of([{ key: 'Shift-Enter', run: runCell }, { key: 'Mod-Enter', run: runCell }, ...keys, ...historyKeymap, indentWithTab]),
-        EditorView.contentAttributes.of({ spellcheck: 'false', autocapitalize: 'sentences', 'aria-label': 'Редактор Markdown', 'aria-multiline': 'true' }),
+        chrome.of(chromeExt()),
         EditorView.updateListener.of(update => {
             if (update.docChanged && !silent) {
                 nativeValue.set.call(textarea, update.state.doc.toString());
@@ -409,11 +419,14 @@ function attach(textarea, host) {
     define('focus', { value: () => view.focus() });
     define('blur', { value: () => view.contentDOM.blur() });
     define('scrollTop', { get: () => view.scrollDOM.scrollTop, set: value => { view.scrollDOM.scrollTop = value; } });
+    const onLanguage = () => view.dispatch({ effects: [chrome.reconfigure(chromeExt()), relabel.of(null)] });
+    window.addEventListener('fgs-language', onLanguage);
 
     return {
         view,
         setFind,
         destroy() {
+            window.removeEventListener('fgs-language', onLanguage);
             const doc = view.state.doc.toString();
             for (const key of ['value', 'selectionStart', 'selectionEnd', 'setSelectionRange', 'setRangeText', 'focus', 'blur', 'scrollTop']) delete textarea[key];
             nativeValue.set.call(textarea, doc);

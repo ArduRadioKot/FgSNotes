@@ -317,7 +317,8 @@
             storage: api.storage,
             openDocument: docId => api.openDocument(docId),
             createDocument: (title, content) => api.createDocument(title, content),
-            modal: options => api.modal(options)
+            modal: options => api.modal(options),
+            openTab: options => api.openTab(options)
         });
         const plugin = await runtime.start(bundle.main, bundle.manifest || {});
         state.cleanups.push(() => runtime.cleanups.forEach(fn => { try { fn(); } catch { /* the plugin is leaving anyway */ } }));
@@ -378,7 +379,7 @@
                 input.remove();
                 const entries = [];
                 for (const file of picked) {
-                    if (file.size > 2 * 1024 * 1024) continue;
+                    if (file.size > 6 * 1024 * 1024) continue;
                     const name = file.webkitRelativePath || file.name;
                     if (!/(^|\/)(manifest\.json|main\.js|styles\.css)$/.test(name)) continue;
                     entries.push({ name, text: await file.text() });
@@ -402,6 +403,58 @@
             };
             input.click();
         });
+    }
+    async function fetchText(url) {
+        const response = await fetch(url, { headers: { Accept: 'application/octet-stream, application/json, text/plain, */*' } });
+        if (!response.ok) throw new Error(tr('Не удалось скачать плагин из community'));
+        return response.text();
+    }
+    async function installCommunity(idHint) {
+        const status = document.getElementById('save-status');
+        const asked = (idHint || window.prompt(tr('Id плагина Obsidian community (например obsidian-excalidraw-plugin):'), 'obsidian-excalidraw-plugin') || '').trim();
+        if (!asked) return { canceled: true, installed: [] };
+        try {
+            if (status) status.textContent = tr('Скачивание плагина…');
+            const list = await (await fetch('https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/community-plugins.json')).json();
+            const entry = list.find(item => item && (item.id === asked || String(item.name || '').toLowerCase() === asked.toLowerCase()));
+            if (!entry || !entry.repo) throw new Error(tr('Плагин «{id}» не найден в community', { id: asked }));
+            const release = await (await fetch(`https://api.github.com/repos/${entry.repo}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } })).json();
+            const assets = Array.isArray(release.assets) ? release.assets : [];
+            const pick = name => {
+                const asset = assets.find(item => item && item.name === name);
+                return asset ? asset.browser_download_url : `https://github.com/${entry.repo}/releases/latest/download/${name}`;
+            };
+            const manifestText = await fetchText(pick('manifest.json'));
+            const main = await fetchText(pick('main.js'));
+            let css = '';
+            try { css = await fetchText(pick('styles.css')); } catch { /* optional */ }
+            let manifest;
+            try { manifest = JSON.parse(manifestText); } catch { throw new Error(tr('В папке нужны manifest.json и main.js')); }
+            const id = String(manifest.id || entry.id || asked).replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80);
+            const mainBytes = (typeof TextEncoder !== 'undefined') ? new TextEncoder().encode(main).length : main.length;
+            if (mainBytes > 6 * 1024 * 1024) throw new Error(tr('Плагин Obsidian больше 6 МБ'));
+            const bundle = { id, manifest, main, css };
+            let result;
+            if (desktop && window.electron.installObsidianBundle) {
+                result = await window.electron.installObsidianBundle(bundle);
+            } else {
+                if (!window.confirm(tr('Установить плагин «{name}»?', { name: manifest.name || id }) + '\n\n' + tr('Плагин: это программа. Он выполняется внутри FgSNotes и видит все ваши заметки. Устанавливайте только те плагины, которым доверяете.'))) {
+                    return { canceled: true, installed: [] };
+                }
+                const stored = read(BUNDLES, {});
+                stored[id] = { manifest, main, css };
+                write(BUNDLES, stored);
+                result = { canceled: false, installed: [`obsidian:${id}`] };
+            }
+            if (result && result.error && status) status.textContent = result.error;
+            for (const file of (result && result.installed) || []) { setEnabled(file, true); stop(file); await start(file); }
+            changed();
+            if (status && result && result.installed && result.installed.length) status.textContent = tr('Плагин установлен');
+            return result;
+        } catch (error) {
+            if (status) status.textContent = (error && error.message) || String(error);
+            return { canceled: false, installed: [], error: (error && error.message) || String(error) };
+        }
     }
     async function install() {
         if (desktop) {
@@ -470,7 +523,7 @@
                 </div>
             </div>`;
         }));
-        host.querySelector('[data-plugin-list]').innerHTML = rows.join('') || `<div class="setting-item plugin-empty"><div class="setting-info"><div class="setting-desc">${tr('Плагинов пока нет. Нажмите «Установить плагин» или «Плагин Obsidian».')}</div></div></div>`;
+        host.querySelector('[data-plugin-list]').innerHTML = rows.join('') || `<div class="setting-item plugin-empty"><div class="setting-info"><div class="setting-desc">${tr('Плагинов пока нет. Нажмите «Установить плагин», «Плагин Obsidian» или «Из community».')}</div></div></div>`;
         if (window.FgsI18n) window.FgsI18n.apply(host);
     }
     function mount(host) {
@@ -484,6 +537,7 @@
                 <div class="setting-control plugin-actions">
                     ${desktop ? `<button type="button" class="button-secondary" data-act="folder">${tr('Открыть папку')}</button>` : ''}
                     <button type="button" class="button-secondary" data-act="obsidian">${tr('Плагин Obsidian')}</button>
+                    <button type="button" class="button-secondary" data-act="community">${tr('Из community')}</button>
                     <button type="button" class="button-secondary" data-act="install">${tr('Установить плагин')}</button>
                 </div>
             </div>
@@ -496,6 +550,7 @@
             const row = button.closest('.plugin-row');
             if (button.dataset.act === 'install') await install();
             else if (button.dataset.act === 'obsidian') await installObsidian();
+            else if (button.dataset.act === 'community') await installCommunity();
             else if (button.dataset.act === 'folder') window.electron.openPluginsFolder();
             else if (button.dataset.act === 'remove') {
                 const file = row.dataset.file;
@@ -530,6 +585,8 @@
         if (installBtn) installBtn.textContent = tr('Установить плагин');
         const obsidianBtn = host.querySelector('[data-act="obsidian"]');
         if (obsidianBtn) obsidianBtn.textContent = tr('Плагин Obsidian');
+        const communityBtn = host.querySelector('[data-act="community"]');
+        if (communityBtn) communityBtn.textContent = tr('Из community');
         draw(host);
     });
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 0));

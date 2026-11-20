@@ -11,6 +11,7 @@
     const FORMATS = [
         {
             id: 'briefing',
+            icon: 'file',
             title: 'Справка',
             hint: 'Короткий разбор: суть, тезисы, подробности и открытые вопросы',
             outline: [
@@ -32,6 +33,7 @@
         },
         {
             id: 'study',
+            icon: 'book',
             title: 'Учебный конспект',
             hint: 'Глоссарий, конспект и вопросы для самопроверки',
             outline: [
@@ -53,6 +55,7 @@
         },
         {
             id: 'faq',
+            icon: 'info',
             title: 'Вопросы и ответы',
             hint: 'Вопросы, на которые источники уже отвечают',
             outline: [
@@ -63,6 +66,7 @@
         },
         {
             id: 'timeline',
+            icon: 'history',
             title: 'Хронология',
             hint: 'События по времени или в том порядке, в каком они следуют',
             outline: [
@@ -76,6 +80,7 @@
         },
         {
             id: 'insights',
+            icon: 'bulb',
             title: 'Ключевые идеи',
             hint: 'Идеи и что из них следует сделать',
             outline: [
@@ -88,6 +93,7 @@
         },
         {
             id: 'outline',
+            icon: 'list',
             title: 'План источников',
             hint: 'Темы источников и как они связаны',
             outline: [
@@ -246,19 +252,23 @@
         };
         const textFile = file => /\.(md|markdown|mdown|mkd|txt|text)$/i.test(file.name) || /^text\//.test(file.type);
         const hasFiles = event => !!(event.dataTransfer && [...event.dataTransfer.types].includes('Files'));
+        const touch = () => typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
 
         function openBoard() {
             const state = { sources: addNotes([], []), messages: [], kind, busy: false, generation: 0, picking: false };
             const index = document.querySelectorAll('.lm-board').length + 1;
             const boardTitle = () => (index === 1 ? tr('Подборка') : tr('Подборка {n}', { n: index }));
             const element = el('div', 'plugin-view-body lm-board');
+            element.dataset.pane = 'sources';
             const iconButton = (action, name) => `<button type="button" class="lm-ghost" data-lm="${action}">${icon(name)}<span class="lm-btn-label"></span></button>`;
+            const paneTab = name => `<button type="button" class="lm-tab" role="tab" data-lm-pane="${name}"><span class="lm-tab-label"></span><span class="lm-tab-count" data-i18n-skip></span></button>`;
             element.innerHTML = `<header class="lm-top">
                 <div class="lm-top-copy"><h2></h2><p class="lm-lead"></p></div>
+                <div class="lm-tabs" role="tablist">${paneTab('sources')}${paneTab('chat')}${paneTab('studio')}</div>
                 <p class="lm-status" data-i18n-skip hidden></p>
             </header>
             <div class="lm-layout">
-                <section class="lm-col lm-sources-pane">
+                <section class="lm-col lm-sources-pane" data-pane="sources">
                     <header class="lm-col-head"><h3 class="lm-col-title" data-col="sources"></h3><span class="lm-source-count" data-i18n-skip>0</span></header>
                     <div class="lm-drop" role="button" tabindex="0"><span class="lm-drop-mark" aria-hidden="true">${icon('plus')}</span><span class="lm-drop-label"></span></div>
                     <div class="lm-actions">${iconButton('files', 'plus')}${iconButton('notes', 'book')}</div>
@@ -270,7 +280,7 @@
                     </div>
                 </section>
                 <div class="lm-sash" data-edge="sources" role="separator" aria-orientation="vertical" tabindex="0"></div>
-                <section class="lm-col lm-chat ai-panel">
+                <section class="lm-col lm-chat ai-panel" data-pane="chat">
                     <header class="ai-head"><span class="ai-avatar" aria-hidden="true">${icon('sparkles')}</span><div class="ai-heading"><span class="ai-title" data-col="chat"></span><button type="button" class="ai-model" data-lm="model"><span class="ai-model-name" data-i18n-skip></span></button></div></header>
                     <div class="ai-scroll lm-chat-log"></div>
                     <div class="ai-composer">
@@ -280,11 +290,18 @@
                     </div>
                 </section>
                 <div class="lm-sash" data-edge="studio" role="separator" aria-orientation="vertical" tabindex="0"></div>
-                <section class="lm-col lm-studio">
-                    <header class="lm-col-head"><h3 class="lm-col-title" data-col="studio"></h3></header>
+                <section class="lm-col lm-studio" data-pane="studio">
+                    <header class="lm-studio-head">
+                        <span class="lm-studio-mark" aria-hidden="true">${icon('sparkles')}</span>
+                        <div class="lm-studio-copy"><h3 class="lm-col-title" data-col="studio"></h3><p class="lm-studio-lead"></p></div>
+                    </header>
                     <div class="lm-formats" role="radiogroup"></div>
+                    <div class="lm-chosen" aria-live="polite"><strong class="lm-chosen-title"></strong><span class="lm-chosen-hint"></span></div>
                     <pre class="lm-preview" data-i18n-skip hidden></pre>
-                    <div class="lm-actions"><button type="button" class="button-primary" data-lm="go"><span class="lm-btn-label"></span></button></div>
+                    <div class="lm-studio-foot">
+                        <p class="lm-studio-note"></p>
+                        <button type="button" class="button-primary lm-go" data-lm="go"><span class="lm-go-icon" aria-hidden="true"></span><span class="lm-btn-label"></span></button>
+                    </div>
                 </section>
             </div>`;
             FORMATS.forEach(format => {
@@ -292,7 +309,7 @@
                 button.type = 'button';
                 button.dataset.kind = format.id;
                 button.setAttribute('role', 'radio');
-                button.innerHTML = '<strong></strong><span></span>';
+                button.innerHTML = `<span class="lm-format-mark" aria-hidden="true">${icon(format.icon)}</span><strong></strong><span class="lm-format-hint"></span>`;
                 element.querySelector('.lm-formats').append(button);
             });
             const tab = window.FgsActions.openViewTab({
@@ -320,9 +337,25 @@
                     const on = format.id === state.kind;
                     button.classList.toggle('is-on', on);
                     button.setAttribute('aria-checked', String(on));
+                    button.tabIndex = on ? 0 : -1;
+                    button.title = tr(format.hint);
                     button.querySelector('strong').textContent = tr(format.title);
-                    button.querySelector('span').textContent = tr(format.hint);
+                    button.querySelector('.lm-format-hint').textContent = tr(format.hint);
                 });
+                const chosen = FORMATS.find(item => item.id === state.kind) || FORMATS[0];
+                element.querySelector('.lm-chosen-title').textContent = tr(chosen.title);
+                element.querySelector('.lm-chosen-hint').textContent = tr(chosen.hint);
+            }
+            function paintPanes() {
+                element.querySelectorAll('.lm-tab').forEach(button => {
+                    const on = button.dataset.lmPane === element.dataset.pane;
+                    button.setAttribute('aria-selected', String(on));
+                    button.tabIndex = on ? 0 : -1;
+                });
+            }
+            function showPane(name) {
+                element.dataset.pane = name;
+                paintPanes();
             }
             function paintSources() {
                 const box = element.querySelector('.lm-sources');
@@ -351,8 +384,13 @@
                     row.append(mark, text, remove);
                     box.append(row);
                 });
-                const count = element.querySelector('.lm-source-count');
-                if (count) count.textContent = String(state.sources.length);
+                const n = state.sources.length;
+                element.querySelector('.lm-source-count').textContent = String(n);
+                element.querySelector('[data-lm-pane="sources"] .lm-tab-count').textContent = n ? String(n) : '';
+                element.querySelector('.lm-studio-note').textContent = n
+                    ? tr('Источников в подборке: {n}', { n })
+                    : tr('Добавьте источники, и заметка соберётся из них.');
+                element.querySelector('.lm-studio').classList.toggle('is-empty', !n);
                 paintAttach();
             }
             function paintAttach() {
@@ -371,12 +409,21 @@
                 };
                 element.querySelector('h2').textContent = boardTitle();
                 tab.setTitle(boardTitle());
-                element.querySelector('.lm-lead').textContent = tr('Перетащите файлы сюда. Открытые заметки можно добавить позже: при создании вкладки они не подключаются.');
-                element.querySelector('.lm-drop-label').textContent = tr('Перетащите файлы .md и .txt или нажмите, чтобы выбрать');
+                element.querySelector('.lm-lead').textContent = tr('Перетащите вкладку или файлы сюда. Открытые заметки не подключаются сами.');
+                element.querySelector('.lm-drop-label').textContent = touch()
+                    ? tr('Нажмите, чтобы выбрать файлы .md и .txt')
+                    : tr('Перетащите вкладку, файлы .md и .txt или нажмите, чтобы выбрать');
                 element.querySelector('[data-col="sources"]').textContent = tr('Источники');
                 element.querySelector('[data-col="chat"]').textContent = tr('Чат');
                 element.querySelector('[data-col="studio"]').textContent = tr('Студия');
+                element.querySelector('.lm-studio-lead').textContent = tr('Соберите из источников новую заметку в одном из форматов.');
                 element.querySelector('.lm-formats').setAttribute('aria-label', tr('Студия'));
+                element.querySelector('.lm-tabs').setAttribute('aria-label', tr('Разделы подборки'));
+                ['sources', 'chat', 'studio'].forEach(name => {
+                    element.querySelector(`[data-lm-pane="${name}"] .lm-tab-label`).textContent = tr(name === 'sources' ? 'Источники' : name === 'chat' ? 'Чат' : 'Студия');
+                });
+                element.querySelector('.lm-go-icon').innerHTML = icon(state.busy ? 'stop' : 'sparkles');
+                paintPanes();
                 element.querySelector('.lm-picker-title').textContent = tr('Выберите заметки');
                 label('[data-lm="cancel"]', tr('Отмена'));
                 label('[data-lm="confirm"]', tr('Добавить выбранные'));
@@ -476,6 +523,7 @@
                 state.busy = on;
                 element.classList.toggle('is-busy', on);
                 element.querySelector('[data-lm="go"] .lm-btn-label').textContent = tr(on ? 'Остановить' : 'Собрать заметку');
+                element.querySelector('.lm-go-icon').innerHTML = icon(on ? 'stop' : 'sparkles');
                 if (window.FgsChat) window.FgsChat.sendState(element.querySelector('[data-lm="send"]'), on);
                 const preview = element.querySelector('.lm-preview');
                 preview.hidden = !on && !preview.textContent;
@@ -578,6 +626,8 @@
             }
 
             element.addEventListener('click', event => {
+                const paneTab = event.target.closest('[data-lm-pane]');
+                if (paneTab) { showPane(paneTab.dataset.lmPane); return; }
                 const format = event.target.closest('.lm-format');
                 if (format) {
                     if (state.busy) return;
@@ -615,6 +665,61 @@
             askBox.addEventListener('input', growAsk);
             askBox.addEventListener('keydown', event => {
                 if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); ask(event.currentTarget.value); }
+            });
+            // Arrow keys move along the pane tabs and along the format tiles, as in any radio group.
+            const step = (items, current, key, columns) => {
+                const moves = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: columns, ArrowUp: -columns };
+                if (key === 'Home') return items[0];
+                if (key === 'End') return items[items.length - 1];
+                if (!(key in moves)) return null;
+                return items[(items.indexOf(current) + moves[key] + items.length) % items.length];
+            };
+            element.querySelector('.lm-tabs').addEventListener('keydown', event => {
+                const tabs = [...element.querySelectorAll('.lm-tab')];
+                const next = step(tabs, event.target.closest('.lm-tab'), event.key, 1);
+                if (!next) return;
+                event.preventDefault();
+                showPane(next.dataset.lmPane);
+                next.focus();
+            });
+            // Phone: swipe sideways across the board to change Источники / Чат / Студия.
+            {
+                const panes = ['sources', 'chat', 'studio'];
+                let swipe = null;
+                element.addEventListener('touchstart', event => {
+                    if (!matchMedia('(max-width: 720px)').matches || event.touches.length !== 1) return;
+                    if (event.target.closest('textarea, input, button, a, .lm-formats, .lm-picker, .lm-sources, .lm-log, pre')) return;
+                    const touch = event.touches[0];
+                    swipe = { x: touch.clientX, y: touch.clientY, locked: false };
+                }, { passive: true });
+                element.addEventListener('touchmove', event => {
+                    if (!swipe || event.touches.length !== 1) return;
+                    const touch = event.touches[0], dx = touch.clientX - swipe.x, dy = touch.clientY - swipe.y;
+                    if (!swipe.locked) {
+                        if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+                        if (Math.abs(dx) <= Math.abs(dy)) { swipe = null; return; }
+                        swipe.locked = true;
+                    }
+                }, { passive: true });
+                element.addEventListener('touchend', event => {
+                    if (!swipe || !swipe.locked) { swipe = null; return; }
+                    const touch = event.changedTouches[0], dx = touch.clientX - swipe.x;
+                    swipe = null;
+                    if (Math.abs(dx) < 56) return;
+                    const index = panes.indexOf(element.dataset.pane || 'sources');
+                    const next = panes[Math.min(panes.length - 1, Math.max(0, index + (dx < 0 ? 1 : -1)))];
+                    if (next !== element.dataset.pane) showPane(next);
+                }, { passive: true });
+                element.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
+            }
+            element.querySelector('.lm-formats').addEventListener('keydown', event => {
+                const tiles = [...element.querySelectorAll('.lm-format')];
+                const columns = getComputedStyle(event.currentTarget).gridTemplateColumns.split(' ').length || 1;
+                const next = step(tiles, event.target.closest('.lm-format'), event.key, columns);
+                if (!next) return;
+                event.preventDefault();
+                next.click();
+                next.focus();
             });
             const drop = element.querySelector('.lm-drop');
             drop.addEventListener('keydown', event => {
@@ -707,6 +812,18 @@
                     applySplit(edge === 'sources' ? { sources: split.sources + step, studio: split.studio } : { sources: split.sources, studio: split.studio - step }, true);
                 });
             });
+            element._fgsTake = note => {
+                if (state.busy) { setStatus(tr('Дождитесь ответа чата или остановите его.')); return false; }
+                const before = state.sources.length;
+                state.sources = addNotes(state.sources, [note]);
+                paintSources();
+                if (state.sources.length === before) {
+                    setStatus(tr(String(note.content || '').trim() ? 'Эти заметки уже в подборке.' : 'Выберите хотя бы одну заметку с текстом.'));
+                    return false;
+                }
+                setStatus('');
+                return true;
+            };
             paint();
             const chosen = element.querySelector('.lm-format.is-on');
             if (chosen) chosen.focus();
@@ -716,6 +833,27 @@
     }
 
     const api = { FORMATS, packSources, promptFor, chatPrompt, takeTitle, assemble, stamp, addFiles, addNotes };
+    let markedBoard = null, markedTab = null;
+    api.boardAt = (x, y) => {
+        if (typeof document === 'undefined') return null;
+        const node = document.elementFromPoint(x, y);
+        const board = node && node.closest && node.closest('.lm-board');
+        return board && !board.hidden ? board : null;
+    };
+    api.mark = hit => {
+        if (markedBoard) { const zone = markedBoard.querySelector('.lm-drop'); if (zone) zone.classList.remove('is-over'); }
+        if (markedTab) markedTab.classList.remove('is-notebook-drop');
+        markedBoard = null;
+        markedTab = null;
+        if (!hit) return;
+        if (hit.tab) { markedTab = hit.tab; markedTab.classList.add('is-notebook-drop'); return; }
+        if (hit.board && !hit.board.hidden) {
+            markedBoard = hit.board;
+            const zone = markedBoard.querySelector('.lm-drop');
+            if (zone) zone.classList.add('is-over');
+        }
+    };
+    api.take = (board, note) => !!(board && board._fgsTake && board._fgsTake(note));
     if (typeof module === 'object' && module.exports) module.exports = api;
     else window.FgsNotebookLM = api;
 

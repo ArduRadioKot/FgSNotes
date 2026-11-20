@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld(
     getPlugins: () => ipcRenderer.invoke('plugins-list'),
     readPlugin: (file) => ipcRenderer.invoke('plugin-read', file),
     installObsidian: () => ipcRenderer.invoke('plugin-install-obsidian'),
+    installObsidianBundle: (bundle) => ipcRenderer.invoke('plugin-install-obsidian-bundle', bundle),
     readObsidian: (id) => ipcRenderer.invoke('plugin-read-obsidian', id),
     readBuiltinPlugin: (file) => ipcRenderer.invoke('plugin-read-builtin', file),
     installPlugins: () => ipcRenderer.invoke('plugin-install'),

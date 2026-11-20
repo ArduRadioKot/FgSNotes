@@ -325,7 +325,7 @@
             if (!tab || event.button !== 0 || event.target.closest('.close-tab') || !scope.contains(tab)) return;
             const docId = Number(tab.dataset.doc);
             const startX = event.clientX, startY = event.clientY;
-            let dragging = false, ghost = null;
+            let dragging = false, ghost = null, foreign = null;
             const onMove = move => {
                 if (!dragging) {
                     if (Math.hypot(move.clientX - startX, move.clientY - startY) < 6) return;
@@ -340,6 +340,9 @@
                 }
                 ghost.style.left = (move.clientX + 12) + 'px';
                 ghost.style.top = (move.clientY + 14) + 'px';
+                foreign = api.foreignAt ? api.foreignAt(move.clientX, move.clientY, docId) : null;
+                if (api.foreignShow) api.foreignShow(foreign);
+                if (foreign) { clearMarks(); return; }
                 showTarget(move.clientX, move.clientY, docId, api);
             };
             const finish = up => {
@@ -347,11 +350,13 @@
                 tab.removeEventListener('pointerup', finish);
                 tab.removeEventListener('pointercancel', finish);
                 clearMarks();
+                if (api.foreignShow) api.foreignShow(null);
                 tab.classList.remove('is-dragging');
                 document.body.classList.remove('is-pane-drag');
                 if (ghost) ghost.remove();
                 if (!dragging) return;
                 api.suppressClick();
+                if (foreign && api.foreignDrop) { api.foreignDrop(docId, foreign); return; }
                 const hit = targetAt(up.clientX, up.clientY, docId, api);
                 if (hit) api.drop(docId, hit);
             };

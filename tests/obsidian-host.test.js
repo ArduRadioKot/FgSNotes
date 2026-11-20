@@ -69,3 +69,44 @@ test('a plugin cannot import other packages, and a post processor does not repla
     assert.equal(root.dataset.touched, '1');
     assert.equal(runtime.obsidian.MarkdownRenderer != null, true);
 });
+
+test('registerView opens a tab through the host leaf', async () => {
+    const tabs = [];
+    const created = [];
+    const notes = [{ id: 1, title: 'draw.excalidraw.md', content: '{}', active: true }];
+    const runtime = createRuntime({
+        notes: () => notes,
+        editor: { get: () => notes[0].content, set(text) { notes[0].content = text; }, insert() {}, selection: () => '' },
+        openTab: options => {
+            tabs.push(options);
+            const host = { replaceChildren() {}, append() {} };
+            if (options.render) options.render(host);
+            return { close: () => { if (options.onClose) options.onClose(); } };
+        },
+        createDocument: (title, content) => { created.push({ title, content }); notes.push({ id: notes.length + 1, title, content, active: false }); },
+        storage: { get: (_, fallback) => fallback, set() {} }
+    });
+    await runtime.start(`
+        const { Plugin, ItemView } = require('obsidian');
+        const TYPE = 'fgs-draw';
+        class DrawView extends ItemView {
+            getViewType() { return TYPE; }
+            getDisplayText() { return 'Рисунок'; }
+            async onOpen() { this.containerEl.setText('board'); }
+        }
+        module.exports = class extends Plugin {
+            async onload() {
+                this.registerView(TYPE, leaf => new DrawView(leaf));
+                const leaf = this.app.workspace.getLeaf(true);
+                await leaf.setViewState({ type: TYPE, active: true });
+            }
+        };
+    `, { id: 'draw', name: 'Draw' });
+    assert.equal(tabs.length, 1);
+    assert.equal(tabs[0].title, 'Рисунок');
+    assert.equal(runtime.app.workspace.getLeavesOfType('fgs-draw').length, 1);
+    assert.equal(await runtime.app.vault.adapter.exists('draw.excalidraw.md'), true);
+    await runtime.app.vault.adapter.write('new-draw.md', 'hi');
+    assert.equal(created[0].title, 'new-draw.md');
+    assert.equal(created[0].content, 'hi');
+});

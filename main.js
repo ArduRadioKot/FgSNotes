@@ -3,6 +3,53 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { execFileSync } = require('child_process');
+const { relayArgs } = require('./launch');
+
+// `npm start` and the installed app share the name, so they would share one profile, and the installed (single-instance)
+// copy keeps it locked: the dev copy then quits silently. Development gets a profile of its own.
+if (!app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'fgsnotes-dev'));
+
+// quit() before the app is ready does not leave at once: macOS waits until startup finishes, so a second launch
+// shows its own Dock icon and then disappears while this copy is already open. An assistant that starts this binary
+// to talk over stdin (and forgets the Node switch) is the same second launch. Exit at once, or hand it the relay.
+const relay = relayArgs(process.argv);
+let relayOnly = false;
+let primaryInstance = false;
+function quietDock() {
+  if (process.platform !== 'darwin') return;
+  try { app.setActivationPolicy('accessory'); } catch { /* the policy is applied again once the app is ready */ }
+  try { if (app.dock) app.dock.hide(); } catch { /* this process has no Dock icon */ }
+}
+function leaveQuietly() {
+  quietDock();
+  try { app.exit(0); } catch { /* process.exit below is the one that stops a half-started app */ }
+  process.exit(0);
+}
+if (relay) {
+  // Stay in this process: the assistant is watching it, and a child would look like the server had quit.
+  // Nothing here may write to stdout, because that stream is the MCP conversation.
+  relayOnly = true;
+  quietDock();
+  app.commandLine.appendSwitch('disable-logging');
+  console.log = console.warn = console.error = () => {};
+  process.argv = [process.argv[0], ...relay];
+  require('./mcp-stdio');
+  // Electron would keep this process after the assistant disconnects. A Node relay ends on its own.
+  process.stdin.on('end', leaveQuietly);
+  process.stdin.on('close', leaveQuietly);
+} else {
+  primaryInstance = app.requestSingleInstanceLock();
+  if (!primaryInstance) leaveQuietly();
+  // Inside this copy the number of windows is not capped. A second launch only brings one forward.
+  app.on('second-instance', () => {
+    const win = liveWindow();
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
+}
+
 const ollama = require('./ollama');
 const providers = require('./providers');
 const agents = require('./agents');
@@ -19,10 +66,6 @@ function useLanguage(code) {
   i18n.setLanguage(lang);
   return lang;
 }
-
-// `npm start` and the installed app share the name, so they would share one profile, and the installed (single-instance)
-// copy keeps it locked: the dev copy then quits silently. Development gets a profile of its own.
-if (!app.isPackaged) app.setPath('userData', path.join(app.getPath('appData'), 'fgsnotes-dev'));
 
 // Only macOS gives a translucent window (vibrancy). On Windows the acrylic material is unreliable: depending on the
 // system the window comes out plain white, and with it the whole glass UI. So Windows and Linux get an opaque window
@@ -337,13 +380,15 @@ function registerPluginHandlers() {
     const manifestPath = path.join(dir, 'manifest.json');
     const mainPath = path.join(dir, 'main.js');
     if (!fs.existsSync(manifestPath) || !fs.existsSync(mainPath)) return { ok: false, error: i18n.t('В папке нужны manifest.json и main.js') };
-    if (fs.statSync(mainPath).size > 2 * 1024 * 1024) return { ok: false, error: i18n.t('Плагин больше 2 МБ') };
+    // Obsidian community packs (Excalidraw and others) are larger than a single .js plugin.
+    const OBSIDIAN_MAX = 6 * 1024 * 1024;
+    if (fs.statSync(mainPath).size > OBSIDIAN_MAX) return { ok: false, error: i18n.t('Плагин Obsidian больше 6 МБ') };
     let manifest;
     try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch { return { ok: false, error: i18n.t('В папке нужны manifest.json и main.js') }; }
     const id = String((manifest && manifest.id) || path.basename(dir)).replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80);
     if (!obsidianId.test(id)) return { ok: false, error: i18n.t('Неверное имя плагина') };
     const css = path.join(dir, 'styles.css');
-    return { ok: true, id, manifestPath, mainPath, css: fs.existsSync(css) && fs.statSync(css).size <= 2 * 1024 * 1024 ? css : '' };
+    return { ok: true, id, manifestPath, mainPath, css: fs.existsSync(css) && fs.statSync(css).size <= OBSIDIAN_MAX ? css : '' };
   }
   function writeObsidian(source) {
     const dest = path.join(pluginsDir(), source.id);
@@ -370,13 +415,37 @@ function registerPluginHandlers() {
     writeObsidian(copied);
     return { canceled: false, installed: [`obsidian:${copied.id}`] };
   });
+  // Community download: the renderer fetched manifest/main/styles; write them as an Obsidian plugin folder.
+  ipcMain.handle('plugin-install-obsidian-bundle', async (event, bundle) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const id = String((bundle && bundle.id) || '').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 80);
+    if (!obsidianId.test(id) || !bundle || typeof bundle.main !== 'string' || !bundle.manifest) {
+      return { canceled: false, installed: [], error: i18n.t('В папке нужны manifest.json и main.js') };
+    }
+    if (Buffer.byteLength(bundle.main, 'utf8') > 6 * 1024 * 1024) {
+      return { canceled: false, installed: [], error: i18n.t('Плагин Obsidian больше 6 МБ') };
+    }
+    const confirm = await dialog.showMessageBox(win, {
+      type: 'warning', buttons: [i18n.t('Установить'), i18n.t('Отмена')], defaultId: 1, cancelId: 1,
+      message: i18n.t('Установить плагин «{name}»?', { name: (bundle.manifest && bundle.manifest.name) || id }),
+      detail: i18n.t('Плагин: это программа. Он выполняется внутри FgSNotes и видит все ваши заметки. Устанавливайте только те плагины, которым доверяете.\n\nФайлы будут скопированы в папку Documents/FgSNotes/plugins.')
+    });
+    if (confirm.response !== 0) return { canceled: true, installed: [] };
+    const dest = path.join(pluginsDir(), id);
+    fs.mkdirSync(dest, { recursive: true });
+    fs.writeFileSync(path.join(dest, 'manifest.json'), JSON.stringify(bundle.manifest, null, 2));
+    fs.writeFileSync(path.join(dest, 'main.js'), bundle.main);
+    if (bundle.css) fs.writeFileSync(path.join(dest, 'styles.css'), bundle.css);
+    else fs.rmSync(path.join(dest, 'styles.css'), { force: true });
+    return { canceled: false, installed: [`obsidian:${id}`] };
+  });
   ipcMain.handle('plugin-read-obsidian', (event, id) => {
     if (!obsidianId.test(String(id))) throw new Error(i18n.t('Неверное имя плагина'));
     const dir = path.join(pluginsDir(), id);
     const root = path.resolve(pluginsDir());
     if (!path.resolve(dir).startsWith(root + path.sep)) throw new Error(i18n.t('Неверное имя плагина'));
     const mainPath = path.join(dir, 'main.js');
-    if (fs.statSync(mainPath).size > 2 * 1024 * 1024) throw new Error(i18n.t('Плагин больше 2 МБ'));
+    if (fs.statSync(mainPath).size > 6 * 1024 * 1024) throw new Error(i18n.t('Плагин Obsidian больше 6 МБ'));
     const cssPath = path.join(dir, 'styles.css');
     return {
       manifest: JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')),
@@ -520,15 +589,6 @@ function createWindow() {
   return win;
 }
 
-// Two processes sharing one profile fight over its storage, so a second launch only brings this copy forward.
-// Inside that copy the number of windows is not capped: each "Новое окно" is another window, like another terminal.
-const primaryInstance = app.requestSingleInstanceLock();
-if (!primaryInstance) app.quit();
-app.on('second-instance', () => {
-  const win = liveWindow();
-  if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
-});
-
 // An Intel build on an Apple Silicon Mac runs under Rosetta: the same app starts 3-5 times slower and feels sluggish.
 // Tell the person once per version, with the way out.
 function warnAboutTranslation() {
@@ -546,7 +606,7 @@ function warnAboutTranslation() {
 }
 
 app.whenReady().then(() => {
-  if (!primaryInstance) return;
+  if (!primaryInstance) { if (relayOnly) quietDock(); return; }
   ensureConfig();
   useLanguage(appConfig && appConfig.language);
   registerWindowIpc();
@@ -567,6 +627,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  if (relayOnly) return;
   if (process.platform !== 'darwin') {
     app.quit();
   }
