@@ -172,8 +172,10 @@ function connectionSnippets({ port, token, execPath, script, connectionFile }) {
     const json = value => JSON.stringify({ mcpServers: { fgsnotes: value } }, null, 2);
     return {
         'claude-code': `claude mcp add --transport http fgsnotes ${url} --header "Authorization: ${authorization}"`,
+        // Prefer HTTP where the client allows it. Stdio that launches the GUI binary can reopen the app
+        // whenever the assistant reconnects; ELECTRON_RUN_AS_NODE + mcp-stdio is the safe fallback.
         'claude-desktop': json({ command: execPath, args: [script, connectionFile], env: { ELECTRON_RUN_AS_NODE: '1' } }),
-        codex: `codex mcp add fgsnotes --env ELECTRON_RUN_AS_NODE=1 -- "${execPath}" "${script}" "${connectionFile}"`,
+        codex: `codex mcp add fgsnotes --url ${url} --header "Authorization: ${authorization}"`,
         cursor: json({ url, headers: { Authorization: authorization } }),
         chatgpt: `cloudflared tunnel --url http://127.0.0.1:${port}\n\nhttps://YOUR-TUNNEL-ADDRESS/mcp/${token}`
     };
