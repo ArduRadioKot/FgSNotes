@@ -45,8 +45,8 @@
     };
     // Tint and lighting depend on the theme; dark mode is tuned separately, not just inverted.
     const themes = {
-        dark: { tint: '#17181c', shadowRgb: '0 0 0', rimRgb: '255 255 255', opacityMul: 1, highlightMul: 1, innerShadowMul: 1, shadowMul: 1.4, brightnessAdd: 0 },
-        light: { tint: '#ffffff', shadowRgb: '28 36 64', rimRgb: '255 255 255', opacityMul: 1.35, highlightMul: 0.85, innerShadowMul: 0.8, shadowMul: 0.8, brightnessAdd: 0.02 }
+        dark: { tint: '#0d120f', shadowRgb: '0 0 0', rimRgb: '255 255 255', opacityMul: 1, highlightMul: 1, innerShadowMul: 1, shadowMul: 1.4, brightnessAdd: 0 },
+        light: { tint: '#eef2e9', shadowRgb: '18 23 19', rimRgb: '255 255 255', opacityMul: 1.35, highlightMul: 0.85, innerShadowMul: 0.8, shadowMul: 0.8, brightnessAdd: 0.02 }
     };
 
     function clampValue(key, value) {

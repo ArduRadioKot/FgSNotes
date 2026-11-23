@@ -59,16 +59,17 @@ function useLanguage(code) {
 // system the window comes out plain white, and with it the whole glass UI. So Windows and Linux get an opaque window
 // painted in the theme colour, and Liquid Glass works inside the app (lenses and frosted panels over the page).
 const nativeBlur = process.platform === 'darwin';
-const windowColor = () => (nativeTheme.shouldUseDarkColors ? '#17181a' : '#e8ebf1');
+const windowColors = { dark: '#0d120f', light: '#eef2e9', 'legacy-dark': '#17181a', 'legacy-light': '#e8ebf1' };
+const windowColor = () => (nativeTheme.shouldUseDarkColors ? windowColors.dark : windowColors.light);
 
 const repositoryUrl = 'https://github.com/ArduRadioKot/FgSNotes';
 app.setAboutPanelOptions({ applicationName: 'FgSNotes', copyright: '© FrogeeSoft', website: repositoryUrl });
 
 // The native blur follows the system appearance, so keep it in step with the app theme.
 ipcMain.on('set-native-theme', (event, theme) => {
-  nativeTheme.themeSource = theme === 'light' ? 'light' : 'dark';
+  nativeTheme.themeSource = String(theme).endsWith('light') ? 'light' : 'dark';
   const win = BrowserWindow.fromWebContents(event.sender);
-  if (win && !nativeBlur) win.setBackgroundColor(windowColor());
+  if (win && !nativeBlur) win.setBackgroundColor(windowColors[theme] || windowColor());
 });
 
 ipcMain.handle('get-app-info', () => ({

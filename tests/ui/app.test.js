@@ -296,3 +296,27 @@ test('split view scrolls the note and the preview together', async () => {
     assert.deepEqual(errors, []);
     await context.close();
 });
+
+test('FrogeeSoft is the default dark and light theme, the previous palettes stay as old choices', async () => {
+    const { context, page, errors } = await open();
+    const token = name => page.evaluate(prop => getComputedStyle(document.documentElement).getPropertyValue(prop).trim().toLowerCase(), name);
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
+    assert.equal(await token('--window-bg'), '#0d120f');
+    assert.equal(await token('--editor-bg'), '#090c0a');
+    assert.equal(await token('--accent-color'), '#21aabe');
+    assert.equal(await token('--text-color'), '#f1f5ef');
+    await page.selectOption('#theme', 'light');
+    assert.equal(await token('--window-bg'), '#eef2e9');
+    assert.equal(await token('--accent-color'), '#147889');
+    assert.equal(await token('--text-color'), '#121713');
+    await page.selectOption('#theme', 'legacy-dark');
+    assert.equal(await token('--window-bg'), '#17181a');
+    assert.equal(await token('--card-bg'), '#27282c');
+    await page.selectOption('#theme', 'legacy-light');
+    assert.equal(await token('--window-bg'), '#e8ebf1');
+    assert.equal(await token('--card-bg'), '#fff');
+    await page.click('#theme-button');
+    assert.equal(await page.locator('.theme-menu [data-kind="mode"]').count(), 4);
+    assert.deepEqual(errors, []);
+    await context.close();
+});

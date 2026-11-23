@@ -40,9 +40,9 @@
     function syncStatusBar() {
         const bar = plugin('StatusBar');
         if (!bar) return;
-        const light = root.dataset.theme === 'light';
+        const light = String(root.dataset.theme).endsWith('light');
         bar.setStyle({ style: light ? 'LIGHT' : 'DARK' }).catch(() => {});
-        if (name === 'android') bar.setBackgroundColor({ color: light ? '#ffffff' : '#1e1e1e' }).catch(() => {});
+        if (name === 'android') bar.setBackgroundColor({ color: getComputedStyle(root).getPropertyValue('--window-bg').trim() || (light ? '#eef2e9' : '#0d120f') }).catch(() => {});
     }
 
     if (native) {

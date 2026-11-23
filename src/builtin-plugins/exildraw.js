@@ -30,7 +30,7 @@ function themeSurface() {
     const paper = read('--card-bg') || '#27282c';
     const ink = read('--text-color') || '#dfe1e5';
     const muted = read('--text-muted') || '#8c9097';
-    const dark = document.documentElement.dataset.theme !== 'light';
+    const dark = !String(document.documentElement.dataset.theme).endsWith('light');
     return { paper, ink, muted, dark, colors: [ink, ...ACCENT_COLORS] };
 }
 

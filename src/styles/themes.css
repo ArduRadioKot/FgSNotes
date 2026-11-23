@@ -1,8 +1,8 @@
 /* Accent colour picker */
 .accent-picker { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: 280px; }
 .accent-swatch, .accent-custom { position: relative; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; transition: transform .15s; }
-.accent-swatch { background: var(--c, var(--accent-base, #22b0c4)); }
-.accent-default { background: conic-gradient(from 45deg, var(--accent-base, #22b0c4) 0 50%, color-mix(in srgb, var(--text-color) 22%, var(--card-bg)) 50% 100%); }
+.accent-swatch { background: var(--c, var(--accent-base, #21aabe)); }
+.accent-default { background: conic-gradient(from 45deg, var(--accent-base, #21aabe) 0 50%, color-mix(in srgb, var(--text-color) 22%, var(--card-bg)) 50% 100%); }
 .accent-custom { display: block; overflow: hidden; background: conic-gradient(#e5534b, #f0883e, #e9c346, #4cb35f, #21aabe, #3574f0, #8b5cf6, #e5538f, #e5534b); }
 .accent-custom input { position: absolute; inset: -6px; width: 40px; height: 40px; opacity: 0; cursor: pointer; }
 .accent-swatch:active, .accent-custom:active { transform: scale(.9); }

@@ -1,36 +1,39 @@
-/* JetBrains Islands: rounded panels floating on a darker window.
-   One system: islands (12px), controls (8px), hover = soft fill, selected = stronger fill, accent only for action and focus. */
+/* Default palette: FrogeeSoft. Islands sit on the window, hover is a soft fill, accent is for action and focus. */
 :root, [data-theme="dark"] {
     color-scheme: dark;
-    --window-bg: #17181a;
+    --window-bg: #0d120f;
     --bg-color: var(--window-bg);
-    --card-bg: #27282c;
-    --header-bg: #27282c;
-    --text-color: #dfe1e5;
-    --text-muted: #8c9097;
-    --border-color: #393b41;
-    --hover-color: #313339;
-    --active-bg: #3c3f46;
-    --accent-color: #22b0c4;
-    --accent-text: #032329;
-    --link-color: #62d2e2;
-    --code-bg: #1f2023;
-    --shadow-color: #0009;
-    --preview-bg: var(--card-bg);
-    --selection: #17525c;
-    --success-color: var(--accent-color);
-    --syn-keyword: #cf8e6d;
-    --syn-string: #6aab73;
-    --syn-number: #2aacb8;
-    --syn-comment: #7a7e85;
-    --syn-function: #58b6d6;
-    --syn-type: #e0bb73;
-    --syn-field: #c77dbb;
-    --syn-tag: #d5b778;
-    --syn-attr: #bcbec4;
-    --syn-annotation: #b3ae60;
-    --syn-heading: #4fc1d3;
-    --syn-mark: #6f737a;
+    --card-bg: #0d120f;
+    --header-bg: #090c0a;
+    --editor-bg: #090c0a;
+    --text-color: #f1f5ef;
+    --text-muted: #98a398;
+    --text-faint: #4b564d;
+    --border-color: #1f2a22;
+    --hover-color: #161d18;
+    --active-bg: #161d18;
+    --accent-color: #21aabe;
+    --accent-text: #061316;
+    --link-color: #21aabe;
+    --code-bg: #090c0a;
+    --shadow-color: #000c;
+    --preview-bg: var(--editor-bg);
+    --selection: #21aabe40;
+    --success-color: #7ce36f;
+    --warning-color: #e6c07b;
+    --danger-color: #ff6e66;
+    --syn-keyword: #5fd0df;
+    --syn-string: #9bd28f;
+    --syn-number: #e6c07b;
+    --syn-comment: #6b7a6e;
+    --syn-function: #f1f5ef;
+    --syn-type: #e6c07b;
+    --syn-field: #b5c4b8;
+    --syn-tag: #5fd0df;
+    --syn-attr: #c7e3a7;
+    --syn-annotation: #e6a07b;
+    --syn-heading: #21aabe;
+    --syn-mark: #4b564d;
     --radius-xs: 4px;
     --radius-sm: 6px;
     --radius-md: 8px;
@@ -45,11 +48,84 @@
 }
 [data-theme="light"] {
     color-scheme: light;
+    --window-bg: #eef2e9;
+    --card-bg: #eef2e9;
+    --header-bg: #f8faf4;
+    --editor-bg: #f8faf4;
+    --text-color: #121713;
+    --text-muted: #4f5a50;
+    --text-faint: #9aa69b;
+    --border-color: #d6ded3;
+    --hover-color: #e4eade;
+    --active-bg: #e4eade;
+    --accent-color: #147889;
+    --accent-text: #ffffff;
+    --link-color: #147889;
+    --code-bg: #f8faf4;
+    --shadow-color: #12171322;
+    --preview-bg: var(--editor-bg);
+    --selection: #14788930;
+    --success-color: #2e8a3c;
+    --warning-color: #a35f00;
+    --danger-color: #e8482c;
+    --syn-keyword: #0f6a7a;
+    --syn-string: #2e7a3c;
+    --syn-number: #a35f00;
+    --syn-comment: #7d8a7f;
+    --syn-function: #121713;
+    --syn-type: #8a5a00;
+    --syn-field: #3e4a40;
+    --syn-tag: #0f6a7a;
+    --syn-attr: #3f6b1f;
+    --syn-annotation: #a3501f;
+    --syn-heading: #147889;
+    --syn-mark: #9aa69b;
+}
+/* The previous default palettes. They stay in the theme menu, they are no longer the starting look. */
+[data-theme="legacy-dark"] {
+    color-scheme: dark;
+    --window-bg: #17181a;
+    --card-bg: #27282c;
+    --header-bg: #27282c;
+    --editor-bg: #27282c;
+    --text-color: #dfe1e5;
+    --text-muted: #8c9097;
+    --text-faint: #6f737a;
+    --border-color: #393b41;
+    --hover-color: #313339;
+    --active-bg: #3c3f46;
+    --accent-color: #22b0c4;
+    --accent-text: #032329;
+    --link-color: #62d2e2;
+    --code-bg: #1f2023;
+    --shadow-color: #0009;
+    --preview-bg: var(--card-bg);
+    --selection: #17525c;
+    --success-color: var(--accent-color);
+    --warning-color: #e0bb73;
+    --danger-color: #e5534b;
+    --syn-keyword: #cf8e6d;
+    --syn-string: #6aab73;
+    --syn-number: #2aacb8;
+    --syn-comment: #7a7e85;
+    --syn-function: #58b6d6;
+    --syn-type: #e0bb73;
+    --syn-field: #c77dbb;
+    --syn-tag: #d5b778;
+    --syn-attr: #bcbec4;
+    --syn-annotation: #b3ae60;
+    --syn-heading: #4fc1d3;
+    --syn-mark: #6f737a;
+}
+[data-theme="legacy-light"] {
+    color-scheme: light;
     --window-bg: #e8ebf1;
     --card-bg: #fff;
     --header-bg: #fff;
+    --editor-bg: #fff;
     --text-color: #27282e;
     --text-muted: #6c707e;
+    --text-faint: #9a9ea8;
     --border-color: #e1e4ec;
     --hover-color: #f0f2f7;
     --active-bg: #e2e7f2;
@@ -58,8 +134,11 @@
     --link-color: #0b7285;
     --code-bg: #f4f6fa;
     --shadow-color: #1d233a33;
+    --preview-bg: var(--card-bg);
     --selection: #8fdce980;
     --success-color: var(--accent-color);
+    --warning-color: #7a5a00;
+    --danger-color: #e5534b;
     --syn-keyword: #146b86;
     --syn-string: #067d17;
     --syn-number: #0e7490;
@@ -139,7 +218,7 @@ button:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 
 /* Islands: editor and preview */
 .editor-wrapper { display: flex; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 .editor-column, .preview-column { display: flex; flex-direction: column; min-width: 0; min-height: 0; flex: 1 1 0; overflow: hidden; border-radius: var(--radius-lg); }
-.editor-column { position: relative; flex: 0 0 calc(var(--editor-ratio, 50%) - var(--gap) / 2); background: var(--card-bg); }
+.editor-column { position: relative; flex: 0 0 calc(var(--editor-ratio, 50%) - var(--gap) / 2); background: var(--editor-bg, var(--card-bg)); }
 .preview-column { background: var(--preview-bg); }
 .editor-label { height: 34px; flex-shrink: 0; padding: 0 16px; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px; font-weight: 500; }
 .editor-label label { cursor: default; }

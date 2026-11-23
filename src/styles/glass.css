@@ -8,6 +8,11 @@
     --lg-selected-fill: rgb(255 255 255 / .075);
 }
 :root[data-theme="light"][data-liquid-glass]:not([data-liquid-glass="off"]) {
+    --lg-hover-fill: rgb(18 23 19 / .07);
+    --lg-press-fill: rgb(18 23 19 / .12);
+    --lg-selected-fill: rgb(18 23 19 / .07);
+}
+:root[data-theme="legacy-light"][data-liquid-glass]:not([data-liquid-glass="off"]) {
     --lg-hover-fill: rgb(28 36 64 / .07);
     --lg-press-fill: rgb(28 36 64 / .12);
     --lg-selected-fill: rgb(28 36 64 / .07);

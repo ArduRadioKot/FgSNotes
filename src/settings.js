@@ -104,8 +104,9 @@ function applyAccent(value, theme) {
     const luminance = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
     root.style.setProperty('--accent-color', value);
     root.style.setProperty('--accent-text', luminance > 0.6 ? '#111111' : '#ffffff');
-    root.style.setProperty('--link-color', theme === 'light' ? mix(0, 0.25) : mix(255, 0.3));
-    root.style.setProperty('--selection', value + (theme === 'light' ? '40' : '59'));
+    const light = String(theme).endsWith('light');
+    root.style.setProperty('--link-color', light ? mix(0, 0.25) : mix(255, 0.3));
+    root.style.setProperty('--selection', value + (light ? '40' : '59'));
 }
 
 function applySettings(settings) {
@@ -233,7 +234,7 @@ function applySettings(settings) {
     
     editor.wrap = settings['word-wrap'] === 'on' ? 'soft' : 'off';
 
-    const theme = settings['theme'] === 'light' ? 'light' : 'dark';
+    const theme = ['dark', 'light', 'legacy-dark', 'legacy-light'].includes(settings['theme']) ? settings['theme'] : 'dark';
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('theme', theme);
     applyAccent(settings['accent'], theme);
@@ -423,10 +424,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const escapeText = text => String(text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     function renderThemeMenu() {
         const item = (kind, value, label, checked) => `<button type="button" role="menuitemradio" aria-checked="${checked}" data-kind="${kind}" data-value="${escapeText(value)}"><span class="check">${checked ? icon('check') : ''}</span><span class="label">${escapeText(label)}</span></button>`;
-        const mode = currentSettings['theme'] === 'light' ? 'light' : 'dark';
+        const mode = ['dark', 'light', 'legacy-dark', 'legacy-light'].includes(currentSettings['theme']) ? currentSettings['theme'] : 'dark';
         const picked = currentSettings['external-theme'] || '';
+        const modes = [...document.getElementById('theme').options].map(option => item('mode', option.value, option.textContent, option.value === mode)).join('');
         const themes = [...externalThemeSelect.options].map(option => item('theme', option.value, option.value ? option.textContent.replace(/\.css$/i, '') : t('Без сторонней темы'), option.value === picked)).join('');
-        themeMenu.innerHTML = `<div class="theme-menu-title">${t('Режим')}</div>${item('mode', 'dark', t('Тёмная'), mode === 'dark')}${item('mode', 'light', t('Светлая'), mode === 'light')}<div class="theme-menu-title">${t('Сторонние темы')}</div>${themes}<button type="button" class="theme-menu-more" data-kind="more">${t('Добавить или удалить…')}</button>`;
+        themeMenu.innerHTML = `<div class="theme-menu-title">${t('Режим')}</div>${modes}<div class="theme-menu-title">${t('Сторонние темы')}</div>${themes}<button type="button" class="theme-menu-more" data-kind="more">${t('Добавить или удалить…')}</button>`;
     }
     function closeThemeMenu() { themeMenu.hidden = true; themeButton?.setAttribute('aria-expanded', 'false'); }
     function placeThemeMenu() {

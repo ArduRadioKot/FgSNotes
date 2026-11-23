@@ -127,6 +127,8 @@
         'Цветовая схема интерфейса': 'Interface color scheme',
         'Тёмная': 'Dark',
         'Светлая': 'Light',
+        'Старая тёмная': 'Old dark',
+        'Старая светлая': 'Old light',
         'Сторонняя тема': 'Custom theme',
         'Файл из папки Documents/FgSNotes/themes или добавленный вручную. Быстрое переключение: значок палитры слева': 'A file from Documents/FgSNotes/themes, or one added by hand. Switch quickly with the palette icon on the left',
         'Нет': 'None',

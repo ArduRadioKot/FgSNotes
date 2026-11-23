@@ -35,7 +35,7 @@
     const animated = () => state.animations && !media.motion.matches && mode !== 'low';
 
     // --- configuration ------------------------------------------------------------------------
-    function theme() { return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'; }
+    function theme() { return String(document.documentElement.dataset.theme).endsWith('light') ? 'light' : 'dark'; }
     function recompute() {
         mode = resolveMode();
         config = presets.resolve(state.preset, theme(), state.overrides);
