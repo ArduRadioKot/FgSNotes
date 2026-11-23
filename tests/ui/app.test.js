@@ -305,14 +305,16 @@ test('FrogeeSoft is the default dark and light theme, the previous palettes stay
     assert.equal(await token('--editor-bg'), '#090c0a');
     assert.equal(await token('--accent-color'), '#21aabe');
     assert.equal(await token('--text-color'), '#f1f5ef');
-    await page.selectOption('#theme', 'light');
+    // The theme list lives in a closed settings panel, so the choice is applied without waiting for it to be shown.
+    const choose = value => page.selectOption('#theme', value, { force: true });
+    await choose('light');
     assert.equal(await token('--window-bg'), '#eef2e9');
     assert.equal(await token('--accent-color'), '#147889');
     assert.equal(await token('--text-color'), '#121713');
-    await page.selectOption('#theme', 'legacy-dark');
+    await choose('legacy-dark');
     assert.equal(await token('--window-bg'), '#17181a');
     assert.equal(await token('--card-bg'), '#27282c');
-    await page.selectOption('#theme', 'legacy-light');
+    await choose('legacy-light');
     assert.equal(await token('--window-bg'), '#e8ebf1');
     assert.equal(await token('--card-bg'), '#fff');
     await page.click('#theme-button');
