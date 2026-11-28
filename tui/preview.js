@@ -230,7 +230,9 @@ function renderList(node, width) {
     for (const child of node.children) {
         if (!child || child.tag !== 'li') continue;
         const todo = (child.attrs.class || '') === 'todo-item';
-        const checked = todo && child.children.some(item => item && item.tag === 'input' && Object.prototype.hasOwnProperty.call(item.attrs, 'checked'));
+        // The checkbox sits inside the item's <label>, so it is looked for at any depth.
+        const hasChecked = node => !!node && node.tag !== undefined && ((node.tag === 'input' && Object.prototype.hasOwnProperty.call(node.attrs, 'checked')) || (node.children || []).some(hasChecked));
+        const checked = todo && hasChecked(child);
         const marker = todo ? (checked ? '☑ ' : '☐ ') : ordered ? (number++) + '. ' : '• ';
         const contentWidth = Math.max(4, width - marker.length);
         const pieces = renderItem(child, contentWidth, checked);

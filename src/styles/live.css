@@ -13,7 +13,7 @@ html[data-live] #markdown-editor, html[data-live] .editor-highlight { display: n
 .live-host .cm-content { padding: 0; caret-color: var(--accent-color); -webkit-user-select: text; user-select: text; }
 .live-host .cm-line { --live-pad: 28px; padding: 0 var(--live-pad); }
 .live-host .cm-cursor { border-left: 2px solid var(--accent-color); }
-.live-host .cm-placeholder { color: var(--text-muted); opacity: .7; white-space: pre-wrap; pointer-events: none; }
+.live-host .cm-placeholder { color: var(--text-muted); opacity: 1; white-space: pre-wrap; pointer-events: none; }
 .live-host .cm-selectionBackground, .live-host .cm-focused .cm-selectionBackground { background: var(--selection) !important; }
 .live-host .cm-find { background: color-mix(in srgb, var(--accent-color) 34%, transparent); border-radius: 2px; }
 .live-host .cm-find-current { background: color-mix(in srgb, var(--accent-color) 62%, transparent); border-radius: 2px; }
@@ -31,7 +31,7 @@ html[data-live] #markdown-editor, html[data-live] .editor-highlight { display: n
 /* Quote and code plates follow the text column, not the whole pane: they are drawn behind the line, 12px wider than the text. */
 .live-host :is(.cm-quote, .cm-codeline) { position: relative; isolation: isolate; }
 .live-host :is(.cm-quote, .cm-codeline)::before { content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(var(--live-pad) - 12px); right: calc(var(--live-pad) - 12px); pointer-events: none; }
-.live-host .cm-quote::before { background: color-mix(in srgb, var(--text-color) 5%, transparent); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent-color) 55%, transparent); }
+.live-host .cm-quote::before { background: color-mix(in srgb, var(--text-color) 5%, transparent); }
 .live-host .cm-codeline::before { background: var(--code-bg); }
 .live-host .cm-bullet { display: inline-block; width: 1.1em; color: var(--text-muted); }
 .live-host .cm-listnum { color: var(--text-muted); font-variant-numeric: tabular-nums; }

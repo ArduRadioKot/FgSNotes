@@ -271,6 +271,7 @@
         'Действия': 'Actions',
         'Новая заметка': 'New note',
         'Поиск по заметкам': 'Search notes',
+        'Вернуть все настройки к исходным? Заметки не изменятся.': 'Reset every setting to its default? Your notes stay as they are.',
         'Вышла версия {version}': 'Version {version} is out',
         'У вас версия {version}': 'You have version {version}',
         'Размер загрузки: {size}': 'Download size: {size}',

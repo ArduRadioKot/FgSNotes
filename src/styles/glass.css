@@ -67,12 +67,11 @@
     background: color-mix(in srgb, var(--window-bg) calc(var(--sg-opacity, .78) * 85%), transparent);
 }
 /* No highlights on the dialog itself: no lit rim, no reflections, no inner glow. The same hairline edge as every window. */
-.settings-window.lg { box-shadow: var(--edge); }
+.settings-window.lg { box-shadow: var(--shadow-float); }
 .settings-window.lg::before, .settings-window.lg::after { display: none; }
-[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-nav,
-[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-main {
-    background: color-mix(in srgb, var(--card-bg) calc(var(--sg-opacity, .78) * 100%), transparent);
-}
+[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-nav { background: color-mix(in srgb, var(--card-bg) calc(var(--sg-opacity, .78) * 50%), transparent); }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-main { background: transparent; }
+[data-liquid-glass]:not([data-liquid-glass="off"]) .settings-window .settings-panel.is-active { background: color-mix(in srgb, var(--card-bg) calc(var(--sg-opacity, .78) * 100%), transparent); }
 .setting-control input[type="range"] { width: 150px; accent-color: var(--accent-color); margin: 0; }
 
 @media (prefers-reduced-transparency: reduce) {

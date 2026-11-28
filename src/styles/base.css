@@ -1,24 +1,38 @@
 /* Default palette: FrogeeSoft. Islands sit on the window, hover is a soft fill, accent is for action and focus. */
+/* Built on the theme tokens below, so a third-party theme gets the same surfaces without defining them.
+   Depth, from back to front: window, card (islands, grouped rows), raised (popovers, thumbs). Fills are the text colour
+   at low strength, so they read the same on any surface. Elevation is a soft shadow, never a glow. */
+:root {
+    --raised: color-mix(in srgb, var(--text-color) 5%, var(--card-bg));
+    --fill: color-mix(in srgb, var(--text-color) 8%, transparent);
+    --fill-hover: color-mix(in srgb, var(--text-color) 12%, transparent);
+    --separator: color-mix(in srgb, var(--text-color) 10%, transparent);
+    --thumb: color-mix(in srgb, var(--text-color) 15%, var(--card-bg));
+    --shadow-thumb: 0 0 0 .5px var(--separator), 0 1px 2px rgb(0 0 0 / .28);
+    --shadow-float: 0 0 0 1px var(--separator), 0 2px 6px rgb(0 0 0 / .16), 0 16px 40px rgb(0 0 0 / .34);
+    --ease-out: cubic-bezier(.2, 0, 0, 1);
+}
+/* Default palette: FrogeeSoft. Green-tinted neutrals, one teal accent for action, selection and focus. */
 :root, [data-theme="dark"] {
     color-scheme: dark;
-    --window-bg: #0d120f;
+    --window-bg: #0c110e;
     --bg-color: var(--window-bg);
-    --card-bg: #0d120f;
-    --header-bg: #090c0a;
-    --editor-bg: #090c0a;
+    --card-bg: #131a16;
+    --header-bg: #101612;
+    --editor-bg: #131a16;
     --text-color: #f1f5ef;
-    --text-muted: #98a398;
-    --text-faint: #4b564d;
-    --border-color: #1f2a22;
-    --hover-color: #161d18;
-    --active-bg: #161d18;
-    --accent-color: #21aabe;
-    --accent-text: #061316;
-    --link-color: #21aabe;
-    --code-bg: #090c0a;
+    --text-muted: #9aa59b;
+    --text-faint: #66726a;
+    --border-color: #232d26;
+    --hover-color: #1b231e;
+    --active-bg: #222c25;
+    --accent-color: #2bb5c8;
+    --accent-text: #04191d;
+    --link-color: #2bb5c8;
+    --code-bg: #19211c;
     --shadow-color: #000c;
     --preview-bg: var(--editor-bg);
-    --selection: #21aabe40;
+    --selection: #2bb5c84d;
     --success-color: #7ce36f;
     --warning-color: #e6c07b;
     --danger-color: #ff6e66;
@@ -32,39 +46,39 @@
     --syn-tag: #5fd0df;
     --syn-attr: #c7e3a7;
     --syn-annotation: #e6a07b;
-    --syn-heading: #21aabe;
+    --syn-heading: #2bb5c8;
     --syn-mark: #4b564d;
     --radius-xs: 4px;
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
     --radius-xl: 16px;
-    /* Windows over the app: one dimmer behind them, one hairline edge around them (no blurred shadows), radius-xl. */
-    --overlay: rgb(0 0 0 / .55);
-    --edge: inset 0 0 0 1px var(--border-color);
+    --overlay: rgb(0 0 0 / .5);
+    --edge: var(--shadow-float);
     --gap: 4px;
-    --ui-font: Inter, 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --mono-font: 'JetBrains Mono', 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    /* The system face first: SF on Apple devices, Segoe on Windows. */
+    --ui-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Inter, system-ui, sans-serif;
+    --mono-font: 'SF Mono', SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
 }
 [data-theme="light"] {
     color-scheme: light;
-    --window-bg: #eef2e9;
-    --card-bg: #eef2e9;
-    --header-bg: #f8faf4;
-    --editor-bg: #f8faf4;
+    --window-bg: #eef1ea;
+    --card-bg: #fbfcf9;
+    --header-bg: #f6f8f3;
+    --editor-bg: #fbfcf9;
     --text-color: #121713;
-    --text-muted: #4f5a50;
-    --text-faint: #9aa69b;
-    --border-color: #d6ded3;
-    --hover-color: #e4eade;
-    --active-bg: #e4eade;
-    --accent-color: #147889;
+    --text-muted: #556058;
+    --text-faint: #8c978e;
+    --border-color: #dde3d8;
+    --hover-color: #e7ece2;
+    --active-bg: #dfe5d9;
+    --accent-color: #127587;
     --accent-text: #ffffff;
-    --link-color: #147889;
-    --code-bg: #f8faf4;
+    --link-color: #127587;
+    --code-bg: #f0f3ec;
     --shadow-color: #12171322;
     --preview-bg: var(--editor-bg);
-    --selection: #14788930;
+    --selection: #1275872e;
     --success-color: #2e8a3c;
     --warning-color: #a35f00;
     --danger-color: #e8482c;
@@ -78,8 +92,12 @@
     --syn-tag: #0f6a7a;
     --syn-attr: #3f6b1f;
     --syn-annotation: #a3501f;
-    --syn-heading: #147889;
+    --syn-heading: #127587;
     --syn-mark: #9aa69b;
+    --thumb: #ffffff;
+    --overlay: rgb(20 28 22 / .28);
+    --shadow-thumb: 0 0 0 .5px rgb(0 0 0 / .06), 0 1px 3px rgb(0 0 0 / .12);
+    --shadow-float: 0 0 0 1px rgb(0 0 0 / .06), 0 2px 6px rgb(0 0 0 / .06), 0 16px 40px rgb(20 28 22 / .16);
 }
 /* The previous default palettes. They stay in the theme menu, they are no longer the starting look. */
 [data-theme="legacy-dark"] {
@@ -155,7 +173,7 @@
 
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { background: var(--window-bg); color: var(--text-color); font: 13px/1.5 var(--ui-font); -webkit-font-smoothing: antialiased; }
+body { background: var(--window-bg); color: var(--text-color); font: 13px/1.5 var(--ui-font); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 button, select { font: inherit; }
 button { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; color: inherit; -webkit-tap-highlight-color: transparent; }
 button:disabled { opacity: .35; cursor: default; }
@@ -172,17 +190,23 @@ button:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 
 .logo-icon { display: block; width: 28px; height: 22px; object-fit: contain; }
 .sidebar-main-buttons, .sidebar-bottom-buttons { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .sidebar-bottom-buttons { margin-top: auto; }
-.sidebar-toolbar .sidebar-button { width: 36px; height: 36px; border-radius: var(--radius-lg); }
+.sidebar-toolbar .sidebar-button { width: 36px; height: 36px; border-radius: 10px; }
 .sidebar-button .icon { width: 20px; height: 20px; }
 
 /* Controls: every clickable surface uses the same hover fill, radius and focus ring */
 .icon-button, .tool-button { width: 28px; height: 28px; flex-shrink: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-muted); padding: 0; }
-.icon-button:hover, .tool-button:hover { color: var(--text-color); background: var(--hover-color); }
-.button-primary, .button-secondary { min-height: 30px; padding: 4px 16px; border-radius: var(--radius-md); font-weight: 500; font-size: 13px; white-space: nowrap; }
-.button-primary { background: var(--accent-color); color: var(--accent-text); border: 1px solid transparent; }
-.button-primary:hover { background: color-mix(in srgb, var(--accent-color) 86%, #fff); }
-.button-secondary { background: transparent; border: 1px solid var(--border-color); }
-.button-secondary:hover { background: var(--hover-color); }
+@media (hover: hover) { .icon-button:hover, .tool-button:hover { color: var(--text-color); background: var(--fill); } }
+/* Buttons as on macOS: the one main action is filled with the accent, the rest are a quiet grey fill. */
+.button-primary, .button-secondary { min-height: 30px; padding: 4px 14px; border: 1px solid transparent; border-radius: var(--radius-md); font-weight: 500; font-size: 13px; white-space: nowrap; }
+.button-primary { background: var(--accent-color); color: var(--accent-text); }
+.button-secondary { background: var(--fill); color: var(--text-color); }
+@media (hover: hover) {
+    .button-primary:hover { background: color-mix(in srgb, var(--accent-color) 88%, var(--text-color)); }
+    .button-secondary:hover { background: var(--fill-hover); }
+}
+/* A press answers at once: the control sinks a little. */
+:is(.button-primary, .button-secondary, .icon-button, .tool-button, .sidebar-button) { transition: scale .15s var(--ease-out); }
+:is(.button-primary, .button-secondary, .icon-button, .tool-button, .sidebar-button):not(:disabled):active { scale: .96; }
 
 /* Tab row sits on the window, like the status bar. Only the open tab and the mode switch carry a surface. */
 .document-bar { gap: 8px; padding: 0 4px; display: flex; align-items: center; min-width: 0; flex-shrink: 0; height: 40px; background: transparent; }
@@ -195,25 +219,25 @@ button:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 
 .tab-item.is-drop-before::before, .tab-item.is-drop-after::after { content: ''; position: absolute; top: 5px; bottom: 5px; width: 2px; border-radius: 1px; background: var(--accent-color); pointer-events: none; }
 .tab-item.is-drop-before::before { left: -2px; }
 .tab-item.is-drop-after::after { right: -2px; }
-.tab-item:hover { background: var(--hover-color); color: var(--text-color); }
-.tab-item.active { background: var(--card-bg); color: var(--text-color); }
+@media (hover: hover) { .tab-item:hover { background: var(--fill); color: var(--text-color); } }
+.tab-item.active { background: var(--card-bg); color: var(--text-color); box-shadow: var(--shadow-thumb); }
 .tab-select { height: 100%; min-width: 0; padding: 0 4px 0 10px; background: transparent; font-size: 13px; }
 .tab-select .icon { width: 16px; height: 16px; color: var(--text-muted); }
 .tab-title { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .close-tab { width: 20px; height: 20px; margin-right: 5px; background: transparent; color: var(--text-muted); border-radius: var(--radius-sm); padding: 4px; cursor: pointer; }
 .close-tab .icon { width: 12px; height: 12px; }
-.close-tab:hover { background: var(--border-color); color: var(--text-color); }
+.close-tab:hover { background: var(--fill-hover); color: var(--text-color); }
 .close-tab:disabled { visibility: hidden; }
 .new-tab-button { align-self: center; margin: 0 2px; }
-.view-switch { display: flex; align-items: center; flex-shrink: 0; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--card-bg); }
+.view-switch { display: flex; align-items: center; flex-shrink: 0; gap: 2px; padding: 2px; border-radius: var(--radius-md); background: var(--fill); }
 .view-switch button { height: 26px; background: transparent; border-radius: var(--radius-sm); color: var(--text-muted); padding: 0 10px; font-size: 12px; white-space: nowrap; gap: 6px; }
 .view-switch .icon { width: 14px; height: 14px; }
-.view-switch button:hover { color: var(--text-color); background: var(--hover-color); }
+@media (hover: hover) { .view-switch button:hover { color: var(--text-color); } }
 .view-switch button[aria-pressed="true"] { color: var(--text-color); background: transparent; }
 .view-switch { position: relative; }
 .view-switch button { position: relative; z-index: 1; }
 /* Sliding highlight behind the active mode (positioned by editor.js, animated on switches). */
-.view-glass { position: absolute; z-index: 0; left: 0; top: 0; width: 0; height: 0; border-radius: var(--radius-sm); pointer-events: none; background: var(--active-bg); }
+.view-glass { position: absolute; z-index: 0; left: 0; top: 0; width: 0; height: 0; border-radius: var(--radius-sm); pointer-events: none; background: var(--thumb); box-shadow: var(--shadow-thumb); }
 
 /* Islands: editor and preview */
 .editor-wrapper { display: flex; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
@@ -226,7 +250,11 @@ button:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 
 .editor-column:focus-within .editor-label { color: var(--text-color); }
 .panel-hint { margin-left: auto; display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 11px; white-space: nowrap; }
 #markdown-editor { display: block; width: 100%; min-height: 0; flex: 1; margin: 0; padding: 4px 24px 96px; resize: none; border: 0; outline: 0; background: transparent; color: var(--text-color); font: 13px/1.6 var(--mono-font); overflow: auto; caret-color: var(--text-color); tab-size: 4; }
-#markdown-editor::placeholder { color: var(--text-muted); opacity: .7; }
+#markdown-editor::placeholder { color: var(--text-muted); opacity: 1; }
+/* Placeholders show the format a field expects, so they keep the secondary text's contrast. */
+input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
+/* A theme change recolours everything in one frame (settings.js adds the class for two frames). */
+.theme-switching, .theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
 .panel-divider { position: relative; flex: 0 0 var(--gap); cursor: col-resize; touch-action: none; z-index: 2; background: transparent; }
 .panel-divider::before { content: ''; position: absolute; top: 12px; bottom: 12px; left: 50%; width: 2px; margin-left: -1px; border-radius: 2px; background: transparent; transition: background-color .15s; }
 .panel-divider::after { content: ''; position: absolute; top: 0; bottom: 0; left: -4px; right: -4px; }
@@ -236,16 +264,16 @@ body.resizing { cursor: col-resize; user-select: none; }
 
 /* Floating formatting toolbar */
 .tools-dock { position: absolute; left: 0; right: 0; bottom: 36px; z-index: 10; display: flex; justify-content: center; padding: 0 16px; pointer-events: none; }
-.editor-tools { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 4px; max-width: 100%; overflow-x: auto; min-width: 0; scrollbar-width: none; background: var(--header-bg); border: 1px solid var(--border-color); border-radius: var(--radius-xl); box-shadow: 0 8px 24px var(--shadow-color); }
+.editor-tools { pointer-events: auto; display: flex; align-items: center; gap: 4px; padding: 4px; max-width: 100%; overflow-x: auto; min-width: 0; scrollbar-width: none; background: var(--raised); border: 1px solid transparent; border-radius: var(--radius-lg); box-shadow: var(--shadow-float); }
 .editor-tools::-webkit-scrollbar { display: none; }
 .tool-group { display: flex; flex-shrink: 0; align-items: center; gap: 1px; padding: 0 4px; }
-.tool-group + .tool-group { border-left: 1px solid var(--border-color); padding-left: 8px; }
+.tool-group + .tool-group { border-left: 1px solid var(--separator); padding-left: 8px; }
 
 /* Status bar sits on the window background, outside the islands */
-.status-bar { height: 24px; flex-shrink: 0; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 12px; }
+.status-bar { height: 24px; flex-shrink: 0; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 12px; }
 .status-group { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
 .save-state { display: flex; align-items: center; gap: 6px; }
-.status-divider { width: 1px; height: 12px; background: var(--border-color); }
+.status-divider { width: 1px; height: 12px; background: var(--separator); }
 
 /* Preview content */
 .preview-content { flex: 1; min-height: 0; overflow: auto; padding: 8px clamp(20px, 3vw, 48px) 96px; color: var(--text-color); line-height: 1.7; overflow-wrap: anywhere; font-size: 14px; }
@@ -276,6 +304,7 @@ body.resizing { cursor: col-resize; user-select: none; }
 .todo-item input:not(:disabled) { cursor: pointer; }
 .todo-item input:disabled { opacity: 1; }
 [data-toc="off"] .preview-content .table-of-contents { display: none; }
+.todo-item label { display: inline-flex; align-items: baseline; cursor: pointer; }
 .todo-item input:checked + span { text-decoration: line-through; color: var(--text-muted); }
 .table-of-contents { padding: 10px 20px; background: var(--code-bg); border-radius: var(--radius-lg); }
 .table-of-contents .toc-list { list-style: none; padding: 0; }

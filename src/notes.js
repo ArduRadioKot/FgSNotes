@@ -248,7 +248,7 @@
         let section = 'notes', sort = 'manual', tag = '', pending = null;
         const selected = { notes: null, trash: null }, queries = { notes: '', trash: '' };
         try { if (localStorage.getItem(SORT_KEY) === 'recent') sort = 'recent'; } catch { /* the default order */ }
-        const navItem = (id, name) => `<button type="button" class="settings-nav-item nl-nav" role="tab" data-section="${id}"><span>${name}</span><i class="nl-count" data-i18n-skip></i></button>`;
+        const navItem = (id, name) => `<button type="button" class="settings-nav-item nl-nav" role="tab" data-section="${id}">${icon(id === 'trash' ? 'trash' : 'documents')}<span>${name}</span><i class="nl-count" data-i18n-skip></i></button>`;
         content.innerHTML = `
             <nav class="settings-nav" aria-label="Заметки">
                 <div class="settings-nav-header">Заметки</div>

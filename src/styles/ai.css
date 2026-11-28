@@ -290,7 +290,7 @@
 /* ===== One shape system, no glows =====
    Radii: 12 for panes and menus, 16 for dialogs, 20 for cards on a phone, 28 for sheets, full for pills and round buttons.
    Depth comes from a one-pixel edge, never from a blurred shadow. */
-.editor-tools, .theme-menu, .model-menu, .ai-panel { box-shadow: var(--edge); }
+.editor-tools, .theme-menu, .model-menu { box-shadow: var(--shadow-float); }
 .ai-attach .ai-think-toggle.is-on { box-shadow: none; }
 
 /* the chat's own picture: no tile behind it, and larger */

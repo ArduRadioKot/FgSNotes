@@ -127,7 +127,7 @@ function applySettings(settings) {
     
     const fontFamilyMap = {
         system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        mono: '"Consolas", "Monaco", monospace',
+        mono: 'var(--mono-font)',
         serif: 'Georgia, "Times New Roman", serif',
         sans: 'Arial, Helvetica, sans-serif'
     };
@@ -177,7 +177,7 @@ function applySettings(settings) {
     const tasks = settings['todo-list'] === 'off' ? 'off' : 'on';
     if (document.documentElement.dataset.tasks !== tasks) {
         document.documentElement.dataset.tasks = tasks;
-        preview.querySelectorAll('.todo-item > input[type="checkbox"]').forEach((box, index) => {
+        preview.querySelectorAll('.todo-item input[type="checkbox"]').forEach((box, index) => {
             box.disabled = tasks === 'off';
             if (tasks === 'on') box.dataset.task = String(index); else delete box.dataset.task;
         });
@@ -235,6 +235,11 @@ function applySettings(settings) {
     editor.wrap = settings['word-wrap'] === 'on' ? 'soft' : 'off';
 
     const theme = ['dark', 'light', 'legacy-dark', 'legacy-light'].includes(settings['theme']) ? settings['theme'] : 'dark';
+    // Every colour changes at once: with transitions on, each control would fade on its own and the switch would smear.
+    if (document.documentElement.dataset.theme !== theme) {
+        document.documentElement.classList.add('theme-switching');
+        requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('theme-switching')));
+    }
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('theme', theme);
     applyAccent(settings['accent'], theme);
@@ -269,6 +274,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resetSettingsButton = document.getElementById('reset-settings');
     const panelTitle = document.getElementById('settings-panel-title');
     const navItems = [...document.querySelectorAll('.settings-nav-item')];
+    // Every section carries a small icon tile, as in System Settings.
+    const SECTION_ICONS = { appearance: 'palette', editor: 'edit', preview: 'eye', plugins: 'code', sync: 'refresh', mcp: 'link', shortcuts: 'check-square', ai: 'sparkles', about: 'info' };
+    navItems.forEach(item => { if (!item.querySelector('.icon')) item.insertAdjacentHTML('afterbegin', icon(SECTION_ICONS[item.dataset.settingsSection] || 'settings')); });
+    // The section list is a tablist: arrow keys, Home and End move between sections and open them.
+    document.querySelector('#settings-modal .settings-nav-list').addEventListener('keydown', event => {
+        const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+        if (!step && event.key !== 'Home' && event.key !== 'End') return;
+        const shown = navItems.filter(item => item.offsetParent !== null);
+        const at = shown.indexOf(document.activeElement);
+        if (at < 0) return;
+        event.preventDefault();
+        const next = event.key === 'Home' ? shown[0] : event.key === 'End' ? shown.at(-1) : shown[(at + step + shown.length) % shown.length];
+        next.click();
+        next.focus();
+    });
     const panels = [...document.querySelectorAll('.settings-panel')];
 
     let currentSettings;
@@ -319,6 +339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isActive = item === activeNav;
             item.classList.toggle('is-active', isActive);
             item.setAttribute('aria-selected', String(isActive));
+            item.tabIndex = isActive ? 0 : -1;          // one stop in the tab order; arrows move inside the list
         });
 
         panels.forEach(panel => {
@@ -527,14 +548,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    resetSettingsButton.addEventListener('click', () => {
-        currentSettings = { ...defaultSettings };
-        syncControlsFromSettings(currentSettings);
-        applySettings(currentSettings);
-        saveSettings(currentSettings);
+    // Resetting throws away every choice at once, so it asks first, right where the button was.
+    const resetConfirm = document.createElement('div');
+    resetConfirm.className = 'settings-reset-confirm';
+    resetConfirm.hidden = true;
+    resetConfirm.setAttribute('role', 'group');
+    resetConfirm.innerHTML = '<p id="reset-confirm-text" data-i18n-skip></p><div class="settings-reset-actions"><button type="button" class="button-secondary" data-reset="cancel" data-i18n-skip></button><button type="button" class="settings-reset-go" data-reset="go" data-i18n-skip></button></div>';
+    resetConfirm.setAttribute('aria-labelledby', 'reset-confirm-text');
+    resetSettingsButton.after(resetConfirm);
+    const showResetConfirm = open => {
+        resetSettingsButton.hidden = open;
+        resetConfirm.hidden = !open;
+        if (open) {
+            resetConfirm.querySelector('p').textContent = t('Вернуть все настройки к исходным? Заметки не изменятся.');
+            resetConfirm.querySelector('[data-reset="cancel"]').textContent = t('Отмена');
+            resetConfirm.querySelector('[data-reset="go"]').textContent = t('Сбросить настройки');
+            resetConfirm.querySelector('[data-reset="cancel"]').focus();
+        } else resetSettingsButton.focus();
+    };
+    resetSettingsButton.addEventListener('click', () => showResetConfirm(true));
+    resetConfirm.addEventListener('click', event => {
+        const act = event.target.closest('[data-reset]')?.dataset.reset;
+        if (!act) return;
+        if (act === 'go') {
+            currentSettings = { ...defaultSettings };
+            syncControlsFromSettings(currentSettings);
+            applySettings(currentSettings);
+            saveSettings(currentSettings);
+        }
+        showResetConfirm(false);
     });
 
     function closeSettings() {
+        resetConfirm.hidden = true;                 // a half-made reset never waits for the next visit
+        resetSettingsButton.hidden = false;
         settingsModal.classList.remove('show');
         document.querySelector('.workspace').inert = false;
         settingsButton.focus();
@@ -547,8 +594,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         if (event.key !== 'Tab') return;
-        const controls = [...settingsModal.querySelectorAll('button, select, .setting-toggle input')]
-            .filter(element => !element.disabled && element.offsetParent !== null);
+        const controls = [...settingsModal.querySelectorAll('button, select, input, textarea')]
+            .filter(element => !element.disabled && element.tabIndex >= 0 && element.offsetParent !== null);
         const first = controls[0];
         const last = controls.at(-1);
         if (!first || !last) return;

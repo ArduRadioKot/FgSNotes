@@ -103,7 +103,7 @@ function parseMarkdown(source) {
                     const nested = [];
                     while (i < input.length && input[i].trim() && /^\s+/.test(input[i]) && input[i].match(/^\s*/)[0].length > baseIndent) nested.push(input[i++].slice(baseIndent + 2));
                     if (nested.length) content += blocks(nested);
-                    items.push(`<li${task ? ' class="todo-item"' : ''}>${content}</li>`);
+                    items.push(task ? `<li class="todo-item"><label>${content}</label></li>` : `<li>${content}</li>`);
                 }
                 result.push(`<${tag}${ordered ? ` start="${parseInt(list[2], 10)}"` : ''}>${items.join('')}</${tag}>`);
                 continue;

@@ -6,7 +6,7 @@
 /* Computer: notes and trash in the settings window shape. */
 .notes-window .nl-nav { display: flex; align-items: center; gap: 8px; }
 .notes-window .nl-nav .nl-count { margin-left: auto; }
-.notes-window .nl-nav.is-active .nl-count { background: color-mix(in srgb, var(--text-color) 12%, transparent); color: var(--text-color); }
+.notes-window .nl-nav.is-active .nl-count { background: var(--fill-hover); color: var(--text-color); }
 .nl-nav-note { flex: none; margin: 0; padding: 8px 12px 4px; color: var(--text-muted); font-size: 12px; line-height: 1.4; }
 .nl-lib { padding: 4px 24px 24px; }
 .nl-lib-tools { flex: none; display: flex; align-items: center; gap: 8px; }

@@ -1,7 +1,7 @@
 /* ===== Phone shell (mobile.js): a title bar, the note on the window itself, a floating glass dock, a notes drawer and
    an actions sheet. Shapes: full for pills and round buttons, 20 for groups, 28 for the drawer and the sheet.
    Depth is a half-pixel edge, never a blurred shadow. ===== */
-.m-header, .m-drawer, .m-backdrop, .m-sheet, .m-sheet-backdrop, .m-hidden-action, .m-set-back, .m-set-close, .settings-nav-item > .icon { display: none; }
+.m-header, .m-drawer, .m-backdrop, .m-sheet, .m-sheet-backdrop, .m-hidden-action, .m-set-back, .m-set-close { display: none; }
 /* Touch shell: a phone, or a tablet that only has a finger. A mouse window keeps the desktop layout. */
 @media (max-width: 720px), ((hover: none) and (pointer: coarse)) {
     :root { --m-gap: 6px; --m-radius: 20px; --m-sheet: 28px; --m-open: 0; --m-edge: inset 0 0 0 .5px rgb(255 255 255 / .14); --m-ease: cubic-bezier(.2, .9, .3, 1); }
@@ -22,7 +22,7 @@
     .m-icon .icon { width: 22px; height: 22px; }
     .m-icon:active { background: var(--hover-color); transform: scale(.92); }
     .m-heading { display: grid; justify-items: center; min-width: 0; line-height: 1.2; }
-    .m-title { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
+    .m-title { margin: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
     .m-sub { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
     /* the note is the page: no island behind it. --m-font follows a pinch (mobile.js) */
@@ -126,7 +126,7 @@
     .m-set-back, .m-set-close { display: inline-flex; margin: 0; }
     .m-set-back .icon { transform: rotate(180deg); }
 
-    .settings-nav { flex: 1; min-height: 0; width: auto; gap: 12px; padding: 0 6px calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; border-radius: 0; background: transparent; }
+    .settings-nav { flex: 1; min-height: 0; width: auto; gap: 12px; padding: 0 6px calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; border-radius: 0; border-right: 0; background: transparent; }
     .settings-nav-header { flex: none; display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 0 2px 10px; font-size: 28px; font-weight: 700; letter-spacing: -.03em; }
     .settings-nav-list, .settings-nav-reset { flex: none; overflow: hidden; border-radius: var(--m-radius); background: var(--card-bg); }
     .settings-nav-list { gap: 0; }
@@ -136,10 +136,14 @@
     .settings-nav-item.is-active { background: transparent; color: var(--text-color); }
     .settings-nav-item:hover,
     :is(.settings-nav-item, .settings-nav-reset):active { background: var(--hover-color); }
-    .settings-nav-item > .icon { display: block; flex: none; width: 22px; height: 22px; color: var(--text-muted); }
-    .settings-nav-item.is-active > .icon { color: var(--accent-color); }
+    /* the same icon tiles as on a computer, a size up; the list is a menu here, so nothing stays selected */
+    .settings-nav-item > .icon, .settings-nav-item.is-active > .icon { width: 20px; height: 20px; color: var(--text-muted); }
+    .settings-nav-item.is-active { font-weight: 400; }
+    .settings-reset-confirm { margin: 0; padding: 14px 16px; border-radius: var(--m-radius); background: var(--card-bg); }
+    .settings-reset-confirm p { font-size: 15px; }
+    .settings-reset-actions button { min-height: 44px; font-size: 15px; }
     .settings-nav-item::after { content: ''; position: absolute; right: 18px; top: 50%; width: 7px; height: 7px; margin-top: -4px; border: solid var(--text-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); opacity: .7; }
-    .settings-nav-item:not([hidden]) ~ .settings-nav-item::before { content: ''; position: absolute; top: 0; left: 52px; right: 0; height: 1px; background: var(--border-color); }
+    .settings-nav-item:not([hidden]) ~ .settings-nav-item::before { content: ''; position: absolute; top: 0; left: 50px; right: 0; height: 1px; background: var(--separator); }
     .settings-nav-item:is(:hover, :active)::before,
     .settings-nav-item:is(:hover, :active) + .settings-nav-item::before { opacity: 0; }
     @media (hover: none) {
@@ -157,7 +161,7 @@
     .settings-main-header .close-modal { width: 44px; height: 44px; border-radius: 50%; color: var(--text-color); background: color-mix(in srgb, var(--card-bg) 90%, transparent); box-shadow: inset 0 0 0 .5px var(--border-color); }
     .settings-main-header .close-modal .icon { width: 18px; height: 18px; }
     .settings-main-body { padding: 4px 6px calc(24px + env(safe-area-inset-bottom)); }
-    .settings-panel.is-active { padding: 2px 16px; border-radius: var(--m-radius); background: var(--card-bg); }
+    .settings-panel.is-active { padding: 2px 16px; border-radius: var(--m-radius); background: var(--card-bg); box-shadow: none; }
     .setting-item { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 0; }
     .setting-name { font-size: 16px; }
     .setting-desc { font-size: 13px; }

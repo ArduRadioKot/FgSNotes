@@ -69,7 +69,7 @@
         const menuButton = el('button', 'm-icon', icon('menu'));
         menuButton.type = 'button';
         menuButton.setAttribute('aria-label', 'Документы');
-        const heading = el('div', 'm-heading', '<strong class="m-title" data-i18n-skip></strong><span class="m-sub" data-i18n-skip></span>');
+        const heading = el('div', 'm-heading', '<h1 class="m-title" data-i18n-skip></h1><span class="m-sub" data-i18n-skip></span>');
         const title = heading.querySelector('.m-title'), sub = heading.querySelector('.m-sub');
         const moreButton = el('button', 'm-icon', icon('more'));
         moreButton.type = 'button';
@@ -225,8 +225,6 @@
 
         // --- settings: a page of sections first, then one section at a time ---------------------
         const settingsWindow = $('.settings-window'), closeSettings = $('.close-modal');
-        const SECTION_ICONS = { appearance: 'palette', editor: 'edit', preview: 'eye', plugins: 'code', sync: 'refresh', mcp: 'link', shortcuts: 'check-square', ai: 'sparkles', about: 'info' };
-        settingsWindow.querySelectorAll('.settings-nav-item').forEach(item => item.insertAdjacentHTML('afterbegin', icon(SECTION_ICONS[item.dataset.settingsSection] || 'settings')));
         const setPage = page => { settingsWindow.dataset.mPage = page; };
         const backButton = el('button', 'm-icon m-set-back', icon('chevron'));
         backButton.type = 'button';
